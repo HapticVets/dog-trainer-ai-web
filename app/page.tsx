@@ -1,3 +1,5 @@
+const UPGRADE_URL = "https://www.patreon.com/c/dogtrainerai/membership";
+
 export default function Home() {
   return (
     <div className="min-h-screen bg-slate-950 text-white">
@@ -18,10 +20,12 @@ export default function Home() {
           </a>
 
           <a
-            href="#pricing"
+            href={UPGRADE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
             className="rounded-xl border border-white/20 px-6 py-3"
           >
-            View Pricing
+            Upgrade to Premium
           </a>
         </div>
       </section>
@@ -79,7 +83,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="pricing" className="border-t border-white/10 px-6 py-16 text-center">
+      <section className="border-t border-white/10 px-6 py-16 text-center">
         <h2 className="mb-10 text-3xl font-semibold">Pricing</h2>
 
         <div className="mx-auto grid max-w-4xl gap-6 md:grid-cols-2">
@@ -105,9 +109,14 @@ export default function Home() {
               <li>Behavior + AKC support</li>
             </ul>
 
-            <button className="mt-6 rounded-xl bg-cyan-400 px-5 py-3 font-semibold text-black">
+            <a
+              href={UPGRADE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-6 inline-block rounded-xl bg-cyan-400 px-5 py-3 font-semibold text-black"
+            >
               Upgrade to Premium
-            </button>
+            </a>
           </div>
         </div>
       </section>
