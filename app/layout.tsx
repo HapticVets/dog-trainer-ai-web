@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     siteName: "Patriot K9 Command",
     images: [
       {
-        url: "https://train.hapticvets.com/og-image.png",
+        url: "https://train.hapticvets.com/patriot-k9-embed.jpg",
         width: 1200,
         height: 630,
         alt: "Patriot K9 Command",
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     title: "Patriot K9 Command",
     description:
       "Structured dog training system built for real results.",
-    images: ["https://train.hapticvets.com/og-image.png"],
+    images: ["https://train.hapticvets.com/patriot-k9-embed.jpg"],
   },
 };
 
