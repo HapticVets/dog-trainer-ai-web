@@ -139,7 +139,7 @@ export default function TrainPage() {
         ...updatedMessages,
         {
           role: "assistant",
-          content: "There was an error connecting to Dog Trainer AI.",
+          content: "There was an error connecting to Patriot K9 Command.",
         },
       ]);
     } finally {
@@ -203,53 +203,106 @@ export default function TrainPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
-      <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-6 py-8">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Train Your Dog</h1>
+    <div className="min-h-screen bg-[#0b0f17] text-white">
+      <nav className="border-b border-white/10 bg-black/20 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
+          <div className="flex items-center gap-3">
+            <img
+              src="/logo.png"
+              alt="Patriot K9 Command"
+              className="h-10 w-10 object-contain"
+            />
+            <div>
+              <div className="text-lg font-bold tracking-tight">Patriot K9 Command</div>
+              <div className="text-xs text-slate-400">Structured training system</div>
+            </div>
+          </div>
 
-          <div className="flex gap-3">
+          <div className="flex items-center gap-3">
+            <a
+              href="/"
+              className="rounded-lg border border-white/10 px-4 py-2 text-sm text-slate-200 hover:bg-white/5"
+            >
+              Home
+            </a>
             <button
               onClick={handleClearAll}
-              className="rounded-xl border border-white/15 px-4 py-2 text-sm text-slate-200"
+              className="rounded-lg border border-white/10 px-4 py-2 text-sm text-slate-200 hover:bg-white/5"
             >
               Reset
             </button>
-
             <a
               href={UPGRADE_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-xl bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950"
+              className="rounded-lg bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950 hover:brightness-110"
             >
               Upgrade
             </a>
           </div>
         </div>
+      </nav>
 
-        {!freeLimitReached && (
-          <div className="mb-6 rounded-xl bg-cyan-400/10 px-4 py-3 text-sm">
-            Free messages left: {freeMessagesLeft}
+      <div className="mx-auto max-w-7xl px-6 py-8">
+        <div className="mb-8 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+            <div className="text-sm uppercase tracking-[0.2em] text-cyan-300">
+              Training Interface
+            </div>
+            <h1 className="mt-3 text-4xl font-bold tracking-tight">
+              Build control through structure.
+            </h1>
+            <p className="mt-3 max-w-2xl text-slate-400">
+              Ask a question, run the plan, log the result, then adjust the next step.
+              This is built for behavior work, obedience, and competition progression.
+            </p>
           </div>
-        )}
 
-        {freeLimitReached && (
-          <div className="mb-6 rounded-xl bg-red-500/10 px-4 py-3 text-sm">
-            🔒 Free limit reached — Upgrade to continue
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+            <div className="text-sm uppercase tracking-[0.2em] text-cyan-300">
+              Access Status
+            </div>
+            {!freeLimitReached ? (
+              <>
+                <div className="mt-3 text-3xl font-bold">{freeMessagesLeft}</div>
+                <div className="mt-1 text-slate-400">free coaching messages left</div>
+              </>
+            ) : (
+              <>
+                <div className="mt-3 text-2xl font-bold text-red-300">Free limit reached</div>
+                <div className="mt-1 text-slate-400">
+                  Upgrade to continue training and unlock progress tracking.
+                </div>
+              </>
+            )}
+
+            <a
+              href={UPGRADE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-5 inline-block rounded-xl bg-cyan-400 px-4 py-3 font-semibold text-slate-950 hover:brightness-110"
+            >
+              Unlock Full Access
+            </a>
           </div>
-        )}
+        </div>
 
-        <div className="grid flex-1 gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
+        <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)_360px]">
           <aside className="rounded-2xl border border-white/10 bg-white/5 p-5">
-            <h2 className="text-lg font-semibold">Dog Profile</h2>
+            <div className="mb-5">
+              <h2 className="text-lg font-semibold">Dog Profile</h2>
+              <p className="mt-1 text-sm text-slate-400">
+                Set the working context before you train.
+              </p>
+            </div>
 
-            <div className="mt-5 space-y-4">
+            <div className="space-y-4">
               <div>
                 <label className="mb-1 block text-sm text-slate-300">Dog Name</label>
                 <input
                   value={dogName}
                   onChange={(e) => setDogName(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-white outline-none"
+                  className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-white outline-none placeholder:text-slate-500"
                   placeholder="Ollie"
                 />
               </div>
@@ -259,7 +312,7 @@ export default function TrainPage() {
                 <select
                   value={goalType}
                   onChange={(e) => setGoalType(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-white outline-none"
+                  className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-white outline-none"
                 >
                   <option value="">Select goal type</option>
                   <option value="Behavior problem">Behavior problem</option>
@@ -275,7 +328,7 @@ export default function TrainPage() {
                 <input
                   value={mainGoal}
                   onChange={(e) => setMainGoal(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-white outline-none"
+                  className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-white outline-none placeholder:text-slate-500"
                   placeholder="Competition heel"
                 />
               </div>
@@ -285,7 +338,7 @@ export default function TrainPage() {
                 <input
                   value={rewardType}
                   onChange={(e) => setRewardType(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-white outline-none"
+                  className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-white outline-none placeholder:text-slate-500"
                   placeholder="Ball, food, tug, praise"
                 />
               </div>
@@ -295,7 +348,7 @@ export default function TrainPage() {
                 <select
                   value={skillLevel}
                   onChange={(e) => setSkillLevel(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-white outline-none"
+                  className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-white outline-none"
                 >
                   <option value="">Select level</option>
                   <option value="beginner">Beginner</option>
@@ -306,13 +359,18 @@ export default function TrainPage() {
             </div>
 
             <div className="mt-8 border-t border-white/10 pt-6">
-              <h3 className="text-base font-semibold">Log Session</h3>
+              <div className="mb-3">
+                <h3 className="text-base font-semibold">Session Log</h3>
+                <p className="mt-1 text-sm text-slate-400">
+                  Premium feature for tracking work across sessions.
+                </p>
+              </div>
 
               <textarea
                 value={sessionNote}
                 onChange={(e) => setSessionNote(e.target.value)}
                 placeholder="Example: Ollie held heel for 8 steps but broke when he saw the ball."
-                className="mt-3 min-h-[120px] w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-sm text-white outline-none placeholder:text-slate-500"
+                className="min-h-[140px] w-full rounded-xl border border-white/10 bg-black/30 px-3 py-3 text-sm text-white outline-none placeholder:text-slate-500"
               />
 
               <button
@@ -331,125 +389,125 @@ export default function TrainPage() {
             </div>
           </aside>
 
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-            <section className="flex min-h-[70vh] flex-col rounded-2xl border border-white/10 bg-white/5">
-              <div className="border-b border-white/10 px-5 py-4">
-                <h2 className="text-lg font-semibold">Dog Trainer AI</h2>
+          <section className="flex min-h-[72vh] flex-col rounded-2xl border border-white/10 bg-white/5">
+            <div className="border-b border-white/10 px-5 py-4">
+              <div className="text-sm uppercase tracking-[0.2em] text-cyan-300">
+                Command Interface
               </div>
+              <h2 className="mt-2 text-lg font-semibold">Live Training Coach</h2>
+            </div>
 
-              <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
-                {messages.map((message, index) => (
-                  <div
-                    key={index}
-                    className={`max-w-3xl rounded-2xl p-4 text-sm leading-7 whitespace-pre-wrap ${
-                      message.role === "user"
-                        ? "ml-auto bg-cyan-400 text-slate-950"
-                        : "bg-slate-900 text-slate-100"
-                    }`}
-                  >
-                    {message.content}
-                  </div>
-                ))}
+            <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
+              {messages.map((message, index) => (
+                <div
+                  key={index}
+                  className={`max-w-3xl rounded-2xl p-4 text-sm leading-7 whitespace-pre-wrap ${
+                    message.role === "user"
+                      ? "ml-auto bg-cyan-400 text-slate-950"
+                      : "bg-slate-900 text-slate-100"
+                  }`}
+                >
+                  {message.content}
+                </div>
+              ))}
 
-                {loading && (
-                  <div className="max-w-3xl rounded-2xl bg-slate-900 p-4 text-sm leading-7 text-slate-300 whitespace-pre-wrap">
-                    Dog Trainer AI is thinking...
+              {loading && (
+                <div className="max-w-3xl rounded-2xl bg-slate-900 p-4 text-sm leading-7 text-slate-300 whitespace-pre-wrap">
+                  Generating command-level instruction...
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-white/10 p-4">
+              <div className="flex gap-3">
+                <input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSend();
+                  }}
+                  placeholder="Ask your training question..."
+                  className="flex-1 rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none placeholder:text-slate-500"
+                />
+                <button
+                  onClick={handleSend}
+                  className="rounded-xl bg-cyan-400 px-5 py-3 font-semibold text-slate-950 hover:brightness-110"
+                >
+                  Send
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <aside className="rounded-2xl border border-white/10 bg-white/5 p-5">
+            <div className="mb-5">
+              <h2 className="text-lg font-semibold">Progress Tracking</h2>
+              <p className="mt-1 text-sm text-slate-400">
+                Premium reporting and session review.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-semibold text-slate-300">Session History</h3>
+              <div className="mt-3 space-y-3">
+                {sessionLogs.length === 0 ? (
+                  <div className="rounded-xl bg-slate-900 p-4 text-sm text-slate-400">
+                    No sessions logged yet.
                   </div>
+                ) : (
+                  sessionLogs.map((log, index) => (
+                    <div
+                      key={`${log}-${index}`}
+                      className="rounded-xl bg-slate-900 p-4 text-sm leading-6 text-slate-200 whitespace-pre-wrap"
+                    >
+                      {log}
+                    </div>
+                  ))
                 )}
               </div>
+            </div>
 
-              <div className="border-t border-white/10 p-4">
-                <div className="flex gap-3">
-                  <input
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSend();
-                    }}
-                    placeholder="Ask your training question..."
-                    className="flex-1 rounded-xl bg-gray-800 px-4 py-3"
-                  />
-                  <button
-                    onClick={handleSend}
-                    className="rounded-xl bg-cyan-400 px-5 py-3 font-semibold text-black"
-                  >
-                    Send
-                  </button>
-                </div>
+            <div className="mt-6 border-t border-white/10 pt-6">
+              <h3 className="text-sm font-semibold text-slate-300">Progress Summary</h3>
+              <div className="mt-3 min-h-[240px] rounded-xl bg-slate-900 p-4 text-sm leading-7 text-slate-100 whitespace-pre-wrap">
+                {IS_PREMIUM
+                  ? progressSummary || "Generate a progress summary after logging sessions."
+                  : "🔒 Upgrade to unlock progress tracking, structured summaries, and adaptive next steps."}
               </div>
-            </section>
+            </div>
 
-            <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
-              <h2 className="text-lg font-semibold">Progress</h2>
-
-              <div className="mt-5">
-                <h3 className="text-sm font-semibold text-slate-300">Session Log</h3>
-                <div className="mt-3 space-y-3">
-                  {sessionLogs.length === 0 ? (
-                    <div className="rounded-xl bg-slate-900 p-4 text-sm text-slate-400">
-                      No sessions logged yet.
-                    </div>
-                  ) : (
-                    sessionLogs.map((log, index) => (
-                      <div
-                        key={`${log}-${index}`}
-                        className="rounded-xl bg-slate-900 p-4 text-sm leading-6 text-slate-200 whitespace-pre-wrap"
-                      >
-                        {log}
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              <div className="mt-6 border-t border-white/10 pt-6">
-                <h3 className="text-sm font-semibold text-slate-300">Progress Summary</h3>
-                <div className="mt-3 whitespace-pre-wrap rounded-xl bg-slate-900 p-4 text-sm leading-7 text-slate-100 min-h-[220px]">
-                  {IS_PREMIUM
-                    ? progressSummary || "Generate a progress summary after logging sessions."
-                    : "🔒 Upgrade to unlock progress tracking"}
-                </div>
-              </div>
-            </section>
-          </div>
+            <a
+              href={UPGRADE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-6 inline-block w-full rounded-xl bg-cyan-400 px-4 py-3 text-center font-semibold text-slate-950 hover:brightness-110"
+            >
+              Upgrade to Full Access
+            </a>
+          </aside>
         </div>
 
-        <section className="mt-10 rounded-2xl border border-white/10 bg-white/5 p-6">
-          <h2 className="text-2xl font-bold">Upgrade to Premium</h2>
-          <p className="mt-3 max-w-2xl text-slate-300">
-            Unlock unlimited coaching, progress tracking, and adaptive training plans that evolve as your dog improves.
-          </p>
-
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
-            <div className="rounded-xl bg-slate-900 p-5">
-              <h3 className="text-lg font-semibold">Free</h3>
-              <p className="mt-2 text-3xl font-bold">$0</p>
-              <ul className="mt-4 space-y-2 text-sm text-slate-300">
-                <li>• 8 coaching messages</li>
-                <li>• Basic trainer access</li>
-                <li>• Profile setup</li>
-              </ul>
+        <section className="mt-10 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-6">
+          <div className="grid gap-6 md:grid-cols-[1fr_auto] md:items-center">
+            <div>
+              <div className="text-sm uppercase tracking-[0.2em] text-cyan-100">
+                Premium Access
+              </div>
+              <h2 className="mt-2 text-2xl font-bold">Unlock the full command system.</h2>
+              <p className="mt-3 max-w-2xl text-slate-200">
+                Get unlimited coaching, session tracking, progress summaries, and adaptive
+                plan adjustments built around real results.
+              </p>
             </div>
 
-            <div className="rounded-xl border border-cyan-400/30 bg-cyan-400/10 p-5">
-              <h3 className="text-lg font-semibold">Premium</h3>
-              <p className="mt-2 text-3xl font-bold">$9/mo</p>
-              <ul className="mt-4 space-y-2 text-sm text-slate-200">
-                <li>• Unlimited coaching</li>
-                <li>• Full progress tracking</li>
-                <li>• Adaptive troubleshooting</li>
-                <li>• Behavior + AKC support</li>
-              </ul>
-
-              <a
-                href={UPGRADE_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-5 inline-block rounded-xl bg-cyan-400 px-4 py-3 font-semibold text-slate-950 hover:brightness-110"
-              >
-                Upgrade Now
-              </a>
-            </div>
+            <a
+              href={UPGRADE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-xl bg-cyan-400 px-5 py-3 text-center font-semibold text-slate-950 hover:brightness-110"
+            >
+              Upgrade Now
+            </a>
           </div>
         </section>
       </div>
