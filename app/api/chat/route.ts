@@ -1,5 +1,10 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
+import {
+  getTrainerAccess,
+  incrementFreeMessageUsage,
+} from "@/app/lib/trainer-access";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -7,6 +12,36 @@ const openai = new OpenAI({
 
 export async function POST(req: Request) {
   try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json(
+        {
+          reply: "You must be signed in to use Dog Trainer AI.",
+          premium: false,
+          freeMessagesUsed: 0,
+          freeMessagesRemaining: 0,
+          requiresUpgrade: false,
+        },
+        { status: 401 }
+      );
+    }
+
+    const access = await getTrainerAccess(userId);
+
+    if (!access.hasAccess) {
+      return NextResponse.json(
+        {
+          reply: "Your 8 free trainer messages have been used. Upgrade to continue with full access.",
+          premium: access.premium,
+          freeMessagesUsed: access.freeMessagesUsed,
+          freeMessagesRemaining: access.freeMessagesRemaining,
+          requiresUpgrade: true,
+        },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json();
 
     const messages = body.messages || [];
@@ -105,13 +140,30 @@ TRAINING STYLE
       completion.choices[0]?.message?.content ||
       "No response generated.";
 
-    return NextResponse.json({ reply });
+    if (!access.premium) {
+      await incrementFreeMessageUsage(userId);
+    }
 
+    const refreshedAccess = await getTrainerAccess(userId);
+
+    return NextResponse.json({
+      reply,
+      premium: refreshedAccess.premium,
+      freeMessagesUsed: refreshedAccess.freeMessagesUsed,
+      freeMessagesRemaining: refreshedAccess.freeMessagesRemaining,
+      requiresUpgrade: false,
+    });
   } catch (error) {
     console.error("API ERROR:", error);
 
     return NextResponse.json(
-      { reply: "Error connecting to Dog Trainer AI." },
+      {
+        reply: "Error connecting to Dog Trainer AI.",
+        premium: false,
+        freeMessagesUsed: 0,
+        freeMessagesRemaining: 0,
+        requiresUpgrade: false,
+      },
       { status: 500 }
     );
   }
