@@ -13,7 +13,106 @@ type DogProfile = {
   mainGoal: string;
   rewardType: string;
   skillLevel: string;
+  customNotes: string;
 };
+
+const goalTypeOptions = [
+  "Obedience",
+  "Behavior Fix",
+  "Puppy Foundation",
+  "AKC Obedience",
+  "Rally",
+  "Agility",
+  "Service Dog Foundation",
+  "Protection Foundation",
+];
+
+const mainGoalOptions: Record<string, string[]> = {
+  Obedience: [
+    "Heel position",
+    "Sit stay",
+    "Down stay",
+    "Recall",
+    "Place command",
+    "Engagement and focus",
+    "Loose leash walking",
+  ],
+  "Behavior Fix": [
+    "Leash reactivity",
+    "Jumping on people",
+    "Pulling on leash",
+    "Whining or demand behavior",
+    "Not listening around distractions",
+    "Over-arousal around toy or ball",
+    "Poor impulse control",
+  ],
+  "Puppy Foundation": [
+    "Name recognition",
+    "Marker training",
+    "Crate training",
+    "Potty routine",
+    "Early leash work",
+    "Sit and down foundation",
+    "Confidence building",
+  ],
+  "AKC Obedience": [
+    "Fronts and finishes",
+    "Heel precision",
+    "Sit for exam prep",
+    "Recall precision",
+    "Stand and stay",
+    "Ring engagement",
+    "Proofing exercises",
+  ],
+  Rally: [
+    "Station work",
+    "Handler timing",
+    "Pivot positions",
+    "Front and finish accuracy",
+    "Attention in motion",
+    "Course flow practice",
+  ],
+  Agility: [
+    "Start line stay",
+    "Jump commitment",
+    "Tunnel confidence",
+    "Handler focus",
+    "Body awareness",
+    "Drive and control balance",
+  ],
+  "Service Dog Foundation": [
+    "Public neutrality",
+    "Settle under distraction",
+    "Task foundation",
+    "Loose leash in public",
+    "Ignore people and dogs",
+    "Engagement with handler",
+  ],
+  "Protection Foundation": [
+    "Drive building",
+    "Out command foundation",
+    "Handler focus under arousal",
+    "Controlled barking",
+    "Grip foundation",
+    "Neutral obedience before pressure",
+  ],
+};
+
+const rewardTypeOptions = [
+  "Food",
+  "Toy",
+  "Ball",
+  "Food and Toy",
+  "Praise",
+];
+
+const skillLevelOptions = [
+  "Green dog",
+  "Beginner",
+  "Intermediate",
+  "Advanced",
+  "Competition ready",
+];
 
 export default function TrainPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -27,10 +126,11 @@ export default function TrainPage() {
 
   const [dogProfile, setDogProfile] = useState<DogProfile>({
     name: "",
-    goalType: "",
-    mainGoal: "",
-    rewardType: "",
-    skillLevel: "",
+    goalType: "Obedience",
+    mainGoal: "Heel position",
+    rewardType: "Food",
+    skillLevel: "Beginner",
+    customNotes: "",
   });
 
   useEffect(() => {
@@ -54,12 +154,27 @@ export default function TrainPage() {
     loadAccess();
   }, []);
 
+  useEffect(() => {
+    const goals = mainGoalOptions[dogProfile.goalType] || [];
+    if (goals.length > 0 && !goals.includes(dogProfile.mainGoal)) {
+      setDogProfile((prev) => ({
+        ...prev,
+        mainGoal: goals[0],
+      }));
+    }
+  }, [dogProfile.goalType, dogProfile.mainGoal]);
+
   const handleSend = async () => {
     if (!input.trim() || loading) return;
 
+    const fullUserInput =
+      dogProfile.customNotes.trim().length > 0
+        ? `${input}\n\nAdditional Notes: ${dogProfile.customNotes}`
+        : input;
+
     const userMessage: ChatMessage = {
       role: "user",
-      content: input,
+      content: fullUserInput,
     };
 
     const nextMessages = [...messages, userMessage];
@@ -139,6 +254,7 @@ export default function TrainPage() {
   };
 
   const canChat = premium || freeMessagesRemaining > 0;
+  const availableMainGoals = mainGoalOptions[dogProfile.goalType] || [];
 
   return (
     <main className="min-h-screen bg-[#0b0f17] text-white px-6 py-12">
@@ -197,55 +313,108 @@ export default function TrainPage() {
                       onChange={(e) =>
                         setDogProfile({ ...dogProfile, name: e.target.value })
                       }
+                      placeholder="Ex: Henry"
                       className="w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
                     />
                   </div>
 
                   <div>
                     <label className="mb-2 block text-sm text-slate-300">Goal Type</label>
-                    <input
-                      type="text"
+                    <select
                       value={dogProfile.goalType}
                       onChange={(e) =>
-                        setDogProfile({ ...dogProfile, goalType: e.target.value })
+                        setDogProfile({
+                          ...dogProfile,
+                          goalType: e.target.value,
+                        })
                       }
                       className="w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
-                    />
+                    >
+                      {goalTypeOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div>
                     <label className="mb-2 block text-sm text-slate-300">Main Goal</label>
-                    <input
-                      type="text"
+                    <select
                       value={dogProfile.mainGoal}
                       onChange={(e) =>
-                        setDogProfile({ ...dogProfile, mainGoal: e.target.value })
+                        setDogProfile({
+                          ...dogProfile,
+                          mainGoal: e.target.value,
+                        })
                       }
                       className="w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
-                    />
+                    >
+                      {availableMainGoals.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="mt-2 text-xs text-slate-400">
+                      Pick the closest match, then use Additional Notes if needed.
+                    </p>
                   </div>
 
                   <div>
                     <label className="mb-2 block text-sm text-slate-300">Reward Type</label>
-                    <input
-                      type="text"
+                    <select
                       value={dogProfile.rewardType}
                       onChange={(e) =>
-                        setDogProfile({ ...dogProfile, rewardType: e.target.value })
+                        setDogProfile({
+                          ...dogProfile,
+                          rewardType: e.target.value,
+                        })
                       }
                       className="w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
-                    />
+                    >
+                      {rewardTypeOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div>
                     <label className="mb-2 block text-sm text-slate-300">Skill Level</label>
-                    <input
-                      type="text"
+                    <select
                       value={dogProfile.skillLevel}
                       onChange={(e) =>
-                        setDogProfile({ ...dogProfile, skillLevel: e.target.value })
+                        setDogProfile({
+                          ...dogProfile,
+                          skillLevel: e.target.value,
+                        })
                       }
                       className="w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
+                    >
+                      {skillLevelOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm text-slate-300">
+                      Additional Notes
+                    </label>
+                    <textarea
+                      value={dogProfile.customNotes}
+                      onChange={(e) =>
+                        setDogProfile({
+                          ...dogProfile,
+                          customNotes: e.target.value,
+                        })
+                      }
+                      placeholder="Ex: breaks heel when ball comes out, strong food drive, struggles at 20 feet, gets vocal around other dogs..."
+                      className="min-h-[120px] w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
                     />
                   </div>
                 </div>
@@ -271,8 +440,8 @@ export default function TrainPage() {
                 <div className="mt-6 h-[420px] overflow-y-auto rounded-xl border border-white/10 bg-[#08111f] p-4">
                   {messages.length === 0 && (
                     <p className="text-slate-400">
-                      Start by describing the dog, the training issue, or the behavior you
-                      want to fix.
+                      Start by describing the issue, what the dog is doing, what you
+                      want instead, and what happens during training.
                     </p>
                   )}
 
@@ -282,7 +451,7 @@ export default function TrainPage() {
                         key={index}
                         className={
                           message.role === "user"
-                            ? "ml-auto max-w-[85%] rounded-xl bg-cyan-400 px-4 py-3 text-black"
+                            ? "ml-auto max-w-[85%] rounded-xl bg-cyan-400 px-4 py-3 text-black whitespace-pre-wrap"
                             : "mr-auto max-w-[85%] rounded-xl bg-[#0f172a] px-4 py-3 text-white whitespace-pre-wrap"
                         }
                       >
@@ -304,7 +473,7 @@ export default function TrainPage() {
                     onChange={(e) => setInput(e.target.value)}
                     placeholder={
                       canChat
-                        ? "Describe the behavior issue or training goal..."
+                        ? "Ask your training question here..."
                         : "Free limit reached. Upgrade to continue."
                     }
                     disabled={!canChat || loading}
