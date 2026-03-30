@@ -24,7 +24,6 @@ type SessionLog = {
   focus: string;
   wins: string;
   issues: string;
-  nextAdjustment: string;
 };
 
 const goalTypeOptions = [
@@ -133,7 +132,6 @@ export default function TrainPage() {
   const [loading, setLoading] = useState(false);
 
   const [premium, setPremium] = useState(false);
-  const [freeMessagesUsed, setFreeMessagesUsed] = useState(0);
   const [freeMessagesRemaining, setFreeMessagesRemaining] = useState(8);
   const [accessLoaded, setAccessLoaded] = useState(false);
 
@@ -153,15 +151,15 @@ export default function TrainPage() {
     focus: "",
     wins: "",
     issues: "",
-    nextAdjustment: "",
   });
 
   const [progressReport, setProgressReport] = useState("");
   const [reportLoading, setReportLoading] = useState(false);
 
-  const storageKey = useMemo(() => {
-    return `patriot-k9-session-logs-${user?.id ?? "guest"}`;
-  }, [user?.id]);
+  const storageKey = useMemo(
+    () => `patriot-k9-session-logs-${user?.id ?? "guest"}`,
+    [user?.id]
+  );
 
   useEffect(() => {
     const loadAccess = async () => {
@@ -171,7 +169,6 @@ export default function TrainPage() {
 
         if (res.ok) {
           setPremium(Boolean(data.premium));
-          setFreeMessagesUsed(Number(data.freeMessagesUsed ?? 0));
           setFreeMessagesRemaining(Number(data.freeMessagesRemaining ?? 0));
         }
       } catch (error) {
@@ -196,14 +193,14 @@ export default function TrainPage() {
 
   useEffect(() => {
     const raw = localStorage.getItem(storageKey);
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw) as SessionLog[];
-        setSessionLogs(parsed);
-      } catch {
-        setSessionLogs([]);
-      }
-    } else {
+    if (!raw) {
+      setSessionLogs([]);
+      return;
+    }
+
+    try {
+      setSessionLogs(JSON.parse(raw) as SessionLog[]);
+    } catch {
       setSessionLogs([]);
     }
   }, [storageKey]);
@@ -259,9 +256,6 @@ export default function TrainPage() {
         if (typeof data.premium === "boolean") {
           setPremium(data.premium);
         }
-        if (typeof data.freeMessagesUsed === "number") {
-          setFreeMessagesUsed(data.freeMessagesUsed);
-        }
         if (typeof data.freeMessagesRemaining === "number") {
           setFreeMessagesRemaining(data.freeMessagesRemaining);
         }
@@ -280,15 +274,11 @@ export default function TrainPage() {
       if (typeof data.premium === "boolean") {
         setPremium(data.premium);
       }
-      if (typeof data.freeMessagesUsed === "number") {
-        setFreeMessagesUsed(data.freeMessagesUsed);
-      }
       if (typeof data.freeMessagesRemaining === "number") {
         setFreeMessagesRemaining(data.freeMessagesRemaining);
       }
     } catch (error) {
       console.error("Chat error:", error);
-
       setMessages([
         ...nextMessages,
         {
@@ -306,8 +296,7 @@ export default function TrainPage() {
       !sessionForm.date.trim() ||
       !sessionForm.focus.trim() ||
       !sessionForm.wins.trim() ||
-      !sessionForm.issues.trim() ||
-      !sessionForm.nextAdjustment.trim()
+      !sessionForm.issues.trim()
     ) {
       alert("Fill out the session log before saving.");
       return;
@@ -320,7 +309,6 @@ export default function TrainPage() {
       focus: sessionForm.focus,
       wins: sessionForm.wins,
       issues: sessionForm.issues,
-      nextAdjustment: sessionForm.nextAdjustment,
     };
 
     setSessionLogs((prev) => [newLog, ...prev]);
@@ -330,7 +318,6 @@ export default function TrainPage() {
       focus: "",
       wins: "",
       issues: "",
-      nextAdjustment: "",
     });
   };
 
@@ -356,8 +343,7 @@ Date: ${log.date}
 Duration: ${log.duration || "not provided"}
 Focus: ${log.focus}
 Wins: ${log.wins}
-Issues: ${log.issues}
-Next Adjustment: ${log.nextAdjustment}`
+Issues: ${log.issues}`
       )
       .join("\n\n");
 
@@ -414,9 +400,6 @@ ${sessionSummary}`;
 
       if (typeof data.premium === "boolean") {
         setPremium(data.premium);
-      }
-      if (typeof data.freeMessagesUsed === "number") {
-        setFreeMessagesUsed(data.freeMessagesUsed);
       }
       if (typeof data.freeMessagesRemaining === "number") {
         setFreeMessagesRemaining(data.freeMessagesRemaining);
@@ -614,9 +597,7 @@ ${sessionSummary}`;
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm text-slate-300">
-                        Duration
-                      </label>
+                      <label className="mb-2 block text-sm text-slate-300">Duration</label>
                       <input
                         type="text"
                         value={sessionForm.duration}
@@ -661,23 +642,6 @@ ${sessionSummary}`;
                           setSessionForm({ ...sessionForm, issues: e.target.value })
                         }
                         placeholder="What broke down?"
-                        className="min-h-[90px] w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="mb-2 block text-sm text-slate-300">
-                        Next Adjustment
-                      </label>
-                      <textarea
-                        value={sessionForm.nextAdjustment}
-                        onChange={(e) =>
-                          setSessionForm({
-                            ...sessionForm,
-                            nextAdjustment: e.target.value,
-                          })
-                        }
-                        placeholder="What will you change next session?"
                         className="min-h-[90px] w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
                       />
                     </div>
@@ -833,9 +797,6 @@ ${sessionSummary}`;
                             </p>
                             <p className="mt-2 text-sm text-slate-300">
                               <strong>Issues:</strong> {log.issues}
-                            </p>
-                            <p className="mt-2 text-sm text-slate-300">
-                              <strong>Next Adjustment:</strong> {log.nextAdjustment}
                             </p>
                           </div>
 
