@@ -236,6 +236,7 @@ export default function TrainPage() {
         body: JSON.stringify({
           messages: nextMessages,
           dogProfile,
+          sessionLogs: sessionLogs.slice(0, 10),
         }),
       });
 
@@ -383,6 +384,7 @@ ${sessionSummary}`;
             },
           ],
           dogProfile,
+          sessionLogs: sessionLogs.slice(0, 10),
         }),
       });
 

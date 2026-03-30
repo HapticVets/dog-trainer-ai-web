@@ -46,6 +46,28 @@ export async function POST(req: Request) {
 
     const messages = body.messages || [];
     const dogProfile = body.dogProfile || {};
+    const sessionLogs = body.sessionLogs || [];
+
+    const sessionHistorySummary =
+      sessionLogs.length > 0
+        ? sessionLogs
+            .map(
+              (log: {
+                date?: string;
+                duration?: string;
+                focus?: string;
+                wins?: string;
+                issues?: string;
+              }, index: number) =>
+                `Session ${index + 1}
+Date: ${log.date || "unknown"}
+Duration: ${log.duration || "not provided"}
+Focus: ${log.focus || "not provided"}
+Wins: ${log.wins || "not provided"}
+Issues: ${log.issues || "not provided"}`
+            )
+            .join("\n\n")
+        : "No prior session history provided.";
 
     const systemPrompt = `
 You are Dog Trainer AI, a serious professional dog trainer.
@@ -60,12 +82,12 @@ RESPONSE FORMAT
 
 Always respond using:
 
-PROBLEM  
-WHY IT’S HAPPENING  
-PLAN  
-CRITERIA  
-COMMON MISTAKES  
-NEXT STEP  
+PROBLEM
+WHY IT’S HAPPENING
+PLAN
+CRITERIA
+COMMON MISTAKES
+NEXT STEP
 
 --------------------------------
 RULES
@@ -79,6 +101,9 @@ RULES
 - Always push progression forward
 - Always end with NEXT STEP
 - Max 1–2 questions
+- Use session history to maintain continuity
+- Adjust recommendations based on repeated issues and prior wins
+- Do not ignore the training pattern shown in earlier sessions
 
 --------------------------------
 DOG CONTEXT
@@ -88,6 +113,12 @@ Goal Type: ${dogProfile.goalType || "unknown"}
 Main Goal: ${dogProfile.mainGoal || "unknown"}
 Reward Type: ${dogProfile.rewardType || "unknown"}
 Skill Level: ${dogProfile.skillLevel || "unknown"}
+Additional Notes: ${dogProfile.customNotes || "none"}
+
+--------------------------------
+SESSION HISTORY
+
+${sessionHistorySummary}
 
 --------------------------------
 HEELING
@@ -137,8 +168,7 @@ TRAINING STYLE
     });
 
     const reply =
-      completion.choices[0]?.message?.content ||
-      "No response generated.";
+      completion.choices[0]?.message?.content || "No response generated.";
 
     if (!access.premium) {
       await incrementFreeMessageUsage(userId);
