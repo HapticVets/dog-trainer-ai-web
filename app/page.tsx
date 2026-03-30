@@ -1,10 +1,31 @@
-const UPGRADE_URL = "https://www.patreon.com/c/dogtrainerai/membership";
+"use client";
+
+import { useUser, UserButton } from "@clerk/nextjs";
 
 export default function Home() {
+  const { isSignedIn } = useUser();
+
+  const handleCheckout = async () => {
+    try {
+      const res = await fetch("/api/checkout", { method: "POST" });
+      const data = await res.json();
+
+      if (data?.url) {
+        window.location.href = data.url;
+        return;
+      }
+
+      alert("Stripe checkout link could not be created.");
+    } catch (error) {
+      console.error("Checkout error:", error);
+      alert("Something went wrong starting checkout.");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#0b0f17] text-white">
       {/* NAV */}
-      <nav className="flex items-center justify-between border-b border-white/10 px-6 py-5">
+      <nav className="relative z-50 flex items-center justify-between border-b border-white/10 px-6 py-5">
         <div className="flex items-center gap-3">
           <img
             src="/logo.png"
@@ -15,18 +36,42 @@ export default function Home() {
         </div>
 
         <div className="flex items-center gap-4">
-          <a href="/train" className="text-sm text-slate-300 hover:text-white">
+          <a
+            href="/train"
+            className="text-sm text-slate-300 transition hover:text-white"
+          >
             Training
           </a>
 
-          <a
-            href={UPGRADE_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-lg bg-cyan-400 px-4 py-2 text-sm font-semibold text-black hover:brightness-110"
-          >
-            Upgrade
-          </a>
+          {!isSignedIn && (
+            <>
+              <a
+                href="/sign-in"
+                className="rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+              >
+                Sign In
+              </a>
+              <a
+                href="/sign-up"
+                className="rounded-lg bg-cyan-400 px-4 py-2 text-sm font-semibold text-black transition hover:brightness-110"
+              >
+                Sign Up
+              </a>
+            </>
+          )}
+
+          {isSignedIn && (
+            <>
+              <button
+                type="button"
+                onClick={handleCheckout}
+                className="cursor-pointer rounded-lg bg-cyan-400 px-4 py-2 text-sm font-semibold text-black transition hover:brightness-110"
+              >
+                Upgrade
+              </button>
+              <UserButton afterSignOutUrl="/" />
+            </>
+          )}
         </div>
       </nav>
 
@@ -46,19 +91,29 @@ export default function Home() {
         <div className="mt-10 flex justify-center gap-4">
           <a
             href="/train"
-            className="rounded-xl bg-cyan-400 px-6 py-3 font-semibold text-black hover:brightness-110"
+            className="rounded-xl bg-cyan-400 px-6 py-3 font-semibold text-black transition hover:brightness-110"
           >
             Start Training
           </a>
 
-          <a
-            href={UPGRADE_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-xl border border-white/20 px-6 py-3 text-white hover:bg-white/10"
-          >
-            Go Premium
-          </a>
+          {!isSignedIn && (
+            <a
+              href="/sign-up"
+              className="rounded-xl border border-white/20 px-6 py-3 text-white transition hover:bg-white/10"
+            >
+              Create Account
+            </a>
+          )}
+
+          {isSignedIn && (
+            <button
+              type="button"
+              onClick={handleCheckout}
+              className="cursor-pointer rounded-xl border border-white/20 px-6 py-3 text-white transition hover:bg-white/10"
+            >
+              Go Premium
+            </button>
+          )}
         </div>
       </section>
 
@@ -108,7 +163,7 @@ export default function Home() {
 
           <div className="rounded-xl border border-cyan-400/30 bg-cyan-400/10 p-6">
             <h3 className="text-lg font-semibold">Full Command Access</h3>
-            <p className="mt-2 text-3xl font-bold">$9/mo</p>
+            <p className="mt-2 text-3xl font-bold">$10/mo</p>
 
             <ul className="mt-4 space-y-2 text-sm text-slate-200">
               <li>• Unlimited coaching</li>
@@ -117,14 +172,24 @@ export default function Home() {
               <li>• Behavior + AKC-level guidance</li>
             </ul>
 
-            <a
-              href={UPGRADE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-6 inline-block rounded-xl bg-cyan-400 px-5 py-3 font-semibold text-black hover:brightness-110"
-            >
-              Upgrade to Full Access
-            </a>
+            {!isSignedIn && (
+              <a
+                href="/sign-up"
+                className="mt-6 inline-block rounded-xl bg-cyan-400 px-5 py-3 font-semibold text-black transition hover:brightness-110"
+              >
+                Create Account First
+              </a>
+            )}
+
+            {isSignedIn && (
+              <button
+                type="button"
+                onClick={handleCheckout}
+                className="mt-6 cursor-pointer rounded-xl bg-cyan-400 px-5 py-3 font-semibold text-black transition hover:brightness-110"
+              >
+                Upgrade to Full Access
+              </button>
+            )}
           </div>
         </div>
       </section>
