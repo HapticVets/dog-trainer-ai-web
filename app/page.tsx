@@ -69,7 +69,7 @@ export default function Home() {
               >
                 Upgrade
               </button>
-              <UserButton afterSignOutUrl="/" />
+              <UserButton />
             </>
           )}
         </div>
