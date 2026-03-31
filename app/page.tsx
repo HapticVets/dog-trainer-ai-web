@@ -1,6 +1,6 @@
 "use client";
 
-import { useUser, UserButton } from "@clerk/nextjs";
+import { useUser } from "@clerk/nextjs";
 
 export default function Home() {
   const { isSignedIn } = useUser();
@@ -24,57 +24,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#0b0f17] text-white">
-      {/* NAV */}
-      <nav className="relative z-50 flex items-center justify-between border-b border-white/10 px-6 py-5">
-        <div className="flex items-center gap-3">
-          <img
-            src="/logo.png"
-            alt="Patriot K9 Command"
-            className="h-10 w-10 object-contain"
-          />
-          <h1 className="text-xl font-bold tracking-tight">Patriot K9 Command</h1>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <a
-            href="/train"
-            className="text-sm text-slate-300 transition hover:text-white"
-          >
-            Training
-          </a>
-
-          {!isSignedIn && (
-            <>
-              <a
-                href="/sign-in"
-                className="rounded-lg border border-white/20 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
-              >
-                Sign In
-              </a>
-              <a
-                href="/sign-up"
-                className="rounded-lg bg-cyan-400 px-4 py-2 text-sm font-semibold text-black transition hover:brightness-110"
-              >
-                Sign Up
-              </a>
-            </>
-          )}
-
-          {isSignedIn && (
-            <>
-              <button
-                type="button"
-                onClick={handleCheckout}
-                className="cursor-pointer rounded-lg bg-cyan-400 px-4 py-2 text-sm font-semibold text-black transition hover:brightness-110"
-              >
-                Upgrade
-              </button>
-              <UserButton />
-            </>
-          )}
-        </div>
-      </nav>
-
       {/* HERO */}
       <section className="px-6 py-24 text-center">
         <h2 className="mx-auto max-w-4xl text-5xl font-bold leading-tight">
