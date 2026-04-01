@@ -38,9 +38,43 @@ type DashboardSummary = {
   } | null;
 };
 
+type DogProfile = {
+  id?: string;
+  name: string;
+  goalType: string;
+  mainGoal: string;
+  rewardType: string;
+  skillLevel: string;
+  customNotes: string;
+};
+
+type SessionLog = {
+  id: string;
+  date: string;
+  duration: string;
+  focus: string;
+  wins: string;
+  issues: string;
+};
+
+type SavedOutput = {
+  id: string;
+  outputType: "progress_report" | "next_session_plan";
+  content: string;
+  createdAt: string;
+};
+
 export default function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const [dogProfiles, setDogProfiles] = useState<DogProfile[]>([]);
+  const [selectedDogId, setSelectedDogId] = useState<string>("");
+  const [selectedDogName, setSelectedDogName] = useState("");
+  const [sessionLogs, setSessionLogs] = useState<SessionLog[]>([]);
+  const [savedOutputs, setSavedOutputs] = useState<SavedOutput[]>([]);
+  const [progressReport, setProgressReport] = useState("");
+  const [reportLoading, setReportLoading] = useState(false);
 
   useEffect(() => {
     const loadSummary = async () => {
@@ -69,6 +103,266 @@ export default function DashboardPage() {
 
     loadSummary();
   }, []);
+
+  useEffect(() => {
+    const loadDogProfiles = async () => {
+      try {
+        const res = await fetch("/api/dog-profile", {
+          method: "GET",
+          cache: "no-store",
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          console.error("Failed to load dog profiles:", data.error);
+          return;
+        }
+
+        const mapped: DogProfile[] = (data.profiles || []).map((profile: any) => ({
+          id: profile.id,
+          name: profile.name ?? "",
+          goalType: profile.goal_type ?? "Obedience",
+          mainGoal: profile.main_goal ?? "Heel position",
+          rewardType: profile.reward_type ?? "Food",
+          skillLevel: profile.skill_level ?? "Beginner",
+          customNotes: profile.custom_notes ?? "",
+        }));
+
+        setDogProfiles(mapped);
+
+        if (mapped.length > 0) {
+          setSelectedDogId(mapped[0].id || "");
+          setSelectedDogName(mapped[0].name || "");
+        }
+      } catch (error) {
+        console.error("Failed to load dog profiles:", error);
+      }
+    };
+
+    loadDogProfiles();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedDogId || !selectedDogName.trim()) {
+      setSessionLogs([]);
+      setSavedOutputs([]);
+      setProgressReport("");
+      return;
+    }
+
+    const loadSessionLogs = async () => {
+      try {
+        const res = await fetch(
+          `/api/session-logs?dog_name=${encodeURIComponent(selectedDogName)}`,
+          {
+            method: "GET",
+            cache: "no-store",
+          }
+        );
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          console.error("Failed to load session logs:", data.error);
+          setSessionLogs([]);
+          return;
+        }
+
+        const mappedLogs: SessionLog[] = (data.logs || []).map((log: any) => ({
+          id: log.id,
+          date: log.session_date ?? "",
+          duration:
+            typeof log.duration === "number" && !Number.isNaN(log.duration)
+              ? `${log.duration} min`
+              : "",
+          focus: log.focus ?? "",
+          wins: log.wins ?? "",
+          issues: log.issues ?? "",
+        }));
+
+        setSessionLogs(mappedLogs);
+      } catch (error) {
+        console.error("Failed to load session logs:", error);
+        setSessionLogs([]);
+      }
+    };
+
+    const loadOutputs = async () => {
+      try {
+        const res = await fetch(
+          `/api/dog-outputs?dog_profile_id=${encodeURIComponent(selectedDogId)}`,
+          {
+            method: "GET",
+            cache: "no-store",
+          }
+        );
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          console.error("Failed to load dog outputs:", data.error);
+          setSavedOutputs([]);
+          setProgressReport("");
+          return;
+        }
+
+        const mappedOutputs: SavedOutput[] = (data.outputs || []).map((output: any) => ({
+          id: output.id,
+          outputType: output.output_type,
+          content: output.content,
+          createdAt: output.created_at,
+        }));
+
+        setSavedOutputs(mappedOutputs);
+
+        const latestProgress = mappedOutputs.find(
+          (output) => output.outputType === "progress_report"
+        );
+
+        setProgressReport(latestProgress?.content ?? "");
+      } catch (error) {
+        console.error("Failed to load dog outputs:", error);
+        setSavedOutputs([]);
+        setProgressReport("");
+      }
+    };
+
+    loadSessionLogs();
+    loadOutputs();
+  }, [selectedDogId, selectedDogName]);
+
+  const handleSelectDog = (id: string) => {
+    setSelectedDogId(id);
+    const found = dogProfiles.find((dog) => dog.id === id);
+
+    if (found) {
+      setSelectedDogName(found.name);
+
+      const matchingReports = savedOutputs.filter(
+        (output) => output.outputType === "progress_report"
+      );
+      setProgressReport(matchingReports[0]?.content ?? "");
+    } else {
+      setSelectedDogName("");
+      setProgressReport("");
+    }
+  };
+
+  const handleGenerateReport = async () => {
+    if (!selectedDogId || !selectedDogName.trim()) {
+      alert("Select a saved dog first.");
+      return;
+    }
+
+    if (reportLoading) return;
+
+    if (sessionLogs.length === 0) {
+      alert("Log at least one session before generating a progress report.");
+      return;
+    }
+
+    setReportLoading(true);
+
+    const selectedDog = dogProfiles.find((dog) => dog.id === selectedDogId);
+
+    const sessionSummary = sessionLogs
+      .map(
+        (log, index) =>
+          `Session ${index + 1}
+Date: ${log.date}
+Duration: ${log.duration || "not provided"}
+Focus: ${log.focus}
+Wins: ${log.wins}
+Issues: ${log.issues}`
+      )
+      .join("\n\n");
+
+    const reportPrompt = `Generate a structured dog training progress report using the sessions below.
+
+Use this exact format:
+
+CURRENT STATE
+PROGRESS MADE
+RECURRING PROBLEMS
+TRAINING PRIORITIES
+NEXT SESSION PLAN
+
+Be direct, structured, and trainer-level.
+
+Dog Name: ${selectedDog?.name || "unknown"}
+Goal Type: ${selectedDog?.goalType || "unknown"}
+Main Goal: ${selectedDog?.mainGoal || "unknown"}
+Reward Type: ${selectedDog?.rewardType || "unknown"}
+Skill Level: ${selectedDog?.skillLevel || "unknown"}
+Additional Notes: ${selectedDog?.customNotes || "none"}
+
+SESSION LOGS:
+${sessionSummary}`;
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: "user",
+              content: reportPrompt,
+            },
+          ],
+          dogProfile: selectedDog,
+          sessionLogs: sessionLogs.slice(0, 10),
+        }),
+      });
+
+      const data = await res.json();
+
+      const outputText = !res.ok
+        ? data.reply ||
+          data.error ||
+          "Unable to generate progress report right now."
+        : data.reply || "No progress report generated.";
+
+      setProgressReport(outputText);
+
+      const saveRes = await fetch("/api/dog-outputs", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          dogProfileId: selectedDogId,
+          outputType: "progress_report",
+          content: outputText,
+        }),
+      });
+
+      const saveData = await saveRes.json();
+
+      if (saveRes.ok) {
+        const saved: SavedOutput = {
+          id: saveData.output.id,
+          outputType: saveData.output.output_type,
+          content: saveData.output.content,
+          createdAt: saveData.output.created_at,
+        };
+
+        setSavedOutputs((prev) => [saved, ...prev]);
+      }
+    } catch (error) {
+      console.error("Progress report error:", error);
+      setProgressReport("Error generating progress report.");
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
+  const savedProgressReports = savedOutputs.filter(
+    (output) => output.outputType === "progress_report"
+  );
 
   return (
     <main className="min-h-screen bg-[#0b0f17] px-6 py-12 text-white">
@@ -206,26 +500,81 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="mt-8 grid gap-8 xl:grid-cols-2">
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-                <h2 className="text-2xl font-semibold">Latest Progress Report</h2>
+            <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <h2 className="text-2xl font-semibold">Progress Report Center</h2>
+                  <p className="mt-2 text-sm text-slate-400">
+                    Progress reports are generated from real training sessions. Log at least
+                    one session before generating a report.
+                  </p>
+                </div>
 
-                {!summary.latestProgressReport && (
-                  <p className="mt-4 text-slate-400">No saved progress reports yet.</p>
-                )}
+                <button
+                  type="button"
+                  onClick={handleGenerateReport}
+                  disabled={reportLoading || sessionLogs.length === 0 || !selectedDogId}
+                  className="rounded-xl bg-cyan-400 px-5 py-3 font-semibold text-black hover:brightness-110 disabled:opacity-50"
+                >
+                  {reportLoading
+                    ? "Generating..."
+                    : sessionLogs.length === 0
+                    ? "Log a Session First"
+                    : "Generate Progress Report"}
+                </button>
+              </div>
 
-                {summary.latestProgressReport && (
-                  <div className="mt-4">
-                    <p className="mb-3 text-sm text-slate-400">
-                      Saved {new Date(summary.latestProgressReport.created_at).toLocaleString()}
-                    </p>
-                    <div className="whitespace-pre-wrap rounded-xl border border-white/10 bg-[#08111f] p-4 text-sm text-slate-200">
-                      {summary.latestProgressReport.content}
-                    </div>
-                  </div>
+              <div className="mt-6">
+                <label className="mb-2 block text-sm text-slate-300">Select Dog</label>
+                <select
+                  value={selectedDogId}
+                  onChange={(e) => handleSelectDog(e.target.value)}
+                  className="w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
+                >
+                  <option value="">Select a saved dog</option>
+                  {dogProfiles.map((dog) => (
+                    <option key={dog.id} value={dog.id}>
+                      {dog.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {sessionLogs.length === 0 && selectedDogId && (
+                <p className="mt-4 text-sm text-amber-300">
+                  No sessions logged for this dog yet. Log a training session first to unlock
+                  progress reports.
+                </p>
+              )}
+
+              <div className="mt-6 rounded-xl border border-white/10 bg-[#08111f] p-4">
+                {progressReport ? (
+                  <div className="whitespace-pre-wrap text-white">{progressReport}</div>
+                ) : (
+                  <p className="text-slate-400">
+                    No report selected yet. Choose a dog and generate a report when needed.
+                  </p>
                 )}
               </div>
 
+              {savedProgressReports.length > 0 && (
+                <div className="mt-6 space-y-3">
+                  <h3 className="text-lg font-semibold">Saved Progress Reports</h3>
+                  {savedProgressReports.map((report) => (
+                    <button
+                      key={report.id}
+                      type="button"
+                      onClick={() => setProgressReport(report.content)}
+                      className="block w-full rounded-xl border border-white/10 bg-[#08111f] p-3 text-left text-sm text-slate-300 hover:bg-white/10"
+                    >
+                      {new Date(report.createdAt).toLocaleString()}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-8">
               <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
                 <h2 className="text-2xl font-semibold">Latest Next Session Plan</h2>
 

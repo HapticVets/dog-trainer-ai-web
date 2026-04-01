@@ -29,7 +29,7 @@ type SessionLog = {
 
 type SavedOutput = {
   id: string;
-  outputType: "progress_report" | "next_session_plan";
+  outputType: "next_session_plan";
   content: string;
   createdAt: string;
 };
@@ -143,15 +143,11 @@ const skillLevelOptions = [
 
 export default function TrainPage() {
   const { user } = useUser();
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const chatContainerRef = useRef<HTMLDivElement | null>(null);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const [premium, setPremium] = useState(false);
-  const [freeMessagesRemaining, setFreeMessagesRemaining] = useState(8);
-  const [accessLoaded, setAccessLoaded] = useState(false);
 
   const [dogProfiles, setDogProfiles] = useState<DogProfile[]>([]);
   const [selectedDogId, setSelectedDogId] = useState<string>("");
@@ -167,33 +163,10 @@ export default function TrainPage() {
     issues: "",
   });
 
-  const [progressReport, setProgressReport] = useState("");
-  const [reportLoading, setReportLoading] = useState(false);
-
   const [nextSessionPlan, setNextSessionPlan] = useState("");
   const [nextSessionLoading, setNextSessionLoading] = useState(false);
 
   const [savedOutputs, setSavedOutputs] = useState<SavedOutput[]>([]);
-
-  useEffect(() => {
-    const loadAccess = async () => {
-      try {
-        const res = await fetch("/api/trainer/access");
-        const data = await res.json();
-
-        if (res.ok) {
-          setPremium(Boolean(data.premium));
-          setFreeMessagesRemaining(Number(data.freeMessagesRemaining ?? 0));
-        }
-      } catch (error) {
-        console.error("Failed to load access:", error);
-      } finally {
-        setAccessLoaded(true);
-      }
-    };
-
-    loadAccess();
-  }, []);
 
   useEffect(() => {
     const goals = mainGoalOptions[dogProfile.goalType] || [];
@@ -254,7 +227,6 @@ export default function TrainPage() {
       setSessionLogs([]);
       setMessages([]);
       setSavedOutputs([]);
-      setProgressReport("");
       setNextSessionPlan("");
       return;
     }
@@ -341,33 +313,29 @@ export default function TrainPage() {
         if (!res.ok) {
           console.error("Failed to load dog outputs:", data.error);
           setSavedOutputs([]);
-          setProgressReport("");
           setNextSessionPlan("");
           return;
         }
 
-        const mappedOutputs: SavedOutput[] = (data.outputs || []).map((output: any) => ({
-          id: output.id,
-          outputType: output.output_type,
-          content: output.content,
-          createdAt: output.created_at,
-        }));
+        const mappedOutputs: SavedOutput[] = (data.outputs || [])
+          .filter((output: any) => output.output_type === "next_session_plan")
+          .map((output: any) => ({
+            id: output.id,
+            outputType: output.output_type,
+            content: output.content,
+            createdAt: output.created_at,
+          }));
 
         setSavedOutputs(mappedOutputs);
 
-        const latestProgress = mappedOutputs.find(
-          (output) => output.outputType === "progress_report"
-        );
         const latestNextPlan = mappedOutputs.find(
           (output) => output.outputType === "next_session_plan"
         );
 
-        setProgressReport(latestProgress?.content ?? "");
         setNextSessionPlan(latestNextPlan?.content ?? "");
       } catch (error) {
         console.error("Failed to load dog outputs:", error);
         setSavedOutputs([]);
-        setProgressReport("");
         setNextSessionPlan("");
       }
     };
@@ -378,8 +346,16 @@ export default function TrainPage() {
   }, [user, selectedDogId, dogProfile.name]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+    if (!messages.length) return;
+
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage.role === "assistant" && chatContainerRef.current) {
+      chatContainerRef.current.scrollTo({
+        top: chatContainerRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+  }, [messages]);
 
   const saveChatMessage = async (role: "user" | "assistant", content: string) => {
     if (!selectedDogId || !content.trim()) return;
@@ -401,10 +377,7 @@ export default function TrainPage() {
     }
   };
 
-  const saveOutput = async (
-    outputType: "progress_report" | "next_session_plan",
-    content: string
-  ) => {
+  const saveOutput = async (content: string) => {
     if (!selectedDogId || !content.trim()) return;
 
     try {
@@ -415,7 +388,7 @@ export default function TrainPage() {
         },
         body: JSON.stringify({
           dogProfileId: selectedDogId,
-          outputType,
+          outputType: "next_session_plan",
           content,
         }),
       });
@@ -445,7 +418,6 @@ export default function TrainPage() {
     const found = dogProfiles.find((dog) => dog.id === id);
     if (found) {
       setDogProfile(found);
-      setProgressReport("");
       setNextSessionPlan("");
       setMessages([]);
       setSavedOutputs([]);
@@ -457,7 +429,6 @@ export default function TrainPage() {
     setDogProfile(emptyDogProfile);
     setSessionLogs([]);
     setMessages([]);
-    setProgressReport("");
     setNextSessionPlan("");
     setSavedOutputs([]);
   };
@@ -515,7 +486,6 @@ export default function TrainPage() {
 
       setSelectedDogId(saved.id || "");
       setDogProfile(saved);
-
       alert("Dog profile saved.");
     } catch (error) {
       console.error("Failed to save dog profile:", error);
@@ -566,7 +536,6 @@ export default function TrainPage() {
 
       setSessionLogs([]);
       setMessages([]);
-      setProgressReport("");
       setNextSessionPlan("");
       setSavedOutputs([]);
     } catch (error) {
@@ -583,19 +552,17 @@ export default function TrainPage() {
 
     if (!input.trim() || loading) return;
 
-    const cleanUserInput = input.trim();
-
     const userMessage: ChatMessage = {
       role: "user",
-      content: cleanUserInput,
+      content: input.trim(),
     };
 
-    const nextMessages = [...messages, userMessage];
+    const nextMessages: ChatMessage[] = [...messages, userMessage];
     setMessages(nextMessages);
     setInput("");
     setLoading(true);
 
-    await saveChatMessage("user", cleanUserInput);
+    await saveChatMessage("user", userMessage.content);
 
     try {
       const res = await fetch("/api/chat", {
@@ -612,63 +579,24 @@ export default function TrainPage() {
 
       const data = await res.json();
 
-      if (!res.ok) {
-        const assistantText =
-          data.reply ||
-          data.error ||
-          "You have reached your free limit. Upgrade to continue.";
-
-        setMessages([
-          ...nextMessages,
-          {
-            role: "assistant",
-            content: assistantText,
-          },
-        ]);
-
-        await saveChatMessage("assistant", assistantText);
-
-        if (typeof data.premium === "boolean") {
-          setPremium(data.premium);
-        }
-        if (typeof data.freeMessagesRemaining === "number") {
-          setFreeMessagesRemaining(data.freeMessagesRemaining);
-        }
-
-        return;
-      }
-
       const assistantText = data.reply || "No response generated.";
+      const assistantMessage: ChatMessage = {
+        role: "assistant",
+        content: assistantText,
+      };
 
-      setMessages([
-        ...nextMessages,
-        {
-          role: "assistant",
-          content: assistantText,
-        },
-      ]);
-
+      setMessages([...nextMessages, assistantMessage]);
       await saveChatMessage("assistant", assistantText);
-
-      if (typeof data.premium === "boolean") {
-        setPremium(data.premium);
-      }
-      if (typeof data.freeMessagesRemaining === "number") {
-        setFreeMessagesRemaining(data.freeMessagesRemaining);
-      }
     } catch (error) {
       console.error("Chat error:", error);
 
       const assistantText = "Error connecting to Dog Trainer AI.";
+      const assistantMessage: ChatMessage = {
+        role: "assistant",
+        content: assistantText,
+      };
 
-      setMessages([
-        ...nextMessages,
-        {
-          role: "assistant",
-          content: assistantText,
-        },
-      ]);
-
+      setMessages([...nextMessages, assistantMessage]);
       await saveChatMessage("assistant", assistantText);
     } finally {
       setLoading(false);
@@ -728,8 +656,7 @@ export default function TrainPage() {
         id: data.log.id,
         date: data.log.session_date ?? "",
         duration:
-          typeof data.log.duration === "number" &&
-          !Number.isNaN(data.log.duration)
+          typeof data.log.duration === "number" && !Number.isNaN(data.log.duration)
             ? `${data.log.duration} min`
             : "",
         focus: data.log.focus ?? "",
@@ -769,100 +696,6 @@ export default function TrainPage() {
     } catch (error) {
       console.error("Failed to delete session log:", error);
       alert("Failed to delete session log.");
-    }
-  };
-
-  const handleGenerateReport = async () => {
-    if (!selectedDogId) {
-      alert("Save a dog profile first.");
-      return;
-    }
-
-    if (reportLoading) return;
-
-    if (sessionLogs.length === 0) {
-      alert("Log at least one session before generating a progress report.");
-      return;
-    }
-
-    setReportLoading(true);
-
-    const sessionSummary = sessionLogs
-      .map(
-        (log, index) =>
-          `Session ${index + 1}
-Date: ${log.date}
-Duration: ${log.duration || "not provided"}
-Focus: ${log.focus}
-Wins: ${log.wins}
-Issues: ${log.issues}`
-      )
-      .join("\n\n");
-
-    const reportPrompt = `Generate a structured dog training progress report using the sessions below.
-
-Use this exact format:
-
-CURRENT STATE
-PROGRESS MADE
-RECURRING PROBLEMS
-TRAINING PRIORITIES
-NEXT SESSION PLAN
-
-Be direct, structured, and trainer-level.
-
-Dog Name: ${dogProfile.name || "unknown"}
-Goal Type: ${dogProfile.goalType || "unknown"}
-Main Goal: ${dogProfile.mainGoal || "unknown"}
-Reward Type: ${dogProfile.rewardType || "unknown"}
-Skill Level: ${dogProfile.skillLevel || "unknown"}
-Additional Notes: ${dogProfile.customNotes || "none"}
-
-SESSION LOGS:
-${sessionSummary}`;
-
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: "user",
-              content: reportPrompt,
-            },
-          ],
-          dogProfile,
-          sessionLogs: sessionLogs.slice(0, 10),
-        }),
-      });
-
-      const data = await res.json();
-
-      const outputText = !res.ok
-        ? data.reply ||
-          data.error ||
-          "Unable to generate progress report right now."
-        : data.reply || "No progress report generated.";
-
-      setProgressReport(outputText);
-      await saveOutput("progress_report", outputText);
-
-      if (typeof data.premium === "boolean") {
-        setPremium(data.premium);
-      }
-      if (typeof data.freeMessagesRemaining === "number") {
-        setFreeMessagesRemaining(data.freeMessagesRemaining);
-      }
-    } catch (error) {
-      console.error("Progress report error:", error);
-      const outputText = "Error generating progress report.";
-      setProgressReport(outputText);
-      await saveOutput("progress_report", outputText);
-    } finally {
-      setReportLoading(false);
     }
   };
 
@@ -952,36 +785,18 @@ ${recentHistory}`;
 
       const data = await res.json();
 
-      const outputText = !res.ok
-        ? data.reply ||
-          data.error ||
-          "Unable to generate the next session plan right now."
-        : data.reply || "No next session plan generated.";
-
+      const outputText = data.reply || "No next session plan generated.";
       setNextSessionPlan(outputText);
-      await saveOutput("next_session_plan", outputText);
-
-      if (typeof data.premium === "boolean") {
-        setPremium(data.premium);
-      }
-      if (typeof data.freeMessagesRemaining === "number") {
-        setFreeMessagesRemaining(data.freeMessagesRemaining);
-      }
+      await saveOutput(outputText);
     } catch (error) {
       console.error("Next session plan error:", error);
-      const outputText = "Error generating next session plan.";
-      setNextSessionPlan(outputText);
-      await saveOutput("next_session_plan", outputText);
+      setNextSessionPlan("Error generating next session plan.");
     } finally {
       setNextSessionLoading(false);
     }
   };
 
-  const canChat = premium || freeMessagesRemaining > 0;
   const availableMainGoals = mainGoalOptions[dogProfile.goalType] || [];
-  const savedProgressReports = savedOutputs.filter(
-    (output) => output.outputType === "progress_report"
-  );
   const savedNextPlans = savedOutputs.filter(
     (output) => output.outputType === "next_session_plan"
   );
@@ -993,504 +808,404 @@ ${recentHistory}`;
           <h1 className="text-4xl font-bold">Patriot K9 Command Trainer</h1>
         </div>
 
-        {!accessLoaded && (
-          <div className="mt-8 rounded-xl border border-white/10 bg-white/5 p-6">
-            <p className="text-slate-300">Loading account access...</p>
-          </div>
-        )}
-
-        {accessLoaded && (
-          <>
-            {!premium && (
-              <div className="mt-8 rounded-xl border border-cyan-400/30 bg-cyan-400/10 p-6">
-                <h2 className="text-2xl font-semibold">Free Trial Active</h2>
-                <p className="mt-3 text-slate-200">
-                  You have <strong>{freeMessagesRemaining}</strong> free trainer
-                  message{freeMessagesRemaining === 1 ? "" : "s"} remaining.
-                </p>
-                <p className="mt-2 text-slate-400">
-                  After 8 total messages, upgrade is required for unlimited access.
-                </p>
-
-                {freeMessagesRemaining <= 0 && (
-                  <a
-                    href="/"
-                    className="mt-6 inline-block rounded-xl bg-cyan-400 px-5 py-3 font-semibold text-black hover:brightness-110"
+        <div className="mt-8 grid gap-8 xl:grid-cols-[360px_1fr]">
+          <div className="space-y-8">
+            <div className="rounded-xl border border-white/10 bg-white/5 p-6">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-2xl font-semibold">Dog Profile</h2>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleNewDog}
+                    className="rounded-xl border border-white/20 px-4 py-2 font-semibold text-white hover:bg-white/10"
                   >
-                    Upgrade Now
-                  </a>
-                )}
-              </div>
-            )}
-
-            {premium && (
-              <div className="mt-8 rounded-xl border border-cyan-400/30 bg-cyan-400/10 p-6">
-                <h2 className="text-2xl font-semibold">Premium Access Active</h2>
-                <p className="mt-3 text-slate-200">
-                  Unlimited trainer access is unlocked for this account.
-                </p>
-              </div>
-            )}
-
-            <div className="mt-8 grid gap-8 xl:grid-cols-[360px_1fr]">
-              <div className="space-y-8">
-                <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-                  <div className="flex items-center justify-between gap-3">
-                    <h2 className="text-2xl font-semibold">Dog Profile</h2>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={handleNewDog}
-                        className="rounded-xl border border-white/20 px-4 py-2 font-semibold text-white hover:bg-white/10"
-                      >
-                        New Dog
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleSaveDogProfile}
-                        disabled={profileSaving}
-                        className="rounded-xl bg-cyan-400 px-4 py-2 font-semibold text-black hover:brightness-110 disabled:opacity-50"
-                      >
-                        {profileSaving
-                          ? "Saving..."
-                          : selectedDogId
-                          ? "Update Dog"
-                          : "Save Dog"}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 space-y-4">
-                    <div>
-                      <label className="mb-2 block text-sm text-slate-300">Saved Dogs</label>
-                      <div className="flex gap-2">
-                        <select
-                          value={selectedDogId}
-                          onChange={(e) => handleSelectDog(e.target.value)}
-                          className="w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
-                        >
-                          <option value="">New unsaved dog</option>
-                          {dogProfiles.map((dog) => (
-                            <option key={dog.id} value={dog.id}>
-                              {dog.name}
-                            </option>
-                          ))}
-                        </select>
-
-                        <button
-                          type="button"
-                          onClick={handleDeleteDogProfile}
-                          disabled={!selectedDogId}
-                          className="rounded-xl border border-white/20 px-4 py-2 font-semibold text-white hover:bg-white/10 disabled:opacity-50"
-                        >
-                          Delete Dog
-                        </button>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="mb-2 block text-sm text-slate-300">Dog Name</label>
-                      <input
-                        type="text"
-                        value={dogProfile.name}
-                        onChange={(e) =>
-                          setDogProfile({ ...dogProfile, name: e.target.value })
-                        }
-                        placeholder="Ex: Henry"
-                        className="w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="mb-2 block text-sm text-slate-300">Goal Type</label>
-                      <select
-                        value={dogProfile.goalType}
-                        onChange={(e) =>
-                          setDogProfile({
-                            ...dogProfile,
-                            goalType: e.target.value,
-                          })
-                        }
-                        className="w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
-                      >
-                        {goalTypeOptions.map((option) => (
-                          <option key={option} value={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="mb-2 block text-sm text-slate-300">Main Goal</label>
-                      <select
-                        value={dogProfile.mainGoal}
-                        onChange={(e) =>
-                          setDogProfile({
-                            ...dogProfile,
-                            mainGoal: e.target.value,
-                          })
-                        }
-                        className="w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
-                      >
-                        {availableMainGoals.map((option) => (
-                          <option key={option} value={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
-                      <p className="mt-2 text-xs text-slate-400">
-                        Pick the closest match, then use Additional Notes if needed.
-                      </p>
-                    </div>
-
-                    <div>
-                      <label className="mb-2 block text-sm text-slate-300">Reward Type</label>
-                      <select
-                        value={dogProfile.rewardType}
-                        onChange={(e) =>
-                          setDogProfile({
-                            ...dogProfile,
-                            rewardType: e.target.value,
-                          })
-                        }
-                        className="w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
-                      >
-                        {rewardTypeOptions.map((option) => (
-                          <option key={option} value={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="mb-2 block text-sm text-slate-300">Skill Level</label>
-                      <select
-                        value={dogProfile.skillLevel}
-                        onChange={(e) =>
-                          setDogProfile({
-                            ...dogProfile,
-                            skillLevel: e.target.value,
-                          })
-                        }
-                        className="w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
-                      >
-                        {skillLevelOptions.map((option) => (
-                          <option key={option} value={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="mb-2 block text-sm text-slate-300">
-                        Additional Notes
-                      </label>
-                      <textarea
-                        value={dogProfile.customNotes}
-                        onChange={(e) =>
-                          setDogProfile({
-                            ...dogProfile,
-                            customNotes: e.target.value,
-                          })
-                        }
-                        placeholder="Ex: breaks heel when ball comes out, strong food drive, struggles at 20 feet, gets vocal around other dogs..."
-                        className="min-h-[120px] w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-                  <h2 className="text-2xl font-semibold">Log Training Session</h2>
-
-                  <div className="mt-5 space-y-4">
-                    <div>
-                      <label className="mb-2 block text-sm text-slate-300">Date</label>
-                      <input
-                        type="date"
-                        value={sessionForm.date}
-                        onChange={(e) =>
-                          setSessionForm({ ...sessionForm, date: e.target.value })
-                        }
-                        className="w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="mb-2 block text-sm text-slate-300">Duration</label>
-                      <input
-                        type="text"
-                        value={sessionForm.duration}
-                        onChange={(e) =>
-                          setSessionForm({ ...sessionForm, duration: e.target.value })
-                        }
-                        placeholder="Ex: 15 minutes"
-                        className="w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="mb-2 block text-sm text-slate-300">Focus</label>
-                      <input
-                        type="text"
-                        value={sessionForm.focus}
-                        onChange={(e) =>
-                          setSessionForm({ ...sessionForm, focus: e.target.value })
-                        }
-                        placeholder="Ex: heel position with toy control"
-                        className="w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="mb-2 block text-sm text-slate-300">Wins</label>
-                      <textarea
-                        value={sessionForm.wins}
-                        onChange={(e) =>
-                          setSessionForm({ ...sessionForm, wins: e.target.value })
-                        }
-                        placeholder="What improved this session?"
-                        className="min-h-[100px] w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="mb-2 block text-sm text-slate-300">Issues</label>
-                      <textarea
-                        value={sessionForm.issues}
-                        onChange={(e) =>
-                          setSessionForm({ ...sessionForm, issues: e.target.value })
-                        }
-                        placeholder="What problems showed up?"
-                        className="min-h-[100px] w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
-                      />
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handleSaveSession}
-                      className="w-full rounded-xl bg-cyan-400 px-5 py-3 font-semibold text-black hover:brightness-110"
-                    >
-                      Save Session Log
-                    </button>
-                  </div>
+                    New Dog
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveDogProfile}
+                    disabled={profileSaving}
+                    className="rounded-xl bg-cyan-400 px-4 py-2 font-semibold text-black hover:brightness-110 disabled:opacity-50"
+                  >
+                    {profileSaving
+                      ? "Saving..."
+                      : selectedDogId
+                      ? "Update Dog"
+                      : "Save Dog"}
+                  </button>
                 </div>
               </div>
 
-              <div className="space-y-8">
-                <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-                  <div className="flex items-center justify-between gap-4">
-                    <h2 className="text-2xl font-semibold">Trainer Chat</h2>
-                    <span className="text-sm text-slate-400">
-                      {selectedDogId ? "Linked to selected dog" : "Save a dog profile first"}
-                    </span>
-                  </div>
-
-                  <div className="mt-6 rounded-xl border border-white/10 bg-[#08111f] p-4">
-                    <div className="max-h-[420px] space-y-4 overflow-y-auto pr-2">
-                      {messages.length === 0 && (
-                        <p className="text-slate-400">
-                          No chat history yet. Ask a training question to start.
-                        </p>
-                      )}
-
-                      {messages.map((message, index) => (
-                        <div
-                          key={`${message.role}-${index}`}
-                          className={`max-w-[85%] rounded-xl px-4 py-3 whitespace-pre-wrap ${
-                            message.role === "user"
-                              ? "ml-auto bg-cyan-400 text-black"
-                              : "mr-auto bg-[#0f172a] text-slate-100"
-                          }`}
-                        >
-                          {message.content}
-                        </div>
+              <div className="mt-4 space-y-4">
+                <div>
+                  <label className="mb-2 block text-sm text-slate-300">Saved Dogs</label>
+                  <div className="flex gap-2">
+                    <select
+                      value={selectedDogId}
+                      onChange={(e) => handleSelectDog(e.target.value)}
+                      className="w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
+                    >
+                      <option value="">New unsaved dog</option>
+                      {dogProfiles.map((dog) => (
+                        <option key={dog.id} value={dog.id}>
+                          {dog.name}
+                        </option>
                       ))}
-
-                      {loading && (
-                        <div className="mr-auto max-w-[85%] rounded-xl bg-[#0f172a] px-4 py-3 text-slate-300">
-                          Thinking...
-                        </div>
-                      )}
-
-                      <div ref={messagesEndRef} />
-                    </div>
-                  </div>
-
-                  <div className="mt-6 flex gap-3">
-                    <textarea
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      placeholder={
-                        canChat
-                          ? "Ask your training question here..."
-                          : "Free limit reached. Upgrade to continue."
-                      }
-                      disabled={!canChat || loading}
-                      className="min-h-[90px] flex-1 rounded-xl border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none disabled:opacity-50"
-                    />
+                    </select>
 
                     <button
                       type="button"
-                      onClick={handleSend}
-                      disabled={!canChat || loading || !input.trim()}
-                      className="cursor-pointer self-end rounded-xl bg-cyan-400 px-6 py-3 font-semibold text-black hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                      onClick={handleDeleteDogProfile}
+                      disabled={!selectedDogId}
+                      className="rounded-xl border border-white/20 px-4 py-2 font-semibold text-white hover:bg-white/10 disabled:opacity-50"
                     >
-                      Send
+                      Delete Dog
                     </button>
                   </div>
-
-                  {!canChat && !premium && (
-                    <div className="mt-4">
-                      <a
-                        href="/"
-                        className="inline-block rounded-xl border border-white/20 px-5 py-3 text-white hover:bg-white/10"
-                      >
-                        Upgrade for Unlimited Access
-                      </a>
-                    </div>
-                  )}
                 </div>
 
-                <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-                  <div className="flex items-center justify-between gap-4">
-                    <h2 className="text-2xl font-semibold">Progress Report</h2>
-
-                    <button
-                      type="button"
-                      onClick={handleGenerateReport}
-                      disabled={reportLoading || sessionLogs.length === 0 || !canChat}
-                      className="cursor-pointer rounded-xl bg-cyan-400 px-5 py-3 font-semibold text-black hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {reportLoading ? "Generating..." : "Generate Progress Report"}
-                    </button>
-                  </div>
-
-                  <p className="mt-3 text-sm text-slate-400">
-                    Uses your logged sessions to generate a structured progress report.
-                  </p>
-
-                  <div className="mt-6 rounded-xl border border-white/10 bg-[#08111f] p-4">
-                    {progressReport ? (
-                      <div className="whitespace-pre-wrap text-white">{progressReport}</div>
-                    ) : (
-                      <p className="text-slate-400">
-                        No report generated yet. Log sessions, then generate a report.
-                      </p>
-                    )}
-                  </div>
-
-                  {savedProgressReports.length > 0 && (
-                    <div className="mt-6 space-y-3">
-                      <h3 className="text-lg font-semibold">Saved Progress Reports</h3>
-                      {savedProgressReports.map((report) => (
-                        <button
-                          key={report.id}
-                          type="button"
-                          onClick={() => setProgressReport(report.content)}
-                          className="block w-full rounded-xl border border-white/10 bg-[#08111f] p-3 text-left text-sm text-slate-300 hover:bg-white/10"
-                        >
-                          {new Date(report.createdAt).toLocaleString()}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                <div>
+                  <label className="mb-2 block text-sm text-slate-300">Dog Name</label>
+                  <input
+                    type="text"
+                    value={dogProfile.name}
+                    onChange={(e) =>
+                      setDogProfile({ ...dogProfile, name: e.target.value })
+                    }
+                    placeholder="Ex: Henry"
+                    className="w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
+                  />
                 </div>
 
-                <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-                  <div className="flex items-center justify-between gap-4">
-                    <h2 className="text-2xl font-semibold">Next Session Plan</h2>
-
-                    <button
-                      type="button"
-                      onClick={handleGenerateNextSessionPlan}
-                      disabled={nextSessionLoading || sessionLogs.length === 0 || !canChat}
-                      className="cursor-pointer rounded-xl bg-cyan-400 px-5 py-3 font-semibold text-black hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {nextSessionLoading ? "Generating..." : "Generate Next Session Plan"}
-                    </button>
-                  </div>
-
-                  <p className="mt-3 text-sm text-slate-400">
-                    Builds the next training session directly from your most recent logged work.
-                  </p>
-
-                  <div className="mt-6 rounded-xl border border-white/10 bg-[#08111f] p-4">
-                    {nextSessionPlan ? (
-                      <div className="whitespace-pre-wrap text-white">{nextSessionPlan}</div>
-                    ) : (
-                      <p className="text-slate-400">
-                        No next session plan generated yet. Log a session, then generate the next
-                        plan.
-                      </p>
-                    )}
-                  </div>
-
-                  {savedNextPlans.length > 0 && (
-                    <div className="mt-6 space-y-3">
-                      <h3 className="text-lg font-semibold">Saved Next Session Plans</h3>
-                      {savedNextPlans.map((plan) => (
-                        <button
-                          key={plan.id}
-                          type="button"
-                          onClick={() => setNextSessionPlan(plan.content)}
-                          className="block w-full rounded-xl border border-white/10 bg-[#08111f] p-3 text-left text-sm text-slate-300 hover:bg-white/10"
-                        >
-                          {new Date(plan.createdAt).toLocaleString()}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-                  <h2 className="text-2xl font-semibold">Session History</h2>
-
-                  <div className="mt-6 space-y-4">
-                    {sessionLogs.length === 0 && (
-                      <p className="text-slate-400">No sessions logged yet for this dog.</p>
-                    )}
-
-                    {sessionLogs.map((log) => (
-                      <div
-                        key={log.id}
-                        className="rounded-xl border border-white/10 bg-[#08111f] p-4"
-                      >
-                        <div className="flex items-start justify-between gap-4">
-                          <div>
-                            <h3 className="text-lg font-semibold">
-                              {log.date} {log.duration ? `• ${log.duration}` : ""}
-                            </h3>
-                            <p className="mt-2 text-sm text-slate-300">
-                              <strong>Focus:</strong> {log.focus}
-                            </p>
-                            <p className="mt-2 text-sm text-slate-300">
-                              <strong>Wins:</strong> {log.wins}
-                            </p>
-                            <p className="mt-2 text-sm text-slate-300">
-                              <strong>Issues:</strong> {log.issues}
-                            </p>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteSession(log.id)}
-                            className="cursor-pointer rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-300 hover:bg-white/10"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </div>
+                <div>
+                  <label className="mb-2 block text-sm text-slate-300">Goal Type</label>
+                  <select
+                    value={dogProfile.goalType}
+                    onChange={(e) =>
+                      setDogProfile({
+                        ...dogProfile,
+                        goalType: e.target.value,
+                      })
+                    }
+                    className="w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
+                  >
+                    {goalTypeOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
                     ))}
-                  </div>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm text-slate-300">Main Goal</label>
+                  <select
+                    value={dogProfile.mainGoal}
+                    onChange={(e) =>
+                      setDogProfile({
+                        ...dogProfile,
+                        mainGoal: e.target.value,
+                      })
+                    }
+                    className="w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
+                  >
+                    {availableMainGoals.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-2 text-xs text-slate-400">
+                    Pick the closest match, then use Additional Notes if needed.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm text-slate-300">Reward Type</label>
+                  <select
+                    value={dogProfile.rewardType}
+                    onChange={(e) =>
+                      setDogProfile({
+                        ...dogProfile,
+                        rewardType: e.target.value,
+                      })
+                    }
+                    className="w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
+                  >
+                    {rewardTypeOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm text-slate-300">Skill Level</label>
+                  <select
+                    value={dogProfile.skillLevel}
+                    onChange={(e) =>
+                      setDogProfile({
+                        ...dogProfile,
+                        skillLevel: e.target.value,
+                      })
+                    }
+                    className="w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
+                  >
+                    {skillLevelOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm text-slate-300">
+                    Additional Notes
+                  </label>
+                  <textarea
+                    value={dogProfile.customNotes}
+                    onChange={(e) =>
+                      setDogProfile({
+                        ...dogProfile,
+                        customNotes: e.target.value,
+                      })
+                    }
+                    placeholder="Ex: breaks heel when ball comes out, strong food drive, struggles at 20 feet, gets vocal around other dogs..."
+                    className="min-h-[120px] w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
+                  />
                 </div>
               </div>
             </div>
-          </>
-        )}
+
+            <div className="rounded-xl border border-white/10 bg-white/5 p-6">
+              <h2 className="text-2xl font-semibold">Log Training Session</h2>
+
+              <div className="mt-5 space-y-4">
+                <div>
+                  <label className="mb-2 block text-sm text-slate-300">Date</label>
+                  <input
+                    type="date"
+                    value={sessionForm.date}
+                    onChange={(e) =>
+                      setSessionForm({ ...sessionForm, date: e.target.value })
+                    }
+                    className="w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm text-slate-300">Duration</label>
+                  <input
+                    type="text"
+                    value={sessionForm.duration}
+                    onChange={(e) =>
+                      setSessionForm({ ...sessionForm, duration: e.target.value })
+                    }
+                    placeholder="Ex: 15 minutes"
+                    className="w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm text-slate-300">Focus</label>
+                  <input
+                    type="text"
+                    value={sessionForm.focus}
+                    onChange={(e) =>
+                      setSessionForm({ ...sessionForm, focus: e.target.value })
+                    }
+                    placeholder="Ex: heel position with toy control"
+                    className="w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm text-slate-300">Wins</label>
+                  <textarea
+                    value={sessionForm.wins}
+                    onChange={(e) =>
+                      setSessionForm({ ...sessionForm, wins: e.target.value })
+                    }
+                    placeholder="What improved this session?"
+                    className="min-h-[100px] w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm text-slate-300">Issues</label>
+                  <textarea
+                    value={sessionForm.issues}
+                    onChange={(e) =>
+                      setSessionForm({ ...sessionForm, issues: e.target.value })
+                    }
+                    placeholder="What problems showed up?"
+                    className="min-h-[100px] w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleSaveSession}
+                  className="w-full rounded-xl bg-cyan-400 px-5 py-3 font-semibold text-black hover:brightness-110"
+                >
+                  Save Session Log
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-8">
+            <div className="rounded-xl border border-white/10 bg-white/5 p-6">
+              <div className="flex items-center justify-between gap-4">
+                <h2 className="text-2xl font-semibold">Trainer Chat</h2>
+                <span className="text-sm text-slate-400">
+                  {selectedDogId ? "Linked to selected dog" : "Save a dog profile first"}
+                </span>
+              </div>
+
+              <div className="mt-6 rounded-xl border border-white/10 bg-[#08111f] p-4">
+                <div
+                  ref={chatContainerRef}
+                  className="max-h-[420px] space-y-4 overflow-y-auto pr-2"
+                >
+                  {messages.length === 0 && (
+                    <p className="text-slate-400">
+                      No chat history yet. Ask a training question to start.
+                    </p>
+                  )}
+
+                  {messages.map((message, index) => (
+                    <div
+                      key={`${message.role}-${index}`}
+                      className={`max-w-[85%] whitespace-pre-wrap rounded-xl px-4 py-3 ${
+                        message.role === "user"
+                          ? "ml-auto bg-cyan-400 text-black"
+                          : "mr-auto bg-[#0f172a] text-slate-100"
+                      }`}
+                    >
+                      {message.content}
+                    </div>
+                  ))}
+
+                  {loading && (
+                    <div className="mr-auto max-w-[85%] rounded-xl bg-[#0f172a] px-4 py-3 text-slate-300">
+                      Thinking...
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-6 flex gap-3">
+                <textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Ask your training question here..."
+                  disabled={loading}
+                  className="min-h-[90px] flex-1 rounded-xl border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none disabled:opacity-50"
+                />
+
+                <button
+                  type="button"
+                  onClick={handleSend}
+                  disabled={loading || !input.trim()}
+                  className="cursor-pointer self-end rounded-xl bg-cyan-400 px-6 py-3 font-semibold text-black hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Send
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-white/5 p-6">
+              <div className="flex items-center justify-between gap-4">
+                <h2 className="text-2xl font-semibold">Next Session Plan</h2>
+
+                <button
+                  type="button"
+                  onClick={handleGenerateNextSessionPlan}
+                  disabled={nextSessionLoading || sessionLogs.length === 0 || !selectedDogId}
+                  className="cursor-pointer rounded-xl bg-cyan-400 px-5 py-3 font-semibold text-black hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {nextSessionLoading ? "Generating..." : "Generate Next Session Plan"}
+                </button>
+              </div>
+
+              <p className="mt-3 text-sm text-slate-400">
+                Builds the next training session directly from your most recent logged work.
+              </p>
+
+              <div className="mt-6 rounded-xl border border-white/10 bg-[#08111f] p-4">
+                {nextSessionPlan ? (
+                  <div className="whitespace-pre-wrap text-white">{nextSessionPlan}</div>
+                ) : (
+                  <p className="text-slate-400">
+                    No next session plan generated yet. Log a session, then generate the next
+                    plan.
+                  </p>
+                )}
+              </div>
+
+              {savedNextPlans.length > 0 && (
+                <div className="mt-6 space-y-3">
+                  <h3 className="text-lg font-semibold">Saved Next Session Plans</h3>
+                  {savedNextPlans.map((plan) => (
+                    <button
+                      key={plan.id}
+                      type="button"
+                      onClick={() => setNextSessionPlan(plan.content)}
+                      className="block w-full rounded-xl border border-white/10 bg-[#08111f] p-3 text-left text-sm text-slate-300 hover:bg-white/10"
+                    >
+                      {new Date(plan.createdAt).toLocaleString()}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-white/5 p-6">
+              <h2 className="text-2xl font-semibold">Session History</h2>
+
+              <div className="mt-6 space-y-4">
+                {sessionLogs.length === 0 && (
+                  <p className="text-slate-400">No sessions logged yet for this dog.</p>
+                )}
+
+                {sessionLogs.map((log) => (
+                  <div
+                    key={log.id}
+                    className="rounded-xl border border-white/10 bg-[#08111f] p-4"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <h3 className="text-lg font-semibold">
+                          {log.date} {log.duration ? `• ${log.duration}` : ""}
+                        </h3>
+                        <p className="mt-2 text-sm text-slate-300">
+                          <strong>Focus:</strong> {log.focus}
+                        </p>
+                        <p className="mt-2 text-sm text-slate-300">
+                          <strong>Wins:</strong> {log.wins}
+                        </p>
+                        <p className="mt-2 text-sm text-slate-300">
+                          <strong>Issues:</strong> {log.issues}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteSession(log.id)}
+                        className="cursor-pointer rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-300 hover:bg-white/10"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </main>
   );
