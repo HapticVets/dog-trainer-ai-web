@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 
 type ChatMessage = {
@@ -143,6 +143,7 @@ const skillLevelOptions = [
 
 export default function TrainPage() {
   const { user } = useUser();
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -376,6 +377,10 @@ export default function TrainPage() {
     loadOutputs();
   }, [user, selectedDogId, dogProfile.name]);
 
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
+
   const saveChatMessage = async (role: "user" | "assistant", content: string) => {
     if (!selectedDogId || !content.trim()) return;
 
@@ -578,14 +583,11 @@ export default function TrainPage() {
 
     if (!input.trim() || loading) return;
 
-    const fullUserInput =
-      dogProfile.customNotes.trim().length > 0
-        ? `${input}\n\nAdditional Notes: ${dogProfile.customNotes}`
-        : input;
+    const cleanUserInput = input.trim();
 
     const userMessage: ChatMessage = {
       role: "user",
-      content: fullUserInput,
+      content: cleanUserInput,
     };
 
     const nextMessages = [...messages, userMessage];
@@ -593,7 +595,7 @@ export default function TrainPage() {
     setInput("");
     setLoading(true);
 
-    await saveChatMessage("user", fullUserInput);
+    await saveChatMessage("user", cleanUserInput);
 
     try {
       const res = await fetch("/api/chat", {
@@ -898,6 +900,7 @@ Issues: ${log.issues}`
 Use this exact format:
 
 SESSION OBJECTIVE
+WHY THIS SESSION
 SETUP
 WORKING REPS
 REWARD RULE
@@ -905,6 +908,10 @@ RESET RULE
 SUCCESS CRITERIA
 WHEN TO STOP
 NEXT PROGRESSION
+CURRENT PHASE
+PRIMARY C
+SESSION TYPE
+PROGRESSION LOGIC
 
 Be direct and specific. Give exact structure, not generic advice.
 
@@ -980,13 +987,11 @@ ${recentHistory}`;
   );
 
   return (
-    <main className="min-h-screen bg-[#0b0f17] text-white px-6 py-12">
+    <main className="min-h-screen bg-[#0b0f17] px-6 py-12 text-white">
       <div className="mx-auto max-w-7xl">
         <div className="flex items-center justify-between">
-  <h1 className="text-4xl font-bold">Patriot K9 Command Trainer</h1>
-
-  
-</div>
+          <h1 className="text-4xl font-bold">Patriot K9 Command Trainer</h1>
+        </div>
 
         {!accessLoaded && (
           <div className="mt-8 rounded-xl border border-white/10 bg-white/5 p-6">
@@ -1046,7 +1051,11 @@ ${recentHistory}`;
                         disabled={profileSaving}
                         className="rounded-xl bg-cyan-400 px-4 py-2 font-semibold text-black hover:brightness-110 disabled:opacity-50"
                       >
-                        {profileSaving ? "Saving..." : selectedDogId ? "Update Dog" : "Save Dog"}
+                        {profileSaving
+                          ? "Saving..."
+                          : selectedDogId
+                          ? "Update Dog"
+                          : "Save Dog"}
                       </button>
                     </div>
                   </div>
@@ -1243,8 +1252,8 @@ ${recentHistory}`;
                         onChange={(e) =>
                           setSessionForm({ ...sessionForm, wins: e.target.value })
                         }
-                        placeholder="What improved?"
-                        className="min-h-[90px] w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
+                        placeholder="What improved this session?"
+                        className="min-h-[100px] w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
                       />
                     </div>
 
@@ -1255,15 +1264,15 @@ ${recentHistory}`;
                         onChange={(e) =>
                           setSessionForm({ ...sessionForm, issues: e.target.value })
                         }
-                        placeholder="What broke down?"
-                        className="min-h-[90px] w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
+                        placeholder="What problems showed up?"
+                        className="min-h-[100px] w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
                       />
                     </div>
 
                     <button
                       type="button"
                       onClick={handleSaveSession}
-                      className="w-full cursor-pointer rounded-xl bg-cyan-400 px-5 py-3 font-semibold text-black hover:brightness-110"
+                      className="w-full rounded-xl bg-cyan-400 px-5 py-3 font-semibold text-black hover:brightness-110"
                     >
                       Save Session Log
                     </button>
@@ -1273,39 +1282,29 @@ ${recentHistory}`;
 
               <div className="space-y-8">
                 <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-4">
                     <h2 className="text-2xl font-semibold">Trainer Chat</h2>
-
-                    {!premium && (
-                      <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-sm text-cyan-300">
-                        {freeMessagesRemaining} free left
-                      </span>
-                    )}
-
-                    {premium && (
-                      <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-sm text-cyan-300">
-                        Premium
-                      </span>
-                    )}
+                    <span className="text-sm text-slate-400">
+                      {selectedDogId ? "Linked to selected dog" : "Save a dog profile first"}
+                    </span>
                   </div>
 
-                  <div className="mt-6 h-[420px] overflow-y-auto rounded-xl border border-white/10 bg-[#08111f] p-4">
-                    {messages.length === 0 && (
-                      <p className="text-slate-400">
-                        Start by describing the issue, what the dog is doing, what you
-                        want instead, and what happens during training.
-                      </p>
-                    )}
+                  <div className="mt-6 rounded-xl border border-white/10 bg-[#08111f] p-4">
+                    <div className="max-h-[420px] space-y-4 overflow-y-auto pr-2">
+                      {messages.length === 0 && (
+                        <p className="text-slate-400">
+                          No chat history yet. Ask a training question to start.
+                        </p>
+                      )}
 
-                    <div className="space-y-4">
                       {messages.map((message, index) => (
                         <div
-                          key={index}
-                          className={
+                          key={`${message.role}-${index}`}
+                          className={`max-w-[85%] rounded-xl px-4 py-3 whitespace-pre-wrap ${
                             message.role === "user"
-                              ? "ml-auto max-w-[85%] rounded-xl bg-cyan-400 px-4 py-3 text-black whitespace-pre-wrap"
-                              : "mr-auto max-w-[85%] rounded-xl bg-[#0f172a] px-4 py-3 text-white whitespace-pre-wrap"
-                          }
+                              ? "ml-auto bg-cyan-400 text-black"
+                              : "mr-auto bg-[#0f172a] text-slate-100"
+                          }`}
                         >
                           {message.content}
                         </div>
@@ -1316,6 +1315,8 @@ ${recentHistory}`;
                           Thinking...
                         </div>
                       )}
+
+                      <div ref={messagesEndRef} />
                     </div>
                   </div>
 
@@ -1374,9 +1375,7 @@ ${recentHistory}`;
 
                   <div className="mt-6 rounded-xl border border-white/10 bg-[#08111f] p-4">
                     {progressReport ? (
-                      <div className="whitespace-pre-wrap text-white">
-                        {progressReport}
-                      </div>
+                      <div className="whitespace-pre-wrap text-white">{progressReport}</div>
                     ) : (
                       <p className="text-slate-400">
                         No report generated yet. Log sessions, then generate a report.
@@ -1421,12 +1420,11 @@ ${recentHistory}`;
 
                   <div className="mt-6 rounded-xl border border-white/10 bg-[#08111f] p-4">
                     {nextSessionPlan ? (
-                      <div className="whitespace-pre-wrap text-white">
-                        {nextSessionPlan}
-                      </div>
+                      <div className="whitespace-pre-wrap text-white">{nextSessionPlan}</div>
                     ) : (
                       <p className="text-slate-400">
-                        No next session plan generated yet. Log a session, then generate the next plan.
+                        No next session plan generated yet. Log a session, then generate the next
+                        plan.
                       </p>
                     )}
                   </div>

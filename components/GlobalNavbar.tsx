@@ -6,6 +6,7 @@ import { UserButton, useUser } from "@clerk/nextjs";
 
 const navItems = [
   { href: "/", label: "Home" },
+  { href: "/method", label: "Method" },
   { href: "/train", label: "Trainer" },
   { href: "/dashboard", label: "Dashboard" },
 ];
