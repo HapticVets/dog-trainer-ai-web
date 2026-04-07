@@ -10,7 +10,6 @@ export const metadata: Metadata = {
   },
   description:
     "Structured dog training platform built for real-world results. Log sessions, track progress, and generate precise training plans using the 4C K9 Doctrine.",
-
   openGraph: {
     title: "Patriot K9 Command",
     description:
@@ -19,7 +18,7 @@ export const metadata: Metadata = {
     siteName: "Patriot K9 Command",
     images: [
       {
-        url: "/og-image1-v2.jpg", // this must exist in /public
+        url: "/patriot-k9-embed.jpg",
         width: 1200,
         height: 630,
         alt: "Patriot K9 Command",
@@ -27,15 +26,13 @@ export const metadata: Metadata = {
     ],
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
     title: "Patriot K9 Command",
     description:
       "Structured dog training platform built for real-world results.",
-    images: ["/og-image1-v2.jpg"],
+    images: ["/patriot-k9-embed.jpg"],
   },
-
   icons: {
     icon: "/favicon.ico",
   },
