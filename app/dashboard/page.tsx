@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 type DashboardSummary = {
@@ -75,6 +75,13 @@ export default function DashboardPage() {
   const [savedOutputs, setSavedOutputs] = useState<SavedOutput[]>([]);
   const [progressReport, setProgressReport] = useState("");
   const [reportLoading, setReportLoading] = useState(false);
+
+  const hasActiveDog = Boolean(selectedDogId && selectedDogName.trim());
+
+  const selectedDogProfile = useMemo(
+    () => dogProfiles.find((dog) => dog.id === selectedDogId) || null,
+    [dogProfiles, selectedDogId]
+  );
 
   useEffect(() => {
     const loadSummary = async () => {
@@ -238,11 +245,7 @@ export default function DashboardPage() {
 
     if (found) {
       setSelectedDogName(found.name);
-
-      const matchingReports = savedOutputs.filter(
-        (output) => output.outputType === "progress_report"
-      );
-      setProgressReport(matchingReports[0]?.content ?? "");
+      setProgressReport("");
     } else {
       setSelectedDogName("");
       setProgressReport("");
@@ -365,238 +368,246 @@ ${sessionSummary}`;
   );
 
   return (
-    <main className="min-h-screen bg-[#0b0f17] px-6 py-12 text-white">
-      <div className="mx-auto max-w-7xl">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-sm uppercase tracking-[0.25em] text-cyan-300">
-              Dashboard
-            </p>
-            <h1 className="mt-2 text-4xl font-bold">Training Overview</h1>
-            <p className="mt-3 max-w-2xl text-slate-400">
-              Quick summary of saved dogs, logged sessions, and latest training outputs.
-            </p>
+    <main className="min-h-screen bg-neutral-950 text-white">
+      <section className="border-b border-neutral-800">
+        <div className="mx-auto max-w-7xl px-6 py-14">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-sm uppercase tracking-[0.25em] text-amber-400">
+                Dashboard
+              </p>
+              <h1 className="mt-4 text-4xl font-bold md:text-6xl leading-tight">
+                Training Overview
+              </h1>
+              <p className="mt-6 max-w-2xl text-lg text-neutral-300">
+                Quick summary of saved dogs, logged sessions, progress reports, and next-session outputs.
+              </p>
+            </div>
+
+            <div className="flex flex-col items-start gap-4 md:items-end">
+              <div className="rounded border border-amber-500/30 bg-amber-400/10 px-6 py-4 text-sm text-amber-200">
+                {hasActiveDog ? (
+                  <>
+                    <span className="font-semibold">Active Dog:</span> {selectedDogName}
+                  </>
+                ) : (
+                  "No active dog selected"
+                )}
+              </div>
+
+              <Link
+                href="/train"
+                className="rounded bg-amber-400 px-6 py-3 font-semibold text-black"
+              >
+                Open Trainer
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-6 py-16">
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-6">
+            <p className="text-sm text-neutral-400">Total Dogs</p>
+            <p className="mt-4 text-5xl font-bold">{summary?.totalDogs ?? 0}</p>
           </div>
 
-          <div className="flex gap-3">
-            <Link
-              href="/train"
-              className="rounded-xl bg-cyan-400 px-5 py-3 font-semibold text-black hover:brightness-110"
-            >
-              Open Trainer
-            </Link>
+          <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-6">
+            <p className="text-sm text-neutral-400">Total Sessions</p>
+            <p className="mt-4 text-5xl font-bold">{summary?.totalSessions ?? 0}</p>
+          </div>
+
+          <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-6">
+            <p className="text-sm text-neutral-400">Latest Dog</p>
+            <p className="mt-4 text-3xl font-bold">
+              {summary?.latestDog?.name || "None yet"}
+            </p>
+            {summary?.latestDog && (
+              <p className="mt-3 text-neutral-300">
+                {summary.latestDog.goal_type} • {summary.latestDog.main_goal}
+              </p>
+            )}
+          </div>
+
+          <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-6">
+            <p className="text-sm text-neutral-400">Latest Session Dog</p>
+            <p className="mt-4 text-3xl font-bold">
+              {summary?.latestSession?.dog_name || "None yet"}
+            </p>
+            {summary?.latestSession && (
+              <p className="mt-3 text-neutral-300">
+                {summary.latestSession.session_date || "No date"}
+              </p>
+            )}
           </div>
         </div>
 
-        {loading && (
-          <div className="mt-8 rounded-xl border border-white/10 bg-white/5 p-6">
-            <p className="text-slate-300">Loading dashboard...</p>
-          </div>
-        )}
+        <div className="mt-8 grid gap-8 xl:grid-cols-2">
+          <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-6">
+            <h2 className="text-3xl font-bold">Latest Session</h2>
 
-        {!loading && !summary && (
-          <div className="mt-8 rounded-xl border border-white/10 bg-white/5 p-6">
-            <p className="text-slate-300">Unable to load dashboard summary.</p>
-          </div>
-        )}
+            {!summary?.latestSession && (
+              <p className="mt-4 text-neutral-400">No session logs yet.</p>
+            )}
 
-        {!loading && summary && (
-          <>
-            <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-                <p className="text-sm text-slate-400">Total Dogs</p>
-                <p className="mt-3 text-4xl font-bold">{summary.totalDogs}</p>
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-                <p className="text-sm text-slate-400">Total Sessions</p>
-                <p className="mt-3 text-4xl font-bold">{summary.totalSessions}</p>
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-                <p className="text-sm text-slate-400">Latest Dog</p>
-                <p className="mt-3 text-2xl font-bold">
-                  {summary.latestDog?.name || "None yet"}
+            {summary?.latestSession && (
+              <div className="mt-6 space-y-4">
+                <p className="text-2xl font-semibold">
+                  {summary.latestSession.dog_name}
+                  {summary.latestSession.duration
+                    ? ` • ${summary.latestSession.duration} min`
+                    : ""}
                 </p>
-                {summary.latestDog && (
-                  <p className="mt-2 text-sm text-slate-400">
-                    {summary.latestDog.goal_type} • {summary.latestDog.main_goal}
-                  </p>
-                )}
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-                <p className="text-sm text-slate-400">Latest Session Dog</p>
-                <p className="mt-3 text-2xl font-bold">
-                  {summary.latestSession?.dog_name || "None yet"}
+                <p className="text-neutral-400">
+                  Date: {summary.latestSession.session_date || "Not provided"}
                 </p>
-                {summary.latestSession && (
-                  <p className="mt-2 text-sm text-slate-400">
-                    {summary.latestSession.session_date || "No date"}
-                  </p>
-                )}
+                <p className="text-neutral-300">
+                  <strong>Focus:</strong> {summary.latestSession.focus || "None"}
+                </p>
+                <p className="text-neutral-300">
+                  <strong>Wins:</strong> {summary.latestSession.wins || "None"}
+                </p>
+                <p className="text-neutral-300">
+                  <strong>Issues:</strong> {summary.latestSession.issues || "None"}
+                </p>
               </div>
+            )}
+          </div>
+
+          <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-6">
+            <h2 className="text-3xl font-bold">Latest Dog Profile</h2>
+
+            {!summary?.latestDog && (
+              <p className="mt-4 text-neutral-400">No saved dogs yet.</p>
+            )}
+
+            {summary?.latestDog && (
+              <div className="mt-6 space-y-4">
+                <p className="text-2xl font-semibold">{summary.latestDog.name}</p>
+                <p className="text-neutral-300">
+                  <strong>Goal Type:</strong> {summary.latestDog.goal_type || "None"}
+                </p>
+                <p className="text-neutral-300">
+                  <strong>Main Goal:</strong> {summary.latestDog.main_goal || "None"}
+                </p>
+                <p className="text-neutral-300">
+                  <strong>Reward Type:</strong> {summary.latestDog.reward_type || "None"}
+                </p>
+                <p className="text-neutral-300">
+                  <strong>Skill Level:</strong> {summary.latestDog.skill_level || "None"}
+                </p>
+                <p className="text-neutral-300">
+                  <strong>Notes:</strong> {summary.latestDog.custom_notes || "None"}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-8 rounded-lg border border-neutral-800 bg-neutral-950 p-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <h2 className="text-3xl font-bold">Progress Report Center</h2>
+              <p className="mt-3 text-neutral-400">
+                Progress reports are generated from real training sessions. Select a dog with logged sessions before generating a report.
+              </p>
             </div>
 
-            <div className="mt-8 grid gap-8 xl:grid-cols-2">
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-                <h2 className="text-2xl font-semibold">Latest Session</h2>
+            <button
+              type="button"
+              onClick={handleGenerateReport}
+              disabled={reportLoading || sessionLogs.length === 0 || !selectedDogId}
+              className="rounded bg-amber-400 px-6 py-3 font-semibold text-black disabled:opacity-50"
+            >
+              {reportLoading
+                ? "Generating..."
+                : sessionLogs.length === 0
+                ? "Log a Session First"
+                : "Generate Progress Report"}
+            </button>
+          </div>
 
-                {!summary.latestSession && (
-                  <p className="mt-4 text-slate-400">No session logs yet.</p>
-                )}
+          <div className="mt-6">
+            <label className="mb-2 block text-sm text-white">Select Dog</label>
+            <select
+              value={selectedDogId}
+              onChange={(e) => handleSelectDog(e.target.value)}
+              className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
+            >
+              <option value="">Select a saved dog</option>
+              {dogProfiles.map((dog) => (
+                <option key={dog.id} value={dog.id}>
+                  {dog.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-                {summary.latestSession && (
-                  <div className="mt-4 space-y-3">
-                    <p className="text-lg font-semibold">
-                      {summary.latestSession.dog_name}{" "}
-                      {summary.latestSession.duration
-                        ? `• ${summary.latestSession.duration} min`
-                        : ""}
-                    </p>
-                    <p className="text-sm text-slate-400">
-                      Date: {summary.latestSession.session_date || "Not provided"}
-                    </p>
-                    <p className="text-sm text-slate-300">
-                      <strong>Focus:</strong> {summary.latestSession.focus || "None"}
-                    </p>
-                    <p className="text-sm text-slate-300">
-                      <strong>Wins:</strong> {summary.latestSession.wins || "None"}
-                    </p>
-                    <p className="text-sm text-slate-300">
-                      <strong>Issues:</strong> {summary.latestSession.issues || "None"}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-                <h2 className="text-2xl font-semibold">Latest Dog Profile</h2>
-
-                {!summary.latestDog && (
-                  <p className="mt-4 text-slate-400">No saved dogs yet.</p>
-                )}
-
-                {summary.latestDog && (
-                  <div className="mt-4 space-y-3">
-                    <p className="text-lg font-semibold">{summary.latestDog.name}</p>
-                    <p className="text-sm text-slate-300">
-                      <strong>Goal Type:</strong> {summary.latestDog.goal_type || "None"}
-                    </p>
-                    <p className="text-sm text-slate-300">
-                      <strong>Main Goal:</strong> {summary.latestDog.main_goal || "None"}
-                    </p>
-                    <p className="text-sm text-slate-300">
-                      <strong>Reward Type:</strong> {summary.latestDog.reward_type || "None"}
-                    </p>
-                    <p className="text-sm text-slate-300">
-                      <strong>Skill Level:</strong> {summary.latestDog.skill_level || "None"}
-                    </p>
-                    <p className="text-sm text-slate-300">
-                      <strong>Notes:</strong> {summary.latestDog.custom_notes || "None"}
-                    </p>
-                  </div>
-                )}
-              </div>
+          {hasActiveDog && selectedDogProfile && (
+            <div className="mt-5 rounded border border-amber-500/30 bg-amber-400/10 p-5">
+              <p className="text-xs uppercase tracking-[0.2em] text-amber-300">
+                Active Dog
+              </p>
+              <p className="mt-3 text-3xl font-bold">{selectedDogProfile.name}</p>
+              <p className="mt-2 text-neutral-300">
+                {selectedDogProfile.goalType} • {selectedDogProfile.mainGoal}
+              </p>
             </div>
+          )}
 
-            <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6">
-              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <h2 className="text-2xl font-semibold">Progress Report Center</h2>
-                  <p className="mt-2 text-sm text-slate-400">
-                    Progress reports are generated from real training sessions. Log at least
-                    one session before generating a report.
-                  </p>
-                </div>
+          {sessionLogs.length === 0 && selectedDogId && (
+            <p className="mt-4 text-sm text-amber-300">
+              No sessions logged for this dog yet. Log a training session first to unlock progress reports.
+            </p>
+          )}
 
+          <div className="mt-6 rounded-lg border border-neutral-800 bg-black p-4">
+            {progressReport ? (
+              <div className="whitespace-pre-wrap text-white">{progressReport}</div>
+            ) : (
+              <p className="text-neutral-400">
+                No report selected yet. Choose a dog and generate a report when needed.
+              </p>
+            )}
+          </div>
+
+          {savedProgressReports.length > 0 && (
+            <div className="mt-6 space-y-3">
+              <h3 className="text-xl font-semibold">Saved Progress Reports</h3>
+              {savedProgressReports.map((report) => (
                 <button
+                  key={report.id}
                   type="button"
-                  onClick={handleGenerateReport}
-                  disabled={reportLoading || sessionLogs.length === 0 || !selectedDogId}
-                  className="rounded-xl bg-cyan-400 px-5 py-3 font-semibold text-black hover:brightness-110 disabled:opacity-50"
+                  onClick={() => setProgressReport(report.content)}
+                  className="block w-full rounded border border-neutral-800 bg-black p-3 text-left text-sm text-neutral-300 hover:bg-neutral-900"
                 >
-                  {reportLoading
-                    ? "Generating..."
-                    : sessionLogs.length === 0
-                    ? "Log a Session First"
-                    : "Generate Progress Report"}
+                  {new Date(report.createdAt).toLocaleString()}
                 </button>
-              </div>
-
-              <div className="mt-6">
-                <label className="mb-2 block text-sm text-slate-300">Select Dog</label>
-                <select
-                  value={selectedDogId}
-                  onChange={(e) => handleSelectDog(e.target.value)}
-                  className="w-full rounded-lg border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none"
-                >
-                  <option value="">Select a saved dog</option>
-                  {dogProfiles.map((dog) => (
-                    <option key={dog.id} value={dog.id}>
-                      {dog.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {sessionLogs.length === 0 && selectedDogId && (
-                <p className="mt-4 text-sm text-amber-300">
-                  No sessions logged for this dog yet. Log a training session first to unlock
-                  progress reports.
-                </p>
-              )}
-
-              <div className="mt-6 rounded-xl border border-white/10 bg-[#08111f] p-4">
-                {progressReport ? (
-                  <div className="whitespace-pre-wrap text-white">{progressReport}</div>
-                ) : (
-                  <p className="text-slate-400">
-                    No report selected yet. Choose a dog and generate a report when needed.
-                  </p>
-                )}
-              </div>
-
-              {savedProgressReports.length > 0 && (
-                <div className="mt-6 space-y-3">
-                  <h3 className="text-lg font-semibold">Saved Progress Reports</h3>
-                  {savedProgressReports.map((report) => (
-                    <button
-                      key={report.id}
-                      type="button"
-                      onClick={() => setProgressReport(report.content)}
-                      className="block w-full rounded-xl border border-white/10 bg-[#08111f] p-3 text-left text-sm text-slate-300 hover:bg-white/10"
-                    >
-                      {new Date(report.createdAt).toLocaleString()}
-                    </button>
-                  ))}
-                </div>
-              )}
+              ))}
             </div>
+          )}
+        </div>
 
-            <div className="mt-8">
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-                <h2 className="text-2xl font-semibold">Latest Next Session Plan</h2>
+        <div className="mt-8 rounded-lg border border-neutral-800 bg-neutral-950 p-6">
+          <h2 className="text-3xl font-bold">Latest Next Session Plan</h2>
 
-                {!summary.latestNextSessionPlan && (
-                  <p className="mt-4 text-slate-400">No saved next session plans yet.</p>
-                )}
+          {!summary?.latestNextSessionPlan && (
+            <p className="mt-4 text-neutral-400">No saved next session plans yet.</p>
+          )}
 
-                {summary.latestNextSessionPlan && (
-                  <div className="mt-4">
-                    <p className="mb-3 text-sm text-slate-400">
-                      Saved {new Date(summary.latestNextSessionPlan.created_at).toLocaleString()}
-                    </p>
-                    <div className="whitespace-pre-wrap rounded-xl border border-white/10 bg-[#08111f] p-4 text-sm text-slate-200">
-                      {summary.latestNextSessionPlan.content}
-                    </div>
-                  </div>
-                )}
+          {summary?.latestNextSessionPlan && (
+            <div className="mt-6">
+              <p className="mb-3 text-neutral-400">
+                Saved {new Date(summary.latestNextSessionPlan.created_at).toLocaleString()}
+              </p>
+              <div className="whitespace-pre-wrap rounded-lg border border-neutral-800 bg-black p-4 text-neutral-200">
+                {summary.latestNextSessionPlan.content}
               </div>
             </div>
-          </>
-        )}
-      </div>
+          )}
+        </div>
+      </section>
     </main>
   );
 }
