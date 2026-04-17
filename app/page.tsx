@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
+import PricingSection from "@/components/PricingSection";
 
 export default function Home() {
   const { isSignedIn } = useUser();
@@ -47,12 +49,12 @@ export default function Home() {
               </a>
 
               {!isSignedIn && (
-                <a
+                <Link
                   href="/sign-up"
                   className="rounded border border-neutral-600 px-6 py-3 hover:bg-neutral-900"
                 >
                   Create Account
-                </a>
+                </Link>
               )}
 
               {isSignedIn && (
@@ -183,6 +185,10 @@ export default function Home() {
       {/* PRICING */}
       <section className="border-t border-neutral-800 px-6 py-20 text-center">
         <h2 className="text-3xl font-bold">Access Levels</h2>
+        <p className="mx-auto mt-4 max-w-2xl text-neutral-400">
+          Upgrade for AI-powered coaching, saved plans, and full access inside the
+          training app.
+        </p>
 
         <div className="mx-auto mt-10 grid max-w-4xl gap-6 md:grid-cols-2">
           <div className="rounded border border-neutral-800 bg-neutral-950 p-6">
@@ -207,12 +213,12 @@ export default function Home() {
             </ul>
 
             {!isSignedIn && (
-              <a
+              <Link
                 href="/sign-up"
                 className="mt-6 inline-block rounded bg-amber-400 px-5 py-3 font-semibold text-black"
               >
                 Create Account
-              </a>
+              </Link>
             )}
 
             {isSignedIn && (
@@ -226,6 +232,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <PricingSection />
     </main>
   );
 }
