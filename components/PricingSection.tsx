@@ -217,6 +217,14 @@ export default function PricingSection() {
               At Patriot K9 Command, we do not just teach commands - we build
               discipline, structure, and real-world reliability.
             </p>
+            <a
+              href="https://discord.gg/g9EfyjQEcR"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-6 inline-flex rounded bg-amber-400 px-6 py-3 font-semibold text-black transition hover:brightness-110"
+            >
+              Click here to contact me through our community Discord server
+            </a>
           </div>
         </div>
       </div>
