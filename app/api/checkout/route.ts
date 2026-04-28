@@ -17,7 +17,7 @@ export async function POST() {
       payment_method_types: ["card"],
       line_items: [
         {
-          price: "price_1TGSfOIwtcreLQm5nr7T8kfI",
+          price: "price_1TRItKRIZx9nyQVTqCrvj3PF", // ✅ LIVE PRICE ID
           quantity: 1,
         },
       ],
