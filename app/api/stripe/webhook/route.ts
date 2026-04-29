@@ -24,6 +24,8 @@ export async function POST(req: Request) {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
       const clerkUserId = session.metadata?.clerkUserId;
+      const stripeCustomerId =
+        typeof session.customer === "string" ? session.customer : null;
 
       if (clerkUserId) {
         const client = await clerkClient();
@@ -32,6 +34,11 @@ export async function POST(req: Request) {
             premium: true,
             plan: "premium",
           },
+          privateMetadata: stripeCustomerId
+            ? {
+                stripeCustomerId,
+              }
+            : undefined,
         });
       }
     }

@@ -67,6 +67,7 @@ type SavedOutput = {
 export default function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [portalLoading, setPortalLoading] = useState(false);
 
   const [dogProfiles, setDogProfiles] = useState<DogProfile[]>([]);
   const [selectedDogId, setSelectedDogId] = useState<string>("");
@@ -367,6 +368,32 @@ ${sessionSummary}`;
     (output) => output.outputType === "progress_report"
   );
 
+  const handleManageSubscription = async () => {
+    if (portalLoading) return;
+
+    setPortalLoading(true);
+
+    try {
+      const res = await fetch("/api/billing-portal", {
+        method: "POST",
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data?.url) {
+        alert(data?.error || "Unable to open subscription management right now.");
+        return;
+      }
+
+      window.location.href = data.url;
+    } catch (error) {
+      console.error("Billing portal error:", error);
+      alert("Unable to open subscription management right now.");
+    } finally {
+      setPortalLoading(false);
+    }
+  };
+
   return (
     <main className="min-h-screen bg-neutral-950 text-white">
       <section className="border-b border-neutral-800">
@@ -395,12 +422,23 @@ ${sessionSummary}`;
                 )}
               </div>
 
-              <Link
-                href="/train"
-                className="rounded bg-amber-400 px-6 py-3 font-semibold text-black"
-              >
-                Open Trainer
-              </Link>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={handleManageSubscription}
+                  disabled={portalLoading}
+                  className="rounded border border-neutral-600 px-6 py-3 font-semibold text-white hover:bg-neutral-900 disabled:opacity-50"
+                >
+                  {portalLoading ? "Opening..." : "Manage Subscription"}
+                </button>
+
+                <Link
+                  href="/train"
+                  className="rounded bg-amber-400 px-6 py-3 font-semibold text-black"
+                >
+                  Open Trainer
+                </Link>
+              </div>
             </div>
           </div>
         </div>
