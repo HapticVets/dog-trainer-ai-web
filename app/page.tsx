@@ -203,7 +203,7 @@ export default function Home() {
 
           <div className="rounded border border-amber-400/30 bg-amber-400/10 p-6">
             <h3 className="text-lg font-semibold">Full Command Access</h3>
-            <p className="mt-2 text-3xl font-bold">$19/mo</p>
+            <p className="mt-2 text-3xl font-bold">$20/month</p>
 
             <ul className="mt-4 space-y-2 text-sm text-neutral-200">
               <li>• Unlimited AI coaching</li>
