@@ -964,17 +964,17 @@ ${recentHistory}`;
   );
 
   return (
-    <main className="min-h-screen bg-neutral-950 text-white">
+    <main className="min-h-screen overflow-x-hidden bg-neutral-950 text-white">
       <section className="border-b border-neutral-800">
-        <div className="mx-auto max-w-7xl px-6 py-14">
+        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
               <p className="text-sm uppercase tracking-[0.25em] text-amber-400">
                 Patriot K9 Command
               </p>
-              <h1 className="mt-4 text-4xl font-bold md:text-6xl leading-tight">
-                Training Control Center
-              </h1>
+                <h1 className="mt-4 text-3xl font-bold leading-tight sm:text-4xl md:text-6xl">
+                  Training Control Center
+                </h1>
               <p className="mt-6 max-w-2xl text-lg text-neutral-300">
                 Save a dog, generate the first session, log what happened, then build the next session from real results.
               </p>
@@ -999,7 +999,7 @@ ${recentHistory}`;
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-6 py-6">
+      <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-6">
         {onboardingStep !== "done" && (
           <div className="rounded border border-amber-500/30 bg-amber-400/10 p-6">
             {onboardingStep === "create" && (
@@ -1047,7 +1047,7 @@ ${recentHistory}`;
         )}
       </section>
 
-      <section className="mx-auto max-w-7xl px-6 py-4">
+      <section className="mx-auto max-w-7xl px-4 py-4 sm:px-6">
         <div className="grid gap-4 md:grid-cols-3">
           <div
             className={`rounded border p-5 ${
@@ -1093,32 +1093,32 @@ ${recentHistory}`;
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-6 pb-16 pt-8">
-        <div className="grid gap-8 xl:grid-cols-[380px_1fr]">
+      <section className="mx-auto max-w-7xl px-4 pb-12 pt-6 sm:px-6 sm:pb-16 sm:pt-8">
+        <div className="grid gap-6 xl:grid-cols-[380px_1fr] xl:gap-8">
           <div className="space-y-8">
-            <section className="rounded-lg border border-neutral-800 bg-neutral-950 p-6">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-3xl font-bold">Dog Setup</h2>
+              <section className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
+                <div className="flex flex-col items-start justify-between gap-3 sm:flex-row">
+                  <div>
+                    <h2 className="text-2xl font-bold sm:text-3xl">Dog Setup</h2>
                   <p className="mt-3 text-neutral-400">
                     Save one dog at a time, then train from that active profile.
                   </p>
                 </div>
 
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={handleAddDog}
-                    className="rounded border border-neutral-600 px-4 py-3 font-semibold hover:bg-neutral-900"
-                  >
-                    Add Dog
-                  </button>
+                  <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                    <button
+                      type="button"
+                      onClick={handleAddDog}
+                      className="w-full rounded border border-neutral-600 px-4 py-3 font-semibold hover:bg-neutral-900 sm:w-auto"
+                    >
+                      Add Dog
+                    </button>
                   <button
                     type="button"
                     onClick={handleSaveDogProfile}
                     disabled={profileSaving}
-                    className="rounded bg-amber-400 px-4 py-3 font-semibold text-black disabled:opacity-50"
-                  >
+                      className="w-full rounded bg-amber-400 px-4 py-3 font-semibold text-black disabled:opacity-50 sm:w-auto"
+                    >
                     {profileSaving
                       ? "Saving..."
                       : selectedDogId
@@ -1131,7 +1131,7 @@ ${recentHistory}`;
               <div className="mt-6 space-y-5">
                 <div>
                   <label className="mb-2 block text-sm text-white">Saved Dogs</label>
-                  <div className="flex gap-2">
+                    <div className="flex flex-col gap-2 sm:flex-row">
                     <select
                       value={selectedDogId}
                       onChange={(e) => handleSelectDog(e.target.value)}
@@ -1284,13 +1284,13 @@ ${recentHistory}`;
             </section>
 
             <section
-              className={`rounded-lg border p-6 ${
+              className={`rounded-lg border p-5 sm:p-6 ${
                 hasActiveDog
                   ? "border-neutral-800 bg-neutral-950"
                   : "border-neutral-900 bg-black/20 opacity-65"
               }`}
             >
-              <h2 className="text-3xl font-bold">Log Session</h2>
+              <h2 className="text-2xl font-bold sm:text-3xl">Log Session</h2>
               <p className="mt-3 text-neutral-400">
                 Log what actually happened so the next session is built from real performance.
               </p>
@@ -1428,11 +1428,11 @@ ${recentHistory}`;
 
           <div className="space-y-8">
             {!hasActiveDog && (
-              <section className="rounded-lg border border-neutral-800 bg-black/20 p-8 text-center">
+              <section className="rounded-lg border border-neutral-800 bg-black/20 p-6 text-center sm:p-8">
                 <p className="text-sm uppercase tracking-[0.2em] text-amber-400">
                   Locked Until Active Dog
                 </p>
-                <h2 className="mt-3 text-3xl font-bold">
+                <h2 className="mt-3 text-2xl font-bold sm:text-3xl">
                   Save or select a dog first
                 </h2>
                 <p className="mt-3 max-w-2xl mx-auto text-neutral-400">
@@ -1443,26 +1443,26 @@ ${recentHistory}`;
 
             {hasActiveDog && (
               <>
-                <section className="rounded-lg border border-neutral-800 bg-neutral-950 p-6">
+                <section className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
                   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                     <div>
-                      <h2 className="text-3xl font-bold">Session Generator</h2>
+                      <h2 className="text-2xl font-bold sm:text-3xl">Session Generator</h2>
                       <p className="mt-3 text-neutral-400">
                         Start with a first session if the dog is new. Once you log real work, generate the next session from actual results.
                       </p>
                     </div>
 
-                    <div className="rounded border border-amber-500/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
+                    <div className="w-full rounded border border-amber-500/30 bg-amber-400/10 px-4 py-3 text-center text-sm text-amber-200 md:w-auto md:text-left">
                       AI-generated training plan
                     </div>
                   </div>
 
-                  <div className="mt-6 flex flex-wrap gap-3">
+                  <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                     <button
                       type="button"
                       onClick={handleGenerateFirstSession}
                       disabled={!hasActiveDog || hasSessions || planLoading || onboardingStep === "create"}
-                      className="rounded bg-amber-400 px-5 py-3 font-semibold text-black disabled:opacity-50"
+                      className="w-full rounded bg-amber-400 px-5 py-3 font-semibold text-black disabled:opacity-50 sm:w-auto"
                     >
                       {planLoading && !hasSessions ? "Generating..." : "Generate First Session"}
                     </button>
@@ -1471,7 +1471,7 @@ ${recentHistory}`;
                       type="button"
                       onClick={handleGenerateNextSessionPlan}
                       disabled={!hasActiveDog || !hasSessions || planLoading || onboardingStep !== "done"}
-                      className="rounded border border-neutral-600 px-5 py-3 font-semibold hover:bg-neutral-900 disabled:opacity-50"
+                      className="w-full rounded border border-neutral-600 px-5 py-3 font-semibold hover:bg-neutral-900 disabled:opacity-50 sm:w-auto"
                     >
                       {planLoading && hasSessions ? "Generating..." : "Generate Next Session"}
                     </button>
@@ -1489,7 +1489,7 @@ ${recentHistory}`;
                     </p>
                   )}
 
-                  <div className="mt-6 rounded-lg border border-neutral-800 bg-black p-4">
+                  <div className="mt-6 overflow-hidden rounded-lg border border-neutral-800 bg-black p-4">
                     {currentPlan ? (
                       <div className="whitespace-pre-wrap text-white">{currentPlan}</div>
                     ) : (
@@ -1519,16 +1519,16 @@ ${recentHistory}`;
                   )}
                 </section>
 
-                <section className="rounded-lg border border-neutral-800 bg-neutral-950 p-6">
+                <section className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
                   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                     <div>
-                      <h2 className="text-3xl font-bold">AI Training Assistant</h2>
+                      <h2 className="text-2xl font-bold sm:text-3xl">AI Training Assistant</h2>
                       <p className="mt-3 text-neutral-400">
                         Ask follow-up questions about the active dog, current session plan, or recent training history.
                       </p>
                     </div>
 
-                    <div className="rounded border border-neutral-700 bg-black/30 px-4 py-3 text-sm text-neutral-300">
+                    <div className="w-full rounded border border-neutral-700 bg-black/30 px-4 py-3 text-center text-sm text-neutral-300 md:w-auto md:text-left">
                       AI assistant, not a live trainer
                     </div>
                   </div>
@@ -1551,10 +1551,10 @@ ${recentHistory}`;
                     </p>
                   </div>
 
-                  <div className="mt-6 rounded-lg border border-neutral-800 bg-black p-4">
+                  <div className="mt-6 overflow-hidden rounded-lg border border-neutral-800 bg-black p-3 sm:p-4">
                     <div
                       ref={chatContainerRef}
-                      className="max-h-[420px] space-y-4 overflow-y-auto pr-2"
+                      className="max-h-[420px] space-y-4 overflow-x-hidden overflow-y-auto pr-1 sm:pr-2"
                     >
                       {messages.length === 0 && (
                         <p className="text-neutral-400">
@@ -1565,10 +1565,10 @@ ${recentHistory}`;
                       {messages.map((message, index) => (
                         <div
                           key={`${message.role}-${index}`}
-                          className={`max-w-[85%] whitespace-pre-wrap rounded px-4 py-3 ${
-                            message.role === "user"
-                              ? "ml-auto bg-amber-400 text-black"
-                              : "mr-auto bg-neutral-900 text-white"
+                            className={`max-w-[92%] break-words whitespace-pre-wrap rounded px-3 py-3 text-sm sm:max-w-[85%] sm:px-4 sm:text-base ${
+                              message.role === "user"
+                                ? "ml-auto bg-amber-400 text-black"
+                                : "mr-auto bg-neutral-900 text-white"
                           }`}
                         >
                           {message.content}
@@ -1576,35 +1576,35 @@ ${recentHistory}`;
                       ))}
 
                       {loading && (
-                        <div className="mr-auto max-w-[85%] rounded bg-neutral-900 px-4 py-3 text-neutral-300">
+                        <div className="mr-auto max-w-[92%] rounded bg-neutral-900 px-3 py-3 text-sm text-neutral-300 sm:max-w-[85%] sm:px-4 sm:text-base">
                           Thinking...
                         </div>
                       )}
                     </div>
                   </div>
 
-                  <div className="mt-6 flex gap-3">
+                  <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                     <textarea
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       placeholder="Ask your AI training question here..."
                       disabled={loading || !hasActiveDog}
-                      className="min-h-[90px] flex-1 rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none disabled:opacity-50"
+                      className="min-h-[120px] w-full flex-1 rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-base text-white outline-none disabled:opacity-50 sm:min-h-[90px]"
                     />
 
                     <button
                       type="button"
                       onClick={handleSend}
                       disabled={loading || !input.trim() || !hasActiveDog}
-                      className="self-end rounded bg-amber-400 px-6 py-3 font-semibold text-black disabled:opacity-50"
+                      className="w-full self-end rounded bg-amber-400 px-6 py-3 font-semibold text-black disabled:opacity-50 sm:w-auto"
                     >
                       Send
                     </button>
                   </div>
                 </section>
 
-                <section className="rounded-lg border border-neutral-800 bg-neutral-950 p-6">
-                  <h2 className="text-3xl font-bold">Session History</h2>
+                <section className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
+                  <h2 className="text-2xl font-bold sm:text-3xl">Session History</h2>
 
                   <div className="mt-6 space-y-4">
                     {sessionLogs.length === 0 && (
@@ -1620,7 +1620,7 @@ ${recentHistory}`;
                             : "border-neutral-800 bg-black"
                         }`}
                       >
-                        <div className="flex items-start justify-between gap-4">
+                        <div className="flex flex-col items-start justify-between gap-4 sm:flex-row">
                           <div>
                             {index === 0 && (
                               <p className="mb-2 text-xs uppercase tracking-[0.2em] text-amber-300">
@@ -1645,7 +1645,7 @@ ${recentHistory}`;
                           <button
                             type="button"
                             onClick={() => handleDeleteSession(log.id)}
-                            className="rounded border border-neutral-700 px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-900"
+                            className="w-full rounded border border-neutral-700 px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-900 sm:w-auto"
                           >
                             Delete
                           </button>
