@@ -176,19 +176,6 @@ export default function MethodPage() {
 
           <div className="mt-8 grid gap-6 md:grid-cols-2">
             <div className="rounded border border-neutral-800 bg-black/30 p-6">
-              <h3 className="text-xl font-semibold text-red-400">
-                What it is not
-              </h3>
-              <ul className="mt-4 space-y-2 text-neutral-300">
-                <li>• Random internet dog training advice</li>
-                <li>• Disconnected YouTube tips</li>
-                <li>• Emotional handling</li>
-                <li>• One-size-fits-all programs</li>
-                <li>• Advice without progression or measurable criteria</li>
-              </ul>
-            </div>
-
-            <div className="rounded border border-neutral-800 bg-black/30 p-6">
               <h3 className="text-xl font-semibold text-amber-400">
                 What Patriot K9 AI Trainer is
               </h3>
@@ -198,6 +185,19 @@ export default function MethodPage() {
                 <li>• Handler-focused</li>
                 <li>• Built for real dogs in real homes</li>
                 <li>• Especially useful for high-drive working breeds like German Shepherds</li>
+              </ul>
+            </div>
+
+            <div className="rounded border border-neutral-800 bg-black/30 p-6">
+              <h3 className="text-xl font-semibold text-red-400">
+                What it is not
+              </h3>
+              <ul className="mt-4 space-y-2 text-neutral-300">
+                <li>• Random internet dog training advice</li>
+                <li>• Disconnected YouTube tips</li>
+                <li>• Emotional handling</li>
+                <li>• One-size-fits-all programs</li>
+                <li>• Advice without progression or measurable criteria</li>
               </ul>
             </div>
           </div>
