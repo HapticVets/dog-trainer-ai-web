@@ -4,6 +4,32 @@ import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
 import PricingSection from "@/components/PricingSection";
 
+const howItWorks = [
+  {
+    title: "Describe Your Dog",
+    desc: "Enter your dog's goals, behavior issues, skill level, and current training picture so the AI starts from the real dog in front of you.",
+  },
+  {
+    title: "Get a Structured Plan",
+    desc: "Receive doctrine-based guidance for obedience, troubleshooting, progression, and next-session planning built from Patriot K9 Command systems.",
+  },
+  {
+    title: "Track Progress and Continue Training",
+    desc: "Log sessions, review what improved, and keep moving forward with clear next steps instead of guessing.",
+  },
+];
+
+const trainingTopics = [
+  "Puppy Foundation",
+  "Leash Pulling",
+  "Recall",
+  "Reactivity",
+  "Crate Training",
+  "Public Manners",
+  "Confidence Building",
+  "German Shepherd Working Drive",
+];
+
 export default function Home() {
   const { isSignedIn } = useUser();
 
@@ -26,21 +52,26 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-neutral-950 text-white">
-      {/* HERO */}
-      <section className="px-6 py-24 border-b border-neutral-800">
+      <section className="border-b border-neutral-800 px-6 py-24">
         <div className="mx-auto grid max-w-7xl items-center gap-12 md:grid-cols-2">
           <div>
-            <h1 className="text-5xl font-bold leading-tight">
-              Never wonder what to do with your dog again.
-              <span className="text-amber-400"> Real structure. Real results.</span>
-            </h1>
-
-            <p className="mt-6 max-w-xl text-lg text-neutral-300">
-              Patriot K9 Command eliminates guesswork. Log real sessions, track what
-              happened, and get structured next steps built around the dog in front of you.
+            <p className="text-sm uppercase tracking-[0.25em] text-amber-400">
+              Patriot K9 Command AI Trainer
             </p>
 
-            <div className="mt-10 flex gap-4">
+            <h1 className="mt-4 text-5xl font-bold leading-tight">
+              AI Dog Training Built on Real
+              <span className="text-amber-400"> Patriot K9 Command Doctrine</span>
+            </h1>
+
+            <p className="mt-6 max-w-2xl text-lg text-neutral-300">
+              Get structured training plans, behavior troubleshooting, puppy
+              development, leash work, recall, reactivity, crate training, and
+              obedience guidance - generated instantly from Patriot K9 Command's
+              training systems.
+            </p>
+
+            <div className="mt-10 flex flex-wrap gap-4">
               <a
                 href="/train"
                 className="rounded bg-amber-400 px-6 py-3 font-semibold text-black"
@@ -48,24 +79,19 @@ export default function Home() {
                 Start Training
               </a>
 
-              {!isSignedIn && (
-                <Link
-                  href="/sign-up"
-                  className="rounded border border-neutral-600 px-6 py-3 hover:bg-neutral-900"
-                >
-                  Create Account
-                </Link>
-              )}
-
-              {isSignedIn && (
-                <button
-                  onClick={handleCheckout}
-                  className="rounded border border-neutral-600 px-6 py-3 hover:bg-neutral-900"
-                >
-                  Go Premium
-                </button>
-              )}
+              <a
+                href="#how-it-works"
+                className="rounded border border-neutral-600 px-6 py-3 hover:bg-neutral-900"
+              >
+                View Example Plan
+              </a>
             </div>
+
+            <ul className="mt-8 space-y-3 text-sm text-neutral-300">
+              <li>• Built from real dog training systems</li>
+              <li>• Personalized to your dog and goals</li>
+              <li>• Free trial messages included</li>
+            </ul>
           </div>
 
           <div>
@@ -78,80 +104,98 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FEATURES */}
-      <section className="px-6 py-24">
-        <div className="mx-auto grid max-w-5xl gap-6 md:grid-cols-3">
-          {[
-            {
-              title: "Structured System",
-              desc: "Built around real progression, not random tips.",
-            },
-            {
-              title: "Session-Based Training",
-              desc: "Log what happened and train off real results.",
-            },
-            {
-              title: "Command-Level Control",
-              desc: "Build reliability, boundaries, and real obedience.",
-            },
-          ].map((item, i) => (
-            <div
-              key={i}
-              className="rounded-lg border border-neutral-800 bg-neutral-950 p-6 hover:border-amber-400/40 transition"
-            >
-              <div className="mb-4 h-10 w-10 rounded bg-amber-400/20" />
-              <h3 className="text-lg font-semibold">{item.title}</h3>
-              <p className="mt-2 text-sm text-neutral-400">{item.desc}</p>
-            </div>
-          ))}
+      <section id="how-it-works" className="px-6 py-24">
+        <div className="mx-auto max-w-6xl">
+          <div className="max-w-3xl">
+            <p className="text-sm uppercase tracking-[0.25em] text-amber-400">
+              How It Works
+            </p>
+            <h2 className="mt-4 text-3xl font-bold md:text-4xl">
+              Structured AI guidance built for real dog training progress
+            </h2>
+          </div>
+
+          <div className="mt-10 grid gap-6 md:grid-cols-3">
+            {howItWorks.map((item, index) => (
+              <div
+                key={item.title}
+                className="rounded-lg border border-neutral-800 bg-neutral-950 p-6 hover:border-amber-400/40 transition"
+              >
+                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded bg-amber-400/20 text-sm font-semibold text-amber-300">
+                  {index + 1}
+                </div>
+                <h3 className="text-lg font-semibold">{item.title}</h3>
+                <p className="mt-2 text-sm text-neutral-400">{item.desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* WHY DIFFERENT */}
+      <section className="border-t border-neutral-800 px-6 py-24">
+        <div className="mx-auto max-w-6xl">
+          <div className="max-w-3xl">
+            <p className="text-sm uppercase tracking-[0.25em] text-amber-400">
+              What the AI Trainer Helps With
+            </p>
+            <h2 className="mt-4 text-3xl font-bold md:text-4xl">
+              Doctrine-based support across obedience, behavior, and progression
+            </h2>
+          </div>
+
+          <div className="mt-10 grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+            {trainingTopics.map((topic) => (
+              <div
+                key={topic}
+                className="rounded-lg border border-neutral-800 bg-black/30 p-6"
+              >
+                <h3 className="text-lg font-semibold">{topic}</h3>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="border-t border-neutral-800 px-6 py-24">
         <div className="mx-auto max-w-6xl rounded-lg border border-neutral-800 bg-neutral-950 p-8">
           <h2 className="text-3xl font-bold">
-            This isn’t another dog training app.
+            Built from Patriot K9 Command systems, not generic AI advice
           </h2>
 
           <p className="mt-4 max-w-3xl text-lg text-neutral-300">
-            Most apps give videos or generic plans and leave you guessing.
-            Patriot K9 Command removes that uncertainty completely.
+            This platform is designed to give structured training guidance, usable
+            plans, troubleshooting, and progress support based on real training
+            doctrine rather than random dog tips.
           </p>
 
           <div className="mt-8 grid gap-6 md:grid-cols-2">
             <div className="rounded border border-neutral-800 bg-black/30 p-6">
               <h3 className="text-xl font-semibold text-amber-400">
-                Patriot K9 Command
+                Patriot K9 AI Trainer
               </h3>
               <ul className="mt-4 space-y-2 text-neutral-300">
-                <li>• Log real training sessions</li>
-                <li>• Track wins and problems</li>
-                <li>• Generate exact next steps</li>
-                <li>• Built on a real system</li>
+                <li>• Structured doctrine-based answers</li>
+                <li>• Personalized guidance from your dog's profile</li>
+                <li>• Troubleshooting and next-step progression</li>
+                <li>• Built for ongoing training support</li>
               </ul>
             </div>
 
             <div className="rounded border border-neutral-800 bg-black/30 p-6">
-              <h3 className="text-xl font-semibold text-red-400">Most Apps</h3>
+              <h3 className="text-xl font-semibold text-red-400">
+                What It Is Not
+              </h3>
               <ul className="mt-4 space-y-2 text-neutral-300">
-                <li>• Watch lessons</li>
-                <li>• Try random exercises</li>
-                <li>• Follow generic plans</li>
-                <li>• Guess what to do next</li>
+                <li>• Not random AI dog advice</li>
+                <li>• Not a replacement for serious in-person evaluation</li>
+                <li>• Not a guess-based dog app</li>
+                <li>• Not hands-on help for severe cases</li>
               </ul>
             </div>
-          </div>
-
-          <div className="mt-8 text-center">
-            <p className="text-xl font-semibold">
-              Stop guessing. Start progressing.
-            </p>
           </div>
         </div>
       </section>
 
-      {/* TRUST */}
       <section className="border-t border-neutral-800 px-6 py-24">
         <div className="mx-auto grid max-w-7xl items-center gap-12 md:grid-cols-2">
           <div>
@@ -163,26 +207,30 @@ export default function Home() {
           </div>
 
           <div>
-            <h2 className="text-3xl font-bold">
-              Built for real obedience.
+            <p className="text-sm uppercase tracking-[0.25em] text-amber-400">
+              Transparency
+            </p>
+            <h2 className="mt-4 text-3xl font-bold">
+              AI Guidance with Real-World Training Standards
             </h2>
 
             <p className="mt-6 text-neutral-400">
-              Every session builds on the last so you always know:
-              what’s working, what’s breaking, and what comes next.
+              Patriot K9 AI Trainer is an AI-powered training platform built from
+              real Patriot K9 Command training systems. It provides structured
+              guidance, training direction, and progress support, but it does not
+              replace hands-on professional evaluation for serious aggression,
+              bite risk, medical concerns, or severe behavioral cases.
             </p>
 
             <ul className="mt-6 space-y-3 text-neutral-300">
-              <li>• Track every session</li>
-              <li>• Generate structured plans</li>
-              <li>• Build long-term reliability</li>
-              <li>• Train with purpose</li>
+              <li>• Structured guidance from real doctrine</li>
+              <li>• Useful for plans, troubleshooting, and progress support</li>
+              <li>• In-person help still matters for serious cases</li>
             </ul>
           </div>
         </div>
       </section>
 
-      {/* PRICING */}
       <section className="border-t border-neutral-800 px-6 py-20 text-center">
         <h2 className="text-3xl font-bold">Access Levels</h2>
         <p className="mx-auto mt-4 max-w-2xl text-neutral-400">
