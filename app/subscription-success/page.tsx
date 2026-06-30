@@ -1,6 +1,13 @@
 import Link from "next/link";
+import Stripe from "stripe";
+import GoogleAdsPurchaseConversion from "@/components/GoogleAdsPurchaseConversion";
+import {
+  PREMIUM_SUBSCRIPTION_CURRENCY,
+  PREMIUM_SUBSCRIPTION_PRICE_CENTS,
+} from "@/lib/subscriptionPricing";
 
 const supportDiscordUrl = "https://discord.gg/7Et6UU8M67";
+const googleAdsPurchaseSendTo = "AW-18273570871/84CKCIDwkcgcELegwolE";
 
 const onboardingCards = [
   {
@@ -25,9 +32,55 @@ const onboardingCards = [
   },
 ];
 
-export default function SubscriptionSuccessPage() {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
+
+const getSearchParamValue = (value: string | string[] | undefined) =>
+  Array.isArray(value) ? value[0] : value;
+
+export default async function SubscriptionSuccessPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ session_id?: string | string[] }>;
+}) {
+  const resolvedSearchParams = await searchParams;
+  const sessionId = getSearchParamValue(resolvedSearchParams.session_id);
+
+  let transactionId: string | null = null;
+  let conversionValue = PREMIUM_SUBSCRIPTION_PRICE_CENTS / 100;
+  let conversionCurrency = PREMIUM_SUBSCRIPTION_CURRENCY;
+
+  if (sessionId) {
+    try {
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      const paymentIntentId =
+        typeof session.payment_intent === "string"
+          ? session.payment_intent
+          : session.payment_intent?.id ?? null;
+
+      transactionId = session.id || paymentIntentId;
+
+      if (typeof session.amount_total === "number") {
+        conversionValue = session.amount_total / 100;
+      }
+
+      if (session.currency) {
+        conversionCurrency = session.currency.toUpperCase();
+      }
+    } catch (error) {
+      console.error("Failed to load Stripe Checkout Session for conversion:", error);
+      transactionId = sessionId;
+    }
+  }
+
   return (
     <main className="min-h-screen bg-neutral-950 text-white">
+      <GoogleAdsPurchaseConversion
+        currency={conversionCurrency}
+        sendTo={googleAdsPurchaseSendTo}
+        transactionId={transactionId}
+        value={conversionValue}
+      />
+
       <section className="border-b border-neutral-800 px-4 py-16 sm:px-6 sm:py-20 lg:py-24">
         <div className="mx-auto max-w-6xl">
           <p className="text-sm uppercase tracking-[0.25em] text-amber-400">

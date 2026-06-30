@@ -1,6 +1,11 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import {
+  PREMIUM_SUBSCRIPTION_CURRENCY,
+  PREMIUM_SUBSCRIPTION_PRICE_CENTS,
+  PREMIUM_SUBSCRIPTION_PRICE_ID,
+} from "@/lib/subscriptionPricing";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
@@ -17,15 +22,18 @@ export async function POST() {
       payment_method_types: ["card"],
       line_items: [
         {
-          price: "price_1TRLxmRIXz9nyQVTuvOF6JEP", // ✅ LIVE PRICE ID
+          price: PREMIUM_SUBSCRIPTION_PRICE_ID,
           quantity: 1,
         },
       ],
-      success_url: "https://train.hapticvets.com/subscription-success",
+      success_url:
+        "https://train.hapticvets.com/subscription-success?session_id={CHECKOUT_SESSION_ID}",
       cancel_url: "https://train.hapticvets.com/cancel",
       metadata: {
         clerkUserId: userId,
         plan: "premium",
+        adsFallbackValue: String(PREMIUM_SUBSCRIPTION_PRICE_CENTS),
+        adsFallbackCurrency: PREMIUM_SUBSCRIPTION_CURRENCY,
       },
       subscription_data: {
         metadata: {
