@@ -15,8 +15,36 @@ type GoogleAdsPurchaseConversionProps = {
   value: number;
 };
 
+type StoredConversionRecord = {
+  status: "sent";
+  transactionId: string;
+};
+
 const conversionStorageKey = (transactionId: string) =>
   `google-ads-purchase:${transactionId}`;
+
+const parseStoredConversionRecord = (
+  rawValue: string | null
+): StoredConversionRecord | null => {
+  if (!rawValue) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(rawValue) as Partial<StoredConversionRecord>;
+
+    if (parsed.status === "sent" && typeof parsed.transactionId === "string") {
+      return {
+        status: "sent",
+        transactionId: parsed.transactionId,
+      };
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+};
 
 export default function GoogleAdsPurchaseConversion({
   currency,
@@ -48,12 +76,24 @@ export default function GoogleAdsPurchaseConversion({
     }
 
     const storageKey = conversionStorageKey(transactionId);
-    const alreadyTracked = window.localStorage.getItem(storageKey);
+    const storedValue = window.localStorage.getItem(storageKey);
+    const matchingKeys = Object.keys(window.localStorage).filter((key) =>
+      key.startsWith("google-ads-purchase")
+    );
+    const storedRecord = parseStoredConversionRecord(storedValue);
+    const alreadyTracked =
+      storedRecord?.status === "sent" &&
+      storedRecord.transactionId === transactionId;
 
     console.log("GoogleAdsPurchaseConversion storageKey:", storageKey);
+    console.log("GoogleAdsPurchaseConversion stored value:", storedValue);
+    console.log(
+      "GoogleAdsPurchaseConversion matching localStorage keys:",
+      matchingKeys
+    );
     console.log(
       "GoogleAdsPurchaseConversion duplicate key exists:",
-      Boolean(alreadyTracked)
+      alreadyTracked
     );
 
     if (alreadyTracked) {
@@ -61,6 +101,17 @@ export default function GoogleAdsPurchaseConversion({
         "GoogleAdsPurchaseConversion exiting early: duplicate conversion already tracked"
       );
       return;
+    }
+
+    if (storedValue && !alreadyTracked) {
+      console.log(
+        "GoogleAdsPurchaseConversion found a malformed or mismatched stored value, ignoring it:",
+        {
+          storedValue,
+          parsedRecord: storedRecord,
+          transactionId,
+        }
+      );
     }
 
     let attempts = 0;
@@ -99,7 +150,17 @@ export default function GoogleAdsPurchaseConversion({
         transaction_id: transactionId,
       });
 
-      window.localStorage.setItem(storageKey, "sent");
+      window.localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          status: "sent",
+          transactionId,
+        } satisfies StoredConversionRecord)
+      );
+      console.log(
+        "GoogleAdsPurchaseConversion stored duplicate-prevention key after firing:",
+        storageKey
+      );
     };
 
     fireConversion();
