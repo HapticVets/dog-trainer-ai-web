@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { getDefaultMainGoal, normalizeGoalType } from '@/lib/dogGoals'
 
 export async function GET() {
   try {
@@ -37,12 +38,13 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
+    const normalizedGoalType = normalizeGoalType(body.goalType)
 
     const payload = {
       clerk_user_id: userId,
       name: body.name ?? '',
-      goal_type: body.goalType ?? 'Obedience',
-      main_goal: body.mainGoal ?? 'Heel position',
+      goal_type: normalizedGoalType,
+      main_goal: body.mainGoal ?? getDefaultMainGoal(normalizedGoalType),
       reward_type: body.rewardType ?? 'Food',
       skill_level: body.skillLevel ?? 'Beginner',
       custom_notes: body.customNotes ?? '',

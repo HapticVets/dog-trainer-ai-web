@@ -2,6 +2,12 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useUser } from "@clerk/nextjs";
+import {
+  getAvailableMainGoals,
+  getDefaultMainGoal,
+  goalTypeOptions,
+  normalizeGoalType,
+} from "@/lib/dogGoals";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -43,93 +49,11 @@ type PlanSection = {
 
 const emptyDogProfile: DogProfile = {
   name: "",
-  goalType: "Obedience",
-  mainGoal: "Heel position",
+  goalType: "Behavior Problems",
+  mainGoal: "Barking",
   rewardType: "Food",
   skillLevel: "Beginner",
   customNotes: "",
-};
-
-const goalTypeOptions = [
-  "Obedience",
-  "Behavior Fix",
-  "Puppy Foundation",
-  "AKC Obedience",
-  "Rally",
-  "Agility",
-  "Service Dog Foundation",
-  "Protection Foundation",
-];
-
-const mainGoalOptions: Record<string, string[]> = {
-  Obedience: [
-    "Heel position",
-    "Sit stay",
-    "Down stay",
-    "Recall",
-    "Place command",
-    "Engagement and focus",
-    "Loose leash walking",
-  ],
-  "Behavior Fix": [
-    "Leash reactivity",
-    "Jumping on people",
-    "Pulling on leash",
-    "Whining or demand behavior",
-    "Not listening around distractions",
-    "Over-arousal around toy or ball",
-    "Poor impulse control",
-  ],
-  "Puppy Foundation": [
-    "Name recognition",
-    "Marker training",
-    "Crate training",
-    "Potty routine",
-    "Early leash work",
-    "Sit and down foundation",
-    "Confidence building",
-  ],
-  "AKC Obedience": [
-    "Fronts and finishes",
-    "Heel precision",
-    "Sit for exam prep",
-    "Recall precision",
-    "Stand and stay",
-    "Ring engagement",
-    "Proofing exercises",
-  ],
-  Rally: [
-    "Station work",
-    "Handler timing",
-    "Pivot positions",
-    "Front and finish accuracy",
-    "Attention in motion",
-    "Course flow practice",
-  ],
-  Agility: [
-    "Start line stay",
-    "Jump commitment",
-    "Tunnel confidence",
-    "Handler focus",
-    "Body awareness",
-    "Drive and control balance",
-  ],
-  "Service Dog Foundation": [
-    "Public neutrality",
-    "Settle under distraction",
-    "Task foundation",
-    "Loose leash in public",
-    "Ignore people and dogs",
-    "Engagement with handler",
-  ],
-  "Protection Foundation": [
-    "Drive building",
-    "Out command foundation",
-    "Handler focus under arousal",
-    "Controlled barking",
-    "Grip foundation",
-    "Neutral obedience before pressure",
-  ],
 };
 
 const rewardTypeOptions = ["Food", "Toy", "Ball", "Food and Toy", "Praise"];
@@ -289,10 +213,11 @@ export default function TrainPage() {
   const hasActiveDog = Boolean(selectedDogId && dogProfile.name.trim());
   const hasSessions = sessionLogs.length > 0;
   const latestSession = sessionLogs[0];
+  const normalizedGoalType = normalizeGoalType(dogProfile.goalType);
 
   const availableMainGoals = useMemo(
-    () => mainGoalOptions[dogProfile.goalType] || [],
-    [dogProfile.goalType]
+    () => getAvailableMainGoals(dogProfile.goalType, dogProfile.mainGoal),
+    [dogProfile.goalType, dogProfile.mainGoal]
   );
   const parsedCurrentPlan = useMemo(() => parsePlanSections(currentPlan), [currentPlan]);
   const savedPlans = savedOutputs.filter(
@@ -334,16 +259,6 @@ export default function TrainPage() {
   ];
 
   useEffect(() => {
-    const goals = mainGoalOptions[dogProfile.goalType] || [];
-    if (goals.length > 0 && !goals.includes(dogProfile.mainGoal)) {
-      setDogProfile((prev) => ({
-        ...prev,
-        mainGoal: goals[0],
-      }));
-    }
-  }, [dogProfile.goalType, dogProfile.mainGoal]);
-
-  useEffect(() => {
     if (!user) return;
 
     const loadDogProfiles = async () => {
@@ -363,8 +278,9 @@ export default function TrainPage() {
         const mapped: DogProfile[] = (data.profiles || []).map((profile: any) => ({
           id: profile.id,
           name: profile.name ?? "",
-          goalType: profile.goal_type ?? "Obedience",
-          mainGoal: profile.main_goal ?? "Heel position",
+          goalType: normalizeGoalType(profile.goal_type),
+          mainGoal:
+            profile.main_goal ?? getDefaultMainGoal(normalizeGoalType(profile.goal_type)),
           rewardType: profile.reward_type ?? "Food",
           skillLevel: profile.skill_level ?? "Beginner",
           customNotes: profile.custom_notes ?? "",
@@ -662,8 +578,10 @@ export default function TrainPage() {
       const saved: DogProfile = {
         id: data.profile.id,
         name: data.profile.name ?? "",
-        goalType: data.profile.goal_type ?? "Obedience",
-        mainGoal: data.profile.main_goal ?? "Heel position",
+        goalType: normalizeGoalType(data.profile.goal_type),
+        mainGoal:
+          data.profile.main_goal ??
+          getDefaultMainGoal(normalizeGoalType(data.profile.goal_type)),
         rewardType: data.profile.reward_type ?? "Food",
         skillLevel: data.profile.skill_level ?? "Beginner",
         customNotes: data.profile.custom_notes ?? "",
@@ -908,6 +826,8 @@ CRITICAL RULES:
 - Do not pretend prior work happened.
 - Build a realistic first working session based on current skill level, goal, and reward type.
 - Be specific and executable.
+- The selected goal may be an owner-stated problem, not a command.
+- Translate the selected problem into structured Patriot K9 Command training steps.
 
 Use this exact format:
 
@@ -926,8 +846,8 @@ SESSION TYPE
 PROGRESSION LOGIC
 
 Dog Name: ${dogProfile.name || "unknown"}
-Goal Type: ${dogProfile.goalType || "unknown"}
-Main Goal: ${dogProfile.mainGoal || "unknown"}
+Goal Category: ${normalizedGoalType}
+Priority Problem: ${dogProfile.mainGoal || "unknown"}
 Reward Type: ${dogProfile.rewardType || "unknown"}
 Skill Level: ${dogProfile.skillLevel || "unknown"}
 Additional Notes: ${dogProfile.customNotes || "none"}`;
@@ -1000,6 +920,8 @@ CRITICAL RULES:
 - Progress directly from the latest session result.
 - Reference the latest session wins and issues specifically.
 - Do not give generic advice.
+- The selected goal may be an owner-stated problem, not a command.
+- Translate the selected problem into structured Patriot K9 Command training steps.
 
 Use this exact format:
 
@@ -1018,8 +940,8 @@ SESSION TYPE
 PROGRESSION LOGIC
 
 Dog Name: ${dogProfile.name || "unknown"}
-Goal Type: ${dogProfile.goalType || "unknown"}
-Main Goal: ${dogProfile.mainGoal || "unknown"}
+Goal Category: ${normalizedGoalType}
+Priority Problem: ${dogProfile.mainGoal || "unknown"}
 Reward Type: ${dogProfile.rewardType || "unknown"}
 Skill Level: ${dogProfile.skillLevel || "unknown"}
 Additional Notes: ${dogProfile.customNotes || "none"}
@@ -1244,7 +1166,7 @@ ${recentHistory}`;
                 <div>
                   <h2 className="text-2xl font-bold sm:text-3xl">Dog Profile</h2>
                   <p className="mt-3 text-neutral-400">
-                    Save one active dog at a time so every session, log, and AI answer stays anchored to the right profile.
+                    Tell us the dog problem you want solved first so every session, log, and AI answer stays anchored to the right training priority.
                   </p>
                 </div>
 
@@ -1317,7 +1239,7 @@ ${recentHistory}`;
                     </p>
                     <p className="mt-3 text-3xl font-bold">{dogProfile.name}</p>
                     <p className="mt-2 text-neutral-300">
-                      {dogProfile.goalType} | {dogProfile.mainGoal}
+                      {normalizedGoalType} | {dogProfile.mainGoal}
                     </p>
                   </div>
                 )}
@@ -1338,13 +1260,16 @@ ${recentHistory}`;
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm text-white">Goal Type</label>
+                      <label className="mb-2 block text-sm text-white">
+                        Goal Category
+                      </label>
                       <select
-                        value={dogProfile.goalType}
+                        value={normalizedGoalType}
                         onChange={(e) =>
                           setDogProfile({
                             ...dogProfile,
                             goalType: e.target.value,
+                            mainGoal: getDefaultMainGoal(e.target.value),
                           })
                         }
                         className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
@@ -1355,10 +1280,15 @@ ${recentHistory}`;
                           </option>
                         ))}
                       </select>
+                      <p className="mt-2 text-sm text-neutral-400">
+                        Start broad, then choose the first priority problem you want help solving.
+                      </p>
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm text-white">Main Goal</label>
+                      <label className="mb-2 block text-sm text-white">
+                        What do you want help with first?
+                      </label>
                       <select
                         value={dogProfile.mainGoal}
                         onChange={(e) =>
@@ -1376,7 +1306,7 @@ ${recentHistory}`;
                         ))}
                       </select>
                       <p className="mt-2 text-sm text-neutral-400">
-                        Pick the closest match. Use notes for specifics.
+                        Choose the problem or training goal that matters most right now. The AI will build a structured plan around that priority.
                       </p>
                     </div>
 

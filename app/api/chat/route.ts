@@ -5,6 +5,7 @@ import {
   getTrainerAccess,
   incrementFreeMessageUsage,
 } from "@/app/lib/trainer-access";
+import { normalizeGoalType } from "@/lib/dogGoals";
 import { buildPatriotK9DoctrinePrompt } from "@/lib/patriotK9Protocols";
 
 const openai = new OpenAI({
@@ -51,6 +52,8 @@ export async function POST(req: Request) {
     const messages = body.messages || [];
     const dogProfile = body.dogProfile || {};
     const sessionLogs = body.sessionLogs || [];
+    const goalCategory = normalizeGoalType(dogProfile.goalType);
+    const priorityProblem = dogProfile.mainGoal || "unknown";
 
     const latestSession = sessionLogs[0] || null;
 
@@ -136,6 +139,8 @@ PATRIOT K9 DOCTRINE USAGE
 - Do NOT list full protocol details unless the user explicitly asks for the protocol itself, the full doctrine, or a detailed breakdown.
 - When useful, name the protocol you are applying and explain it in plain trainer language.
 - Always match the recommendation to the dog's current phase, handler skill, and latest session evidence.
+- The selected goal may be an owner-stated problem like barking, puppy biting, or reactivity around dogs.
+- Translate owner-stated problems into structured Patriot K9 Command training steps.
 
 --------------------------------
 4C DOCTRINE
@@ -252,11 +257,11 @@ ${patriotK9Doctrine}
 DOG PROFILE
 --------------------------------
 Name: ${dogProfile.name || "unknown"}
-Goal Type: ${dogProfile.goalType || "unknown"}
-Main Goal: ${dogProfile.mainGoal || "unknown"}
+Goal Category: ${goalCategory}
+Priority Problem: ${priorityProblem}
 Reward Type: ${dogProfile.rewardType || "unknown"}
 Skill Level: ${dogProfile.skillLevel || "unknown"}
-Notes: ${dogProfile.customNotes || "none"}
+Custom Notes: ${dogProfile.customNotes || "none"}
 
 --------------------------------
 CURRENT SESSION STATE
