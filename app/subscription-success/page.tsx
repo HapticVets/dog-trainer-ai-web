@@ -6,7 +6,7 @@ import {
   PREMIUM_SUBSCRIPTION_PRICE_CENTS,
 } from "@/lib/subscriptionPricing";
 
-const supportDiscordUrl = "https://discord.gg/7Et6UU8M67";
+const supportDiscordUrl = "https://discord.gg/Mmb4KSp9Y8";
 const googleAdsPurchaseSendTo = "AW-18273570871/84CKCIDwkcgcELegwolE";
 
 const onboardingCards = [

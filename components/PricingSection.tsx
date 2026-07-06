@@ -218,7 +218,7 @@ export default function PricingSection() {
               discipline, structure, and real-world reliability.
             </p>
             <a
-              href="https://discord.gg/g9EfyjQEcR"
+              href="https://discord.gg/Mmb4KSp9Y8"
               target="_blank"
               rel="noopener noreferrer"
               className="mt-6 inline-flex rounded bg-amber-400 px-6 py-3 font-semibold text-black transition hover:brightness-110"

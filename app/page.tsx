@@ -40,7 +40,7 @@ const includedFeatures = [
 
 export default function Home() {
   const { isSignedIn } = useUser();
-  const patriotK9ContactUrl = "https://discord.gg/g9EfyjQEcR";
+  const patriotK9ContactUrl = "https://discord.gg/Mmb4KSp9Y8";
 
   const handleCheckout = async () => {
     try {

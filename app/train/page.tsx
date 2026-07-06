@@ -2473,7 +2473,7 @@ ${recentHistory}`;
                     <p className="mt-2 text-sm text-neutral-300">
                       Join the{" "}
                       <a
-                        href="https://discord.gg/7Et6UU8M67"
+                        href="https://discord.gg/Mmb4KSp9Y8"
                         target="_blank"
                         rel="noreferrer"
                         className="font-semibold text-amber-400 underline underline-offset-4 hover:text-amber-300"
