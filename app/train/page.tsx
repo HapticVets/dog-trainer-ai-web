@@ -123,6 +123,8 @@ const evaluationStepTitles: Record<EvaluationStep, string> = {
   6: "Review Case File",
 };
 
+const ACTIVE_DOG_STORAGE_KEY = "patriot-k9-active-dog-id";
+
 const parsePlanSections = (plan: string): PlanSection[] => {
   if (!plan.trim()) return [];
 
@@ -268,6 +270,35 @@ export default function TrainPage() {
     },
   ];
 
+  const persistActiveDogId = (id?: string) => {
+    if (typeof window === "undefined") return;
+
+    if (id) {
+      window.localStorage.setItem(ACTIVE_DOG_STORAGE_KEY, id);
+      return;
+    }
+
+    window.localStorage.removeItem(ACTIVE_DOG_STORAGE_KEY);
+  };
+
+  const getPersistedActiveDogId = () => {
+    if (typeof window === "undefined") return "";
+    return window.localStorage.getItem(ACTIVE_DOG_STORAGE_KEY) ?? "";
+  };
+
+  const activateDog = (dog: DogCaseFile | null) => {
+    if (!dog?.id) {
+      setSelectedDogId("");
+      setDogProfile(emptyDogCaseFile);
+      persistActiveDogId();
+      return;
+    }
+
+    setSelectedDogId(dog.id);
+    setDogProfile(dog);
+    persistActiveDogId(dog.id);
+  };
+
   useEffect(() => {
     if (!user) return;
 
@@ -292,11 +323,12 @@ export default function TrainPage() {
         setDogProfiles(mapped);
 
         if (mapped.length > 0) {
-          setSelectedDogId(mapped[0].id || "");
-          setDogProfile(mapped[0]);
+          const persistedActiveDogId = getPersistedActiveDogId();
+          const persistedDog = mapped.find((dog) => dog.id === persistedActiveDogId) ?? null;
+          const newestDog = mapped[mapped.length - 1] ?? null;
+          activateDog(persistedDog ?? newestDog);
         } else {
-          setSelectedDogId("");
-          setDogProfile(emptyDogCaseFile);
+          activateDog(null);
         }
       } catch (error) {
         console.error("Failed to load dog profiles:", error);
@@ -516,15 +548,17 @@ export default function TrainPage() {
   };
 
   const handleSelectDog = (id: string) => {
-    setSelectedDogId(id);
     const found = dogProfiles.find((dog) => dog.id === id);
 
     if (found) {
-      setDogProfile(found);
+      activateDog(found);
       setCurrentPlan("");
       setMessages([]);
       setSavedOutputs([]);
+      return;
     }
+
+    activateDog(null);
   };
 
   const handleAddDog = () => {
@@ -555,12 +589,10 @@ export default function TrainPage() {
     setEvaluationStep(1);
 
     if (previousActiveDogId && previousActiveDogProfile) {
-      setSelectedDogId(previousActiveDogId);
-      setDogProfile(previousActiveDogProfile);
+      activateDog(previousActiveDogProfile);
       setProfileCollapsed(true);
     } else {
-      setSelectedDogId("");
-      setDogProfile(emptyDogCaseFile);
+      activateDog(null);
       setProfileCollapsed(false);
     }
 
@@ -646,8 +678,7 @@ export default function TrainPage() {
         return [...prev, saved];
       });
 
-      setSelectedDogId(saved.id || "");
-      setDogProfile(saved);
+      activateDog(saved);
       setEvaluationMode(false);
       setEvaluationStep(1);
       setPreviousActiveDogId("");
@@ -691,11 +722,13 @@ export default function TrainPage() {
       setDogProfiles(updated);
 
       if (updated.length > 0) {
-        setSelectedDogId(updated[0].id || "");
-        setDogProfile(updated[0]);
+        const persistedActiveDogId = getPersistedActiveDogId();
+        const persistedDog =
+          updated.find((dog) => dog.id === persistedActiveDogId) ?? null;
+        const fallbackDog = updated[updated.length - 1] ?? null;
+        activateDog(persistedDog ?? fallbackDog);
       } else {
-        setSelectedDogId("");
-        setDogProfile(emptyDogCaseFile);
+        activateDog(null);
       }
 
       setSessionLogs([]);
