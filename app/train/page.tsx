@@ -46,6 +46,7 @@ type SavedOutput = {
 };
 
 type OnboardingStep = "create" | "generate" | "log" | "done";
+type EvaluationStep = 1 | 2 | 3 | 4 | 5 | 6;
 
 type PlanSection = {
   label: string;
@@ -112,6 +113,15 @@ const planSectionDefinitions = [
   ["SESSION TYPE", "Session Type"],
   ["PROGRESSION LOGIC", "Progression Logic"],
 ] as const;
+
+const evaluationStepTitles: Record<EvaluationStep, string> = {
+  1: "Dog Basics",
+  2: "Training Goals",
+  3: "Problem Details",
+  4: "Home & Training History",
+  5: "Equipment & Notes",
+  6: "Review Case File",
+};
 
 const parsePlanSections = (plan: string): PlanSection[] => {
   if (!plan.trim()) return [];
@@ -206,6 +216,7 @@ export default function TrainPage() {
   const [profileCollapsed, setProfileCollapsed] = useState(false);
   const [historyCollapsed, setHistoryCollapsed] = useState(false);
   const [evaluationMode, setEvaluationMode] = useState(false);
+  const [evaluationStep, setEvaluationStep] = useState<EvaluationStep>(1);
   const [previousActiveDogId, setPreviousActiveDogId] = useState<string>("");
   const [previousActiveDogProfile, setPreviousActiveDogProfile] =
     useState<DogCaseFile | null>(null);
@@ -520,6 +531,7 @@ export default function TrainPage() {
     setPreviousActiveDogId(selectedDogId);
     setPreviousActiveDogProfile(selectedDogId ? dogProfile : null);
     setEvaluationMode(true);
+    setEvaluationStep(1);
     setProfileCollapsed(false);
     setSelectedDogId("");
     setDogProfile(emptyDogCaseFile);
@@ -540,6 +552,7 @@ export default function TrainPage() {
 
   const handleCancelEvaluation = () => {
     setEvaluationMode(false);
+    setEvaluationStep(1);
 
     if (previousActiveDogId && previousActiveDogProfile) {
       setSelectedDogId(previousActiveDogId);
@@ -636,6 +649,7 @@ export default function TrainPage() {
       setSelectedDogId(saved.id || "");
       setDogProfile(saved);
       setEvaluationMode(false);
+      setEvaluationStep(1);
       setPreviousActiveDogId("");
       setPreviousActiveDogProfile(null);
       setProfileCollapsed(true);
@@ -1020,6 +1034,497 @@ ${recentHistory}`;
       setPlanLoading(false);
     }
   };
+
+  const goToPreviousEvaluationStep = () => {
+    setEvaluationStep((current) => (current > 1 ? ((current - 1) as EvaluationStep) : current));
+  };
+
+  const goToNextEvaluationStep = () => {
+    setEvaluationStep((current) => (current < 6 ? ((current + 1) as EvaluationStep) : current));
+  };
+
+  const reviewSummaryItems = [
+    { label: "Dog name", value: dogProfile.name || "Not set" },
+    {
+      label: "Breed / age",
+      value: [dogProfile.breed, dogProfile.age].filter(Boolean).join(" / ") || "Not set",
+    },
+    { label: "Primary priority", value: dogProfile.mainGoal || "Not set" },
+    {
+      label: "Selected goals",
+      value: dogProfile.selectedGoals.join(", ") || "Not set",
+    },
+    { label: "Severity", value: dogProfile.severity || "Not set" },
+    { label: "Duration", value: dogProfile.issueDuration || "Not set" },
+    {
+      label: "Where it happens",
+      value: dogProfile.whereItHappens.join(", ") || "Not set",
+    },
+    {
+      label: "Equipment used",
+      value: dogProfile.equipmentUsed.join(", ") || "Not set",
+    },
+    {
+      label: "Owner success goal",
+      value: dogProfile.successLooksLike || "Not set",
+    },
+  ];
+
+  const evaluationWizardContent = (
+    <div className="mt-6 space-y-6">
+      <div className="rounded-lg border border-neutral-800 bg-black/30 p-4 sm:p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm uppercase tracking-[0.2em] text-amber-400">
+              Step {evaluationStep} of 6
+            </p>
+            <h2 className="mt-2 text-2xl font-bold">{evaluationStepTitles[evaluationStep]}</h2>
+          </div>
+          <button
+            type="button"
+            onClick={handleCancelEvaluation}
+            className="w-full rounded border border-neutral-600 px-4 py-3 font-semibold hover:bg-neutral-900 sm:w-auto"
+          >
+            Back to Training Center
+          </button>
+        </div>
+
+        <div className="mt-4 h-2 overflow-hidden rounded-full bg-neutral-900">
+          <div
+            className="h-full rounded-full bg-amber-400 transition-all"
+            style={{ width: `${(evaluationStep / 6) * 100}%` }}
+          />
+        </div>
+      </div>
+
+      {evaluationStep === 1 && (
+        <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <label className="mb-2 block text-sm text-white">Dog Name</label>
+              <input
+                type="text"
+                value={dogProfile.name}
+                onChange={(e) => setDogProfile({ ...dogProfile, name: e.target.value })}
+                placeholder="Ex: Henry"
+                className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm text-white">Breed</label>
+              <input
+                type="text"
+                value={dogProfile.breed}
+                onChange={(e) => setDogProfile({ ...dogProfile, breed: e.target.value })}
+                placeholder="Ex: German Shepherd"
+                className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm text-white">Age</label>
+              <input
+                type="text"
+                value={dogProfile.age}
+                onChange={(e) => setDogProfile({ ...dogProfile, age: e.target.value })}
+                placeholder="Ex: 18 months"
+                className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm text-white">Sex</label>
+              <select
+                value={dogProfile.sex}
+                onChange={(e) => setDogProfile({ ...dogProfile, sex: e.target.value })}
+                className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
+              >
+                {sexOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-2 block text-sm text-white">Weight</label>
+              <input
+                type="text"
+                value={dogProfile.weight}
+                onChange={(e) => setDogProfile({ ...dogProfile, weight: e.target.value })}
+                placeholder="Ex: 62 lb"
+                className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {evaluationStep === 2 && (
+        <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
+          <div>
+            <label className="mb-2 block text-sm text-white">Goal Category</label>
+            <select
+              value={dogProfile.goalType}
+              onChange={(e) => {
+                const nextGoalType = e.target.value;
+                const defaultGoal = getDefaultMainGoal(nextGoalType);
+
+                setDogProfile({
+                  ...dogProfile,
+                  goalType: nextGoalType,
+                  mainGoal: defaultGoal,
+                  selectedGoals: [defaultGoal],
+                });
+              }}
+              className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
+            >
+              {goalTypeOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="mt-5">
+            <label className="mb-2 block text-sm text-white">Selected goals/problems</label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {categoryGoalOptions.map((goal) => (
+                <button
+                  key={goal}
+                  type="button"
+                  onClick={() => handleToggleGoal(goal)}
+                  aria-pressed={selectedGoals.includes(goal)}
+                  className={`rounded border px-4 py-3 text-left text-sm transition ${
+                    selectedGoals.includes(goal)
+                      ? "border-amber-400 bg-amber-400/15 text-white"
+                      : "border-neutral-700 bg-neutral-900 text-neutral-300 hover:border-neutral-500"
+                  }`}
+                >
+                  {goal}
+                </button>
+              ))}
+            </div>
+            <p className="mt-3 text-sm text-neutral-400">
+              Choose up to three goals. Pick the one that matters most right now.
+            </p>
+          </div>
+
+          <div className="mt-5">
+            <label className="mb-2 block text-sm text-white">Primary Priority</label>
+            <select
+              value={dogProfile.mainGoal}
+              onChange={(e) => setDogProfile({ ...dogProfile, mainGoal: e.target.value })}
+              className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
+            >
+              {selectedGoals.map((goal) => (
+                <option key={goal} value={goal}>
+                  {goal}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+
+      {evaluationStep === 3 && (
+        <div className="space-y-5 rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
+          <div className="grid gap-5 md:grid-cols-2">
+            <div>
+              <label className="mb-2 block text-sm text-white">
+                How difficult is this problem today?
+              </label>
+              <select
+                value={dogProfile.severity}
+                onChange={(e) => setDogProfile({ ...dogProfile, severity: e.target.value })}
+                className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
+              >
+                {severityOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-2 block text-sm text-white">
+                How long has this been happening?
+              </label>
+              <select
+                value={dogProfile.issueDuration}
+                onChange={(e) =>
+                  setDogProfile({
+                    ...dogProfile,
+                    issueDuration: e.target.value,
+                  })
+                }
+                className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
+              >
+                {durationOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm text-white">Where does this happen most?</label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {whereItHappensOptions.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => handleToggleWhereItHappens(option)}
+                  aria-pressed={dogProfile.whereItHappens.includes(option)}
+                  className={`rounded border px-4 py-3 text-left text-sm transition ${
+                    dogProfile.whereItHappens.includes(option)
+                      ? "border-amber-400 bg-amber-400/15 text-white"
+                      : "border-neutral-700 bg-neutral-900 text-neutral-300 hover:border-neutral-500"
+                  }`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {evaluationStep === 4 && (
+        <div className="space-y-5 rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
+          <div>
+            <p className="mb-3 text-sm text-white">Household context</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {[
+                ["childrenInHome", "Children in home"],
+                ["otherDogsInHome", "Other dogs in home"],
+                ["catsOrSmallAnimals", "Cats or small animals in home"],
+                ["frequentVisitors", "Frequent visitors"],
+              ].map(([field, label]) => (
+                <label
+                  key={field}
+                  className="flex items-center gap-3 rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-sm text-neutral-200"
+                >
+                  <input
+                    type="checkbox"
+                    checked={dogProfile[field as keyof DogCaseFile] as boolean}
+                    onChange={(e) =>
+                      setDogProfile({
+                        ...dogProfile,
+                        [field]: e.target.checked,
+                      } as DogCaseFile)
+                    }
+                    className="h-4 w-4 accent-amber-400"
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-5 md:grid-cols-2">
+            <div>
+              <label className="mb-2 block text-sm text-white">Home environment</label>
+              <select
+                value={dogProfile.homeEnvironment}
+                onChange={(e) =>
+                  setDogProfile({
+                    ...dogProfile,
+                    homeEnvironment: e.target.value,
+                  })
+                }
+                className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
+              >
+                {homeEnvironmentOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-2 block text-sm text-white">Previous training</label>
+              <select
+                value={dogProfile.previousTraining}
+                onChange={(e) =>
+                  setDogProfile({
+                    ...dogProfile,
+                    previousTraining: e.target.value,
+                  })
+                }
+                className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
+              >
+                {previousTrainingOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-2 block text-sm text-white">Reward type</label>
+              <select
+                value={dogProfile.rewardType}
+                onChange={(e) =>
+                  setDogProfile({
+                    ...dogProfile,
+                    rewardType: e.target.value,
+                  })
+                }
+                className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
+              >
+                {rewardTypeOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-2 block text-sm text-white">Skill level</label>
+              <select
+                value={dogProfile.skillLevel}
+                onChange={(e) =>
+                  setDogProfile({
+                    ...dogProfile,
+                    skillLevel: e.target.value,
+                  })
+                }
+                className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
+              >
+                {skillLevelOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {evaluationStep === 5 && (
+        <div className="space-y-5 rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
+          <div>
+            <label className="mb-2 block text-sm text-white">Equipment currently used</label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {equipmentOptions.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => handleToggleEquipment(option)}
+                  aria-pressed={dogProfile.equipmentUsed.includes(option)}
+                  className={`rounded border px-4 py-3 text-left text-sm transition ${
+                    dogProfile.equipmentUsed.includes(option)
+                      ? "border-amber-400 bg-amber-400/15 text-white"
+                      : "border-neutral-700 bg-neutral-900 text-neutral-300 hover:border-neutral-500"
+                  }`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm text-white">What have you already tried?</label>
+            <textarea
+              value={dogProfile.triedAlready}
+              onChange={(e) =>
+                setDogProfile({
+                  ...dogProfile,
+                  triedAlready: e.target.value,
+                })
+              }
+              placeholder="Ex: front-clip harness, short obedience reps, crate at night, treats on walks..."
+              className="min-h-[110px] w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm text-white">What would success look like?</label>
+            <textarea
+              value={dogProfile.successLooksLike}
+              onChange={(e) =>
+                setDogProfile({
+                  ...dogProfile,
+                  successLooksLike: e.target.value,
+                })
+              }
+              placeholder="Ex: calm walks past dogs, settles in crate, comes when called in the yard..."
+              className="min-h-[110px] w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm text-white">Additional notes</label>
+            <textarea
+              value={dogProfile.additionalNotes}
+              onChange={(e) =>
+                setDogProfile({
+                  ...dogProfile,
+                  additionalNotes: e.target.value,
+                  customNotes: e.target.value,
+                })
+              }
+              placeholder="Ex: gets vocal when the leash comes out, struggles after 20 feet, shuts down in busy public areas..."
+              className="min-h-[120px] w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
+            />
+          </div>
+        </div>
+      )}
+
+      {evaluationStep === 6 && (
+        <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
+          <div className="grid gap-3 sm:grid-cols-2">
+            {reviewSummaryItems.map((item) => (
+              <div
+                key={item.label}
+                className="rounded border border-neutral-800 bg-black/30 p-4"
+              >
+                <p className="text-xs uppercase tracking-[0.2em] text-amber-400">
+                  {item.label}
+                </p>
+                <p className="mt-3 text-sm leading-7 text-neutral-200">{item.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-between">
+        {evaluationStep === 1 ? <div /> : (
+          <button
+            type="button"
+            onClick={goToPreviousEvaluationStep}
+            className="w-full rounded border border-neutral-600 px-4 py-3 font-semibold hover:bg-neutral-900 sm:w-auto"
+          >
+            Previous
+          </button>
+        )}
+
+        {evaluationStep < 6 ? (
+          <button
+            type="button"
+            onClick={goToNextEvaluationStep}
+            className="w-full rounded bg-amber-400 px-5 py-3 font-semibold text-black sm:w-auto"
+          >
+            Continue
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleSaveDogProfile}
+            disabled={profileSaving}
+            className="w-full rounded bg-amber-400 px-5 py-3 font-semibold text-black disabled:opacity-50 sm:w-auto"
+          >
+            {profileSaving ? "Saving..." : "Save Case File"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
 
   const caseFileForm = (
     <div className="mt-6 space-y-5">
@@ -1517,34 +2022,7 @@ ${recentHistory}`;
       {evaluationMode ? (
         <section className="mx-auto max-w-4xl px-4 pb-12 pt-8 sm:px-6 sm:pb-16 sm:pt-10">
           <section className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <h2 className="text-2xl font-bold sm:text-3xl">Start New Dog Evaluation</h2>
-                <p className="mt-3 text-neutral-400">
-                  Build a case file for this dog so the AI can create a structured Patriot K9 training plan.
-                </p>
-              </div>
-
-              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-                <button
-                  type="button"
-                  onClick={handleCancelEvaluation}
-                  className="w-full rounded border border-neutral-600 px-4 py-3 font-semibold hover:bg-neutral-900 sm:w-auto"
-                >
-                  Back to Training Center
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSaveDogProfile}
-                  disabled={profileSaving}
-                  className="w-full rounded bg-amber-400 px-4 py-3 font-semibold text-black disabled:opacity-50 sm:w-auto"
-                >
-                  {profileSaving ? "Saving..." : "Save Case File"}
-                </button>
-              </div>
-            </div>
-
-            {caseFileForm}
+            {evaluationWizardContent}
           </section>
         </section>
       ) : (
