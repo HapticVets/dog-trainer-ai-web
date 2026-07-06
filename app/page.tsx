@@ -38,6 +38,29 @@ const includedFeatures = [
   "Built from Patriot K9 Command doctrine",
 ];
 
+const landingPageLinks = [
+  {
+    href: "/puppy-training",
+    title: "Puppy Training",
+    desc: "Biting, crate training, potty training, socialization, and structure at home.",
+  },
+  {
+    href: "/stop-barking",
+    title: "Stop Barking",
+    desc: "Door barking, alert barking, crate barking, and calm behavior at home.",
+  },
+  {
+    href: "/leash-training",
+    title: "Leash Training",
+    desc: "Leash pulling, loose leash walking, heel foundations, and walk structure.",
+  },
+  {
+    href: "/german-shepherd-training",
+    title: "German Shepherd Training",
+    desc: "Drive, obedience, recall, handler leadership, and control for shepherds.",
+  },
+];
+
 export default function Home() {
   const { isSignedIn } = useUser();
   const patriotK9ContactUrl = "https://discord.gg/Mmb4KSp9Y8";
@@ -263,6 +286,32 @@ export default function Home() {
               >
                 <h3 className="text-lg font-semibold">{item}</h3>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t border-neutral-800 px-6 py-24">
+        <div className="mx-auto max-w-6xl">
+          <div className="max-w-3xl">
+            <p className="text-sm uppercase tracking-[0.25em] text-amber-400">
+              Choose What You Need Help With
+            </p>
+            <h2 className="mt-4 text-3xl font-bold md:text-4xl">
+              Start with the problem you want solved first
+            </h2>
+          </div>
+
+          <div className="mt-10 grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+            {landingPageLinks.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="rounded-lg border border-neutral-800 bg-black/30 p-6 transition hover:border-amber-400/40"
+              >
+                <h3 className="text-lg font-semibold">{item.title}</h3>
+                <p className="mt-3 text-sm leading-7 text-neutral-400">{item.desc}</p>
+              </Link>
             ))}
           </div>
         </div>
