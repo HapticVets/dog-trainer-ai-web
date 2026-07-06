@@ -5,7 +5,7 @@ import {
   getTrainerAccess,
   incrementFreeMessageUsage,
 } from "@/app/lib/trainer-access";
-import { normalizeGoalType } from "@/lib/dogGoals";
+import { buildDogCaseFileContext, hydrateDogCaseFile } from "@/lib/dogCaseFile";
 import { buildPatriotK9DoctrinePrompt } from "@/lib/patriotK9Protocols";
 
 const openai = new OpenAI({
@@ -50,10 +50,27 @@ export async function POST(req: Request) {
     const body = await req.json();
 
     const messages = body.messages || [];
-    const dogProfile = body.dogProfile || {};
+    const hydratedDogProfile = hydrateDogCaseFile({
+      id: body.dogProfile?.id,
+      name: body.dogProfile?.name,
+      goal_type: body.dogProfile?.goalType,
+      main_goal: body.dogProfile?.mainGoal,
+      reward_type: body.dogProfile?.rewardType,
+      skill_level: body.dogProfile?.skillLevel,
+      custom_notes: body.dogProfile?.customNotes,
+    });
+    const dogProfile = {
+      ...hydratedDogProfile,
+      ...body.dogProfile,
+      selectedGoals:
+        body.dogProfile?.selectedGoals?.length > 0
+          ? body.dogProfile.selectedGoals
+          : hydratedDogProfile.selectedGoals,
+      whereItHappens:
+        body.dogProfile?.whereItHappens ?? hydratedDogProfile.whereItHappens,
+      equipmentUsed: body.dogProfile?.equipmentUsed ?? hydratedDogProfile.equipmentUsed,
+    };
     const sessionLogs = body.sessionLogs || [];
-    const goalCategory = normalizeGoalType(dogProfile.goalType);
-    const priorityProblem = dogProfile.mainGoal || "unknown";
 
     const latestSession = sessionLogs[0] || null;
 
@@ -256,12 +273,7 @@ ${patriotK9Doctrine}
 --------------------------------
 DOG PROFILE
 --------------------------------
-Name: ${dogProfile.name || "unknown"}
-Goal Category: ${goalCategory}
-Priority Problem: ${priorityProblem}
-Reward Type: ${dogProfile.rewardType || "unknown"}
-Skill Level: ${dogProfile.skillLevel || "unknown"}
-Custom Notes: ${dogProfile.customNotes || "none"}
+${buildDogCaseFileContext(dogProfile)}
 
 --------------------------------
 CURRENT SESSION STATE

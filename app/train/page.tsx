@@ -6,22 +6,27 @@ import {
   getAvailableMainGoals,
   getDefaultMainGoal,
   goalTypeOptions,
-  normalizeGoalType,
 } from "@/lib/dogGoals";
+import {
+  buildDogCaseFileContext,
+  durationOptions,
+  emptyDogCaseFile,
+  ensurePrimaryPriority,
+  equipmentOptions,
+  homeEnvironmentOptions,
+  hydrateDogCaseFile,
+  previousTrainingOptions,
+  serializeDogCaseFile,
+  severityOptions,
+  sexOptions,
+  toggleMultiValue,
+  type DogCaseFile,
+  whereItHappensOptions,
+} from "@/lib/dogCaseFile";
 
 type ChatMessage = {
   role: "user" | "assistant";
   content: string;
-};
-
-type DogProfile = {
-  id?: string;
-  name: string;
-  goalType: string;
-  mainGoal: string;
-  rewardType: string;
-  skillLevel: string;
-  customNotes: string;
 };
 
 type SessionLog = {
@@ -45,15 +50,6 @@ type OnboardingStep = "create" | "generate" | "log" | "done";
 type PlanSection = {
   label: string;
   content: string;
-};
-
-const emptyDogProfile: DogProfile = {
-  name: "",
-  goalType: "Behavior Problems",
-  mainGoal: "Barking",
-  rewardType: "Food",
-  skillLevel: "Beginner",
-  customNotes: "",
 };
 
 const rewardTypeOptions = ["Food", "Toy", "Ball", "Food and Toy", "Praise"];
@@ -187,9 +183,9 @@ export default function TrainPage() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const [dogProfiles, setDogProfiles] = useState<DogProfile[]>([]);
+  const [dogProfiles, setDogProfiles] = useState<DogCaseFile[]>([]);
   const [selectedDogId, setSelectedDogId] = useState<string>("");
-  const [dogProfile, setDogProfile] = useState<DogProfile>(emptyDogProfile);
+  const [dogProfile, setDogProfile] = useState<DogCaseFile>(emptyDogCaseFile);
   const [profileSaving, setProfileSaving] = useState(false);
 
   const [sessionLogs, setSessionLogs] = useState<SessionLog[]>([]);
@@ -213,9 +209,8 @@ export default function TrainPage() {
   const hasActiveDog = Boolean(selectedDogId && dogProfile.name.trim());
   const hasSessions = sessionLogs.length > 0;
   const latestSession = sessionLogs[0];
-  const normalizedGoalType = normalizeGoalType(dogProfile.goalType);
-
-  const availableMainGoals = useMemo(
+  const selectedGoals = dogProfile.selectedGoals;
+  const categoryGoalOptions = useMemo(
     () => getAvailableMainGoals(dogProfile.goalType, dogProfile.mainGoal),
     [dogProfile.goalType, dogProfile.mainGoal]
   );
@@ -275,16 +270,9 @@ export default function TrainPage() {
           return;
         }
 
-        const mapped: DogProfile[] = (data.profiles || []).map((profile: any) => ({
-          id: profile.id,
-          name: profile.name ?? "",
-          goalType: normalizeGoalType(profile.goal_type),
-          mainGoal:
-            profile.main_goal ?? getDefaultMainGoal(normalizeGoalType(profile.goal_type)),
-          rewardType: profile.reward_type ?? "Food",
-          skillLevel: profile.skill_level ?? "Beginner",
-          customNotes: profile.custom_notes ?? "",
-        }));
+        const mapped: DogCaseFile[] = (data.profiles || []).map((profile: any) =>
+          hydrateDogCaseFile(profile)
+        );
 
         setDogProfiles(mapped);
 
@@ -293,7 +281,7 @@ export default function TrainPage() {
           setDogProfile(mapped[0]);
         } else {
           setSelectedDogId("");
-          setDogProfile(emptyDogProfile);
+          setDogProfile(emptyDogCaseFile);
         }
       } catch (error) {
         console.error("Failed to load dog profiles:", error);
@@ -526,7 +514,7 @@ export default function TrainPage() {
 
   const handleAddDog = () => {
     setSelectedDogId("");
-    setDogProfile(emptyDogProfile);
+    setDogProfile(emptyDogCaseFile);
     setSessionLogs([]);
     setMessages([]);
     setCurrentPlan("");
@@ -540,6 +528,38 @@ export default function TrainPage() {
       wins: "",
       issues: "",
     });
+  };
+
+  const updateSelectedGoals = (nextGoals: string[]) => {
+    const trimmedGoals = nextGoals.slice(0, 3);
+
+    setDogProfile((current) => ({
+      ...current,
+      selectedGoals: trimmedGoals,
+      mainGoal: ensurePrimaryPriority(trimmedGoals, current.mainGoal) || current.mainGoal,
+    }));
+  };
+
+  const handleToggleGoal = (goal: string) => {
+    const nextGoals = toggleMultiValue(selectedGoals, goal, 3);
+    if (nextGoals.length === 0) {
+      return;
+    }
+    updateSelectedGoals(nextGoals);
+  };
+
+  const handleToggleWhereItHappens = (value: string) => {
+    setDogProfile((current) => ({
+      ...current,
+      whereItHappens: toggleMultiValue(current.whereItHappens, value),
+    }));
+  };
+
+  const handleToggleEquipment = (value: string) => {
+    setDogProfile((current) => ({
+      ...current,
+      equipmentUsed: toggleMultiValue(current.equipmentUsed, value),
+    }));
   };
 
   const handleSaveDogProfile = async () => {
@@ -563,6 +583,7 @@ export default function TrainPage() {
         },
         body: JSON.stringify({
           ...dogProfile,
+          customNotes: serializeDogCaseFile(dogProfile),
           id: selectedDogId || undefined,
         }),
       });
@@ -575,16 +596,8 @@ export default function TrainPage() {
         return;
       }
 
-      const saved: DogProfile = {
-        id: data.profile.id,
-        name: data.profile.name ?? "",
-        goalType: normalizeGoalType(data.profile.goal_type),
-        mainGoal:
-          data.profile.main_goal ??
-          getDefaultMainGoal(normalizeGoalType(data.profile.goal_type)),
-        rewardType: data.profile.reward_type ?? "Food",
-        skillLevel: data.profile.skill_level ?? "Beginner",
-        customNotes: data.profile.custom_notes ?? "",
+      const saved: DogCaseFile = {
+        ...hydrateDogCaseFile(data.profile),
       };
 
       setDogProfiles((prev) => {
@@ -639,7 +652,7 @@ export default function TrainPage() {
         setDogProfile(updated[0]);
       } else {
         setSelectedDogId("");
-        setDogProfile(emptyDogProfile);
+        setDogProfile(emptyDogCaseFile);
       }
 
       setSessionLogs([]);
@@ -742,7 +755,7 @@ export default function TrainPage() {
           main_goal: dogProfile.mainGoal,
           reward_type: dogProfile.rewardType,
           skill_level: dogProfile.skillLevel,
-          custom_notes: dogProfile.customNotes,
+          custom_notes: dogProfile.additionalNotes,
           session_date: sessionForm.date,
           duration: Number.isNaN(parsedDuration) ? null : parsedDuration,
           focus: sessionForm.focus,
@@ -845,12 +858,8 @@ PRIMARY C
 SESSION TYPE
 PROGRESSION LOGIC
 
-Dog Name: ${dogProfile.name || "unknown"}
-Goal Category: ${normalizedGoalType}
-Priority Problem: ${dogProfile.mainGoal || "unknown"}
-Reward Type: ${dogProfile.rewardType || "unknown"}
-Skill Level: ${dogProfile.skillLevel || "unknown"}
-Additional Notes: ${dogProfile.customNotes || "none"}`;
+DOG CASE FILE
+${buildDogCaseFileContext(dogProfile)}`;
 
     try {
       const res = await fetch("/api/chat", {
@@ -939,12 +948,8 @@ PRIMARY C
 SESSION TYPE
 PROGRESSION LOGIC
 
-Dog Name: ${dogProfile.name || "unknown"}
-Goal Category: ${normalizedGoalType}
-Priority Problem: ${dogProfile.mainGoal || "unknown"}
-Reward Type: ${dogProfile.rewardType || "unknown"}
-Skill Level: ${dogProfile.skillLevel || "unknown"}
-Additional Notes: ${dogProfile.customNotes || "none"}
+DOG CASE FILE
+${buildDogCaseFileContext(dogProfile)}
 
 LATEST SESSION:
 Date: ${currentSession.date}
@@ -1061,9 +1066,9 @@ ${recentHistory}`;
                 <p className="text-sm uppercase tracking-[0.2em] text-amber-300">
                   Step 1
                 </p>
-                <h2 className="mt-2 text-2xl font-bold">Create Your Dog Profile</h2>
+                <h2 className="mt-2 text-2xl font-bold">Start Your First Dog Evaluation</h2>
                 <p className="mt-2 text-neutral-300">
-                  Start by entering your dog's name, goal, and training level.
+                  Build a full dog case file so the AI can anchor every session, follow-up, and recommendation to the right training problem.
                 </p>
               </>
             )}
@@ -1114,9 +1119,9 @@ ${recentHistory}`;
             }`}
           >
             <p className="text-xs uppercase tracking-[0.2em] text-amber-400">Step 1</p>
-            <h2 className="mt-2 text-xl font-semibold">Dog Profile</h2>
+            <h2 className="mt-2 text-xl font-semibold">Dog Case File</h2>
             <p className="mt-2 text-neutral-400">
-              Save the active dog, training goal, reward strategy, and current level.
+              Save the active case file, core priorities, household context, and training level.
             </p>
           </div>
 
@@ -1164,9 +1169,9 @@ ${recentHistory}`;
             <section className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
               <div className="flex flex-col items-start justify-between gap-3 sm:flex-row">
                 <div>
-                  <h2 className="text-2xl font-bold sm:text-3xl">Dog Profile</h2>
+                  <h2 className="text-2xl font-bold sm:text-3xl">Dog Case File</h2>
                   <p className="mt-3 text-neutral-400">
-                    Tell us the dog problem you want solved first so every session, log, and AI answer stays anchored to the right training priority.
+                    Tell us the dog problem you want solved first. The AI will translate owner-friendly concerns into a structured Patriot K9 training plan.
                   </p>
                 </div>
 
@@ -1186,7 +1191,7 @@ ${recentHistory}`;
                     onClick={handleAddDog}
                     className="w-full rounded border border-neutral-600 px-4 py-3 font-semibold hover:bg-neutral-900 sm:w-auto"
                   >
-                    Add Dog
+                    Start New Dog Evaluation
                   </button>
 
                   <button
@@ -1198,11 +1203,25 @@ ${recentHistory}`;
                     {profileSaving
                       ? "Saving..."
                       : selectedDogId
-                      ? "Update Dog"
-                      : "Save Dog"}
+                      ? "Update Case File"
+                      : "Save Case File"}
                   </button>
                 </div>
               </div>
+
+              {dogProfiles.length === 0 && !hasActiveDog && (
+                <div className="mt-6 rounded-lg border border-amber-500/30 bg-amber-400/10 p-5">
+                  <p className="text-xs uppercase tracking-[0.2em] text-amber-300">
+                    Start Here
+                  </p>
+                  <h3 className="mt-3 text-2xl font-semibold">
+                    Start Your First Dog Evaluation
+                  </h3>
+                  <p className="mt-3 text-neutral-300">
+                    Build the first case file with your dog's basics, main concerns, severity, and home context so the AI can coach from a real training picture.
+                  </p>
+                </div>
+              )}
 
               <div className="mt-6 space-y-5">
                 <div>
@@ -1235,134 +1254,447 @@ ${recentHistory}`;
                 {hasActiveDog && (
                   <div className="rounded border border-amber-500/40 bg-amber-400/15 p-5 shadow-[0_0_0_1px_rgba(251,191,36,0.08)]">
                     <p className="text-xs uppercase tracking-[0.2em] text-amber-300">
-                      Active Dog
+                      Active Case File
                     </p>
                     <p className="mt-3 text-3xl font-bold">{dogProfile.name}</p>
-                    <p className="mt-2 text-neutral-300">
-                      {normalizedGoalType} | {dogProfile.mainGoal}
-                    </p>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <p className="rounded border border-white/10 bg-black/20 px-3 py-2 text-sm text-neutral-200">
+                        <span className="font-semibold text-white">Primary priority:</span>{" "}
+                        {dogProfile.mainGoal || "Not set"}
+                      </p>
+                      <p className="rounded border border-white/10 bg-black/20 px-3 py-2 text-sm text-neutral-200">
+                        <span className="font-semibold text-white">Severity:</span>{" "}
+                        {dogProfile.severity || "Not set"}
+                      </p>
+                      <p className="rounded border border-white/10 bg-black/20 px-3 py-2 text-sm text-neutral-200 sm:col-span-2">
+                        <span className="font-semibold text-white">Where it happens:</span>{" "}
+                        {dogProfile.whereItHappens.join(", ") || "Not set"}
+                      </p>
+                      <p className="rounded border border-white/10 bg-black/20 px-3 py-2 text-sm text-neutral-200 sm:col-span-2">
+                        <span className="font-semibold text-white">Goals selected:</span>{" "}
+                        {dogProfile.selectedGoals.join(", ") || "Not set"}
+                      </p>
+                    </div>
                   </div>
                 )}
 
                 {!profileCollapsed && (
                   <>
-                    <div>
-                      <label className="mb-2 block text-sm text-white">Dog Name</label>
-                      <input
-                        type="text"
-                        value={dogProfile.name}
+                    <div className="rounded-lg border border-neutral-800 bg-black/30 p-4">
+                      <p className="text-xs uppercase tracking-[0.2em] text-amber-400">
+                        Dog Basics
+                      </p>
+                      <p className="mt-2 text-sm text-neutral-400">
+                        Start the evaluation with the basics you want the trainer to remember.
+                      </p>
+
+                      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                        <div className="sm:col-span-2">
+                          <label className="mb-2 block text-sm text-white">Dog Name</label>
+                          <input
+                            type="text"
+                            value={dogProfile.name}
+                            onChange={(e) =>
+                              setDogProfile({ ...dogProfile, name: e.target.value })
+                            }
+                            placeholder="Ex: Henry"
+                            className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="mb-2 block text-sm text-white">Breed</label>
+                          <input
+                            type="text"
+                            value={dogProfile.breed}
+                            onChange={(e) =>
+                              setDogProfile({ ...dogProfile, breed: e.target.value })
+                            }
+                            placeholder="Ex: German Shepherd"
+                            className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="mb-2 block text-sm text-white">Age</label>
+                          <input
+                            type="text"
+                            value={dogProfile.age}
+                            onChange={(e) =>
+                              setDogProfile({ ...dogProfile, age: e.target.value })
+                            }
+                            placeholder="Ex: 18 months"
+                            className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="mb-2 block text-sm text-white">Sex</label>
+                          <select
+                            value={dogProfile.sex}
+                            onChange={(e) =>
+                              setDogProfile({ ...dogProfile, sex: e.target.value })
+                            }
+                            className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
+                          >
+                            {sexOptions.map((option) => (
+                              <option key={option} value={option}>
+                                {option}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="mb-2 block text-sm text-white">Weight</label>
+                          <input
+                            type="text"
+                            value={dogProfile.weight}
+                            onChange={(e) =>
+                              setDogProfile({ ...dogProfile, weight: e.target.value })
+                            }
+                            placeholder="Ex: 62 lb"
+                            className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border border-neutral-800 bg-black/30 p-4">
+                      <p className="text-xs uppercase tracking-[0.2em] text-amber-400">
+                        Primary Training Concern
+                      </p>
+                      <p className="mt-2 text-sm text-neutral-400">
+                        Choose the problem or training goal that matters most right now. The AI will translate it into a structured Patriot K9 training plan.
+                      </p>
+
+                      <div className="mt-4">
+                        <label className="mb-2 block text-sm text-white">Goal Category</label>
+                        <select
+                          value={dogProfile.goalType}
+                          onChange={(e) => {
+                            const nextGoalType = e.target.value;
+                            const defaultGoal = getDefaultMainGoal(nextGoalType);
+
+                            setDogProfile({
+                              ...dogProfile,
+                              goalType: nextGoalType,
+                              mainGoal: defaultGoal,
+                              selectedGoals: [defaultGoal],
+                            });
+                          }}
+                          className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
+                        >
+                          {goalTypeOptions.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                        <p className="mt-2 text-sm text-neutral-400">
+                          Start broad, then pick up to three specific problems or training goals inside that category.
+                        </p>
+                      </div>
+
+                      <div className="mt-5">
+                        <label className="mb-2 block text-sm text-white">
+                          What do you want help with first?
+                        </label>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {categoryGoalOptions.map((goal) => (
+                            <button
+                              key={goal}
+                              type="button"
+                              onClick={() => handleToggleGoal(goal)}
+                              aria-pressed={selectedGoals.includes(goal)}
+                              className={`rounded border px-4 py-3 text-left text-sm transition ${
+                                selectedGoals.includes(goal)
+                                  ? "border-amber-400 bg-amber-400/15 text-white"
+                                  : "border-neutral-700 bg-neutral-900 text-neutral-300 hover:border-neutral-500"
+                              }`}
+                            >
+                              {goal}
+                            </button>
+                          ))}
+                        </div>
+                        <p className="mt-2 text-sm text-neutral-400">
+                          Choose up to three priorities. Every new dog evaluation and every additional dog uses this same full intake flow.
+                        </p>
+                      </div>
+
+                      <div className="mt-5">
+                        <label className="mb-2 block text-sm text-white">
+                          Primary Priority
+                        </label>
+                        <select
+                          value={dogProfile.mainGoal}
+                          onChange={(e) =>
+                            setDogProfile({ ...dogProfile, mainGoal: e.target.value })
+                          }
+                          className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
+                        >
+                          {selectedGoals.map((goal) => (
+                            <option key={goal} value={goal}>
+                              {goal}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-5 md:grid-cols-2">
+                      <div className="rounded-lg border border-neutral-800 bg-black/30 p-4">
+                        <label className="mb-2 block text-sm text-white">Severity</label>
+                        <select
+                          value={dogProfile.severity}
+                          onChange={(e) =>
+                            setDogProfile({ ...dogProfile, severity: e.target.value })
+                          }
+                          className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
+                        >
+                          {severityOptions.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="rounded-lg border border-neutral-800 bg-black/30 p-4">
+                        <label className="mb-2 block text-sm text-white">Duration</label>
+                        <select
+                          value={dogProfile.issueDuration}
+                          onChange={(e) =>
+                            setDogProfile({
+                              ...dogProfile,
+                              issueDuration: e.target.value,
+                            })
+                          }
+                          className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
+                        >
+                          {durationOptions.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border border-neutral-800 bg-black/30 p-4">
+                      <label className="mb-2 block text-sm text-white">
+                        Where does it happen?
+                      </label>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {whereItHappensOptions.map((option) => (
+                          <button
+                            key={option}
+                            type="button"
+                            onClick={() => handleToggleWhereItHappens(option)}
+                            aria-pressed={dogProfile.whereItHappens.includes(option)}
+                            className={`rounded border px-4 py-3 text-left text-sm transition ${
+                              dogProfile.whereItHappens.includes(option)
+                                ? "border-amber-400 bg-amber-400/15 text-white"
+                                : "border-neutral-700 bg-neutral-900 text-neutral-300 hover:border-neutral-500"
+                            }`}
+                          >
+                            {option}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border border-neutral-800 bg-black/30 p-4">
+                      <p className="text-xs uppercase tracking-[0.2em] text-amber-400">
+                        Household Context
+                      </p>
+                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                        {[
+                          ["childrenInHome", "Children in home"],
+                          ["otherDogsInHome", "Other dogs in home"],
+                          ["catsOrSmallAnimals", "Cats or small animals in home"],
+                          ["frequentVisitors", "Frequent visitors"],
+                        ].map(([field, label]) => (
+                          <label
+                            key={field}
+                            className="flex items-center gap-3 rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-sm text-neutral-200"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={dogProfile[field as keyof DogCaseFile] as boolean}
+                              onChange={(e) =>
+                                setDogProfile({
+                                  ...dogProfile,
+                                  [field]: e.target.checked,
+                                } as DogCaseFile)
+                              }
+                              className="h-4 w-4 accent-amber-400"
+                            />
+                            {label}
+                          </label>
+                        ))}
+                      </div>
+
+                      <div className="mt-4">
+                        <label className="mb-2 block text-sm text-white">
+                          Home Environment
+                        </label>
+                        <select
+                          value={dogProfile.homeEnvironment}
+                          onChange={(e) =>
+                            setDogProfile({
+                              ...dogProfile,
+                              homeEnvironment: e.target.value,
+                            })
+                          }
+                          className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
+                        >
+                          {homeEnvironmentOptions.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-5 md:grid-cols-2">
+                      <div className="rounded-lg border border-neutral-800 bg-black/30 p-4">
+                        <label className="mb-2 block text-sm text-white">
+                          Previous Training
+                        </label>
+                        <select
+                          value={dogProfile.previousTraining}
+                          onChange={(e) =>
+                            setDogProfile({
+                              ...dogProfile,
+                              previousTraining: e.target.value,
+                            })
+                          }
+                          className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
+                        >
+                          {previousTrainingOptions.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="rounded-lg border border-neutral-800 bg-black/30 p-4">
+                        <label className="mb-2 block text-sm text-white">Reward Type</label>
+                        <select
+                          value={dogProfile.rewardType}
+                          onChange={(e) =>
+                            setDogProfile({
+                              ...dogProfile,
+                              rewardType: e.target.value,
+                            })
+                          }
+                          className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
+                        >
+                          {rewardTypeOptions.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-5 md:grid-cols-2">
+                      <div className="rounded-lg border border-neutral-800 bg-black/30 p-4">
+                        <label className="mb-2 block text-sm text-white">Skill Level</label>
+                        <select
+                          value={dogProfile.skillLevel}
+                          onChange={(e) =>
+                            setDogProfile({
+                              ...dogProfile,
+                              skillLevel: e.target.value,
+                            })
+                          }
+                          className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
+                        >
+                          {skillLevelOptions.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border border-neutral-800 bg-black/30 p-4">
+                      <label className="mb-2 block text-sm text-white">
+                        Equipment currently used
+                      </label>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {equipmentOptions.map((option) => (
+                          <button
+                            key={option}
+                            type="button"
+                            onClick={() => handleToggleEquipment(option)}
+                            aria-pressed={dogProfile.equipmentUsed.includes(option)}
+                            className={`rounded border px-4 py-3 text-left text-sm transition ${
+                              dogProfile.equipmentUsed.includes(option)
+                                ? "border-amber-400 bg-amber-400/15 text-white"
+                                : "border-neutral-700 bg-neutral-900 text-neutral-300 hover:border-neutral-500"
+                            }`}
+                          >
+                            {option}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border border-neutral-800 bg-black/30 p-4">
+                      <label className="mb-2 block text-sm text-white">
+                        What have you already tried?
+                      </label>
+                      <textarea
+                        value={dogProfile.triedAlready}
                         onChange={(e) =>
-                          setDogProfile({ ...dogProfile, name: e.target.value })
+                          setDogProfile({
+                            ...dogProfile,
+                            triedAlready: e.target.value,
+                          })
                         }
-                        placeholder="Ex: Henry"
-                        className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
+                        placeholder="Ex: front-clip harness, short obedience reps, crate at night, treats on walks..."
+                        className="min-h-[110px] w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
                       />
                     </div>
 
-                    <div>
+                    <div className="rounded-lg border border-neutral-800 bg-black/30 p-4">
                       <label className="mb-2 block text-sm text-white">
-                        Goal Category
+                        What would success look like?
                       </label>
-                      <select
-                        value={normalizedGoalType}
+                      <textarea
+                        value={dogProfile.successLooksLike}
                         onChange={(e) =>
                           setDogProfile({
                             ...dogProfile,
-                            goalType: e.target.value,
-                            mainGoal: getDefaultMainGoal(e.target.value),
+                            successLooksLike: e.target.value,
                           })
                         }
-                        className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
-                      >
-                        {goalTypeOptions.map((option) => (
-                          <option key={option} value={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
-                      <p className="mt-2 text-sm text-neutral-400">
-                        Start broad, then choose the first priority problem you want help solving.
-                      </p>
+                        placeholder="Ex: calm walks past dogs, settles in crate, comes when called in the yard..."
+                        className="min-h-[110px] w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
+                      />
                     </div>
 
-                    <div>
-                      <label className="mb-2 block text-sm text-white">
-                        What do you want help with first?
-                      </label>
-                      <select
-                        value={dogProfile.mainGoal}
-                        onChange={(e) =>
-                          setDogProfile({
-                            ...dogProfile,
-                            mainGoal: e.target.value,
-                          })
-                        }
-                        className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
-                      >
-                        {availableMainGoals.map((option) => (
-                          <option key={option} value={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
-                      <p className="mt-2 text-sm text-neutral-400">
-                        Choose the problem or training goal that matters most right now. The AI will build a structured plan around that priority.
-                      </p>
-                    </div>
-
-                    <div>
-                      <label className="mb-2 block text-sm text-white">Reward Type</label>
-                      <select
-                        value={dogProfile.rewardType}
-                        onChange={(e) =>
-                          setDogProfile({
-                            ...dogProfile,
-                            rewardType: e.target.value,
-                          })
-                        }
-                        className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
-                      >
-                        {rewardTypeOptions.map((option) => (
-                          <option key={option} value={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="mb-2 block text-sm text-white">Skill Level</label>
-                      <select
-                        value={dogProfile.skillLevel}
-                        onChange={(e) =>
-                          setDogProfile({
-                            ...dogProfile,
-                            skillLevel: e.target.value,
-                          })
-                        }
-                        className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
-                      >
-                        {skillLevelOptions.map((option) => (
-                          <option key={option} value={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
+                    <div className="rounded-lg border border-neutral-800 bg-black/30 p-4">
                       <label className="mb-2 block text-sm text-white">
                         Additional Notes
                       </label>
                       <textarea
-                        value={dogProfile.customNotes}
+                        value={dogProfile.additionalNotes}
                         onChange={(e) =>
                           setDogProfile({
                             ...dogProfile,
+                            additionalNotes: e.target.value,
                             customNotes: e.target.value,
                           })
                         }
-                        placeholder="Ex: breaks heel when ball appears, strong toy drive, gets vocal around dogs, struggles after 20 feet..."
+                        placeholder="Ex: gets vocal when the leash comes out, struggles after 20 feet, shuts down in busy public areas..."
                         className="min-h-[120px] w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
                       />
                     </div>

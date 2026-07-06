@@ -2,6 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import {
+  buildDogCaseFileContext,
+  hydrateDogCaseFile,
+  type DogCaseFile,
+} from "@/lib/dogCaseFile";
 
 type DashboardSummary = {
   totalDogs: number;
@@ -38,16 +43,6 @@ type DashboardSummary = {
   } | null;
 };
 
-type DogProfile = {
-  id?: string;
-  name: string;
-  goalType: string;
-  mainGoal: string;
-  rewardType: string;
-  skillLevel: string;
-  customNotes: string;
-};
-
 type SessionLog = {
   id: string;
   date: string;
@@ -69,7 +64,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [portalLoading, setPortalLoading] = useState(false);
 
-  const [dogProfiles, setDogProfiles] = useState<DogProfile[]>([]);
+  const [dogProfiles, setDogProfiles] = useState<DogCaseFile[]>([]);
   const [selectedDogId, setSelectedDogId] = useState<string>("");
   const [selectedDogName, setSelectedDogName] = useState("");
   const [sessionLogs, setSessionLogs] = useState<SessionLog[]>([]);
@@ -127,15 +122,9 @@ export default function DashboardPage() {
           return;
         }
 
-        const mapped: DogProfile[] = (data.profiles || []).map((profile: any) => ({
-          id: profile.id,
-          name: profile.name ?? "",
-          goalType: profile.goal_type ?? "Obedience",
-          mainGoal: profile.main_goal ?? "Heel position",
-          rewardType: profile.reward_type ?? "Food",
-          skillLevel: profile.skill_level ?? "Beginner",
-          customNotes: profile.custom_notes ?? "",
-        }));
+        const mapped: DogCaseFile[] = (data.profiles || []).map((profile: any) =>
+          hydrateDogCaseFile(profile)
+        );
 
         setDogProfiles(mapped);
 
@@ -294,12 +283,7 @@ NEXT SESSION PLAN
 
 Be direct, structured, and trainer-level.
 
-Dog Name: ${selectedDog?.name || "unknown"}
-Goal Type: ${selectedDog?.goalType || "unknown"}
-Main Goal: ${selectedDog?.mainGoal || "unknown"}
-Reward Type: ${selectedDog?.rewardType || "unknown"}
-Skill Level: ${selectedDog?.skillLevel || "unknown"}
-Additional Notes: ${selectedDog?.customNotes || "none"}
+${selectedDog ? buildDogCaseFileContext(selectedDog) : "No case file loaded."}
 
 SESSION LOGS:
 ${sessionSummary}`;
