@@ -47,6 +47,11 @@ type SavedOutput = {
 
 type OnboardingStep = "create" | "generate" | "log" | "done";
 type EvaluationStep = 1 | 2 | 3 | 4 | 5 | 6;
+type TrainingWorkflowState =
+  | "no_dog"
+  | "case_file_complete"
+  | "plan_ready_to_log"
+  | "progressing";
 
 type PlanSection = {
   label: string;
@@ -225,6 +230,7 @@ export default function TrainPage() {
 
   const hasActiveDog = Boolean(selectedDogId && dogProfile.name.trim());
   const hasSessions = sessionLogs.length > 0;
+  const hasCurrentPlan = Boolean(currentPlan.trim());
   const latestSession = sessionLogs[0];
   const selectedGoals = dogProfile.selectedGoals;
   const categoryGoalOptions = useMemo(
@@ -238,36 +244,55 @@ export default function TrainPage() {
       output.outputType === "next_session_plan"
   );
 
-  const nextStepLabel =
-    onboardingStep === "create"
-      ? "Save the dog profile"
-      : onboardingStep === "generate"
-      ? "Generate the first session"
-      : onboardingStep === "log"
-      ? "Log today's real session"
-      : "Ask AI follow-up or generate the next session";
+  const workflowState: TrainingWorkflowState = !hasActiveDog
+    ? "no_dog"
+    : hasSessions
+    ? "progressing"
+    : hasCurrentPlan
+    ? "plan_ready_to_log"
+    : "case_file_complete";
 
-  const progressSummary = [
+  const workflowNextAction =
+    workflowState === "no_dog"
+      ? "Start a new dog evaluation"
+      : workflowState === "case_file_complete"
+      ? `Generate ${dogProfile.name || "this dog's"} first session`
+      : workflowState === "plan_ready_to_log"
+      ? "Log today's training session"
+      : "Generate the next session or ask AI follow-up";
+
+  const statusCardItems = [
     {
-      label: "Active Dog",
-      value: hasActiveDog ? dogProfile.name : "Not set",
+      label: "Case File",
+      value: hasActiveDog ? "Complete" : "Not started",
     },
     {
-      label: "Current Goal",
-      value: hasActiveDog ? dogProfile.mainGoal : "Not set",
+      label: "Current Plan",
+      value: hasCurrentPlan ? "Generated" : "Not generated",
     },
     {
-      label: "Skill Level",
-      value: hasActiveDog ? dogProfile.skillLevel : "Not set",
+      label: "Last Session",
+      value: latestSession?.date || "Not logged",
     },
     {
-      label: "Last Session Logged",
-      value: latestSession?.date || "No session logged yet",
+      label: "Next Action",
+      value: workflowNextAction,
     },
+  ];
+
+  const activeCaseSummaryItems = [
+    { label: "Dog name", value: dogProfile.name || "Not set" },
+    { label: "Primary priority", value: dogProfile.mainGoal || "Not set" },
     {
-      label: "Next Step Available",
-      value: nextStepLabel,
+      label: "Selected goals",
+      value: dogProfile.selectedGoals.join(", ") || "Not set",
     },
+    { label: "Severity", value: dogProfile.severity || "Not set" },
+    {
+      label: "Where it happens",
+      value: dogProfile.whereItHappens.join(", ") || "Not set",
+    },
+    { label: "Skill level", value: dogProfile.skillLevel || "Not set" },
   ];
 
   const persistActiveDogId = (id?: string) => {
@@ -2063,17 +2088,17 @@ ${recentHistory}`;
       <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-6">
         <div className="rounded-lg border border-neutral-800 bg-black/40 p-5 sm:p-6">
           <p className="text-sm uppercase tracking-[0.2em] text-amber-400">
-            Training Progress
+            Training Status
           </p>
           <h2 className="mt-2 text-2xl font-bold sm:text-3xl">
-            Current training snapshot
+            Next relevant action
           </h2>
           <p className="mt-2 text-neutral-400">
-            Keep the active dog, goal, and next action visible while you work through the session flow.
+            The trainer now guides the active dog forward one clear step at a time.
           </p>
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-            {progressSummary.map((item) => (
+          <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {statusCardItems.map((item) => (
               <div
                 key={item.label}
                 className="rounded border border-neutral-800 bg-neutral-950 p-4"
@@ -2086,111 +2111,6 @@ ${recentHistory}`;
                 </p>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 py-1 sm:px-6 sm:py-2">
-        {onboardingStep !== "done" && (
-          <div className="rounded border border-amber-500/30 bg-amber-400/10 p-6">
-            {onboardingStep === "create" && (
-              <>
-                <p className="text-sm uppercase tracking-[0.2em] text-amber-300">
-                  Step 1
-                </p>
-                <h2 className="mt-2 text-2xl font-bold">Start Your First Dog Evaluation</h2>
-                <p className="mt-2 text-neutral-300">
-                  Build a full dog case file so the AI can anchor every session, follow-up, and recommendation to the right training problem.
-                </p>
-              </>
-            )}
-
-            {onboardingStep === "generate" && (
-              <>
-                <p className="text-sm uppercase tracking-[0.2em] text-amber-300">
-                  Step 2
-                </p>
-                <h2 className="mt-2 text-2xl font-bold">
-                  Generate Your First Training Session
-                </h2>
-                <p className="mt-2 text-neutral-300">
-                  Build the first structured session from the saved dog profile.
-                </p>
-              </>
-            )}
-
-            {onboardingStep === "log" && (
-              <>
-                <p className="text-sm uppercase tracking-[0.2em] text-amber-300">
-                  Step 3
-                </p>
-                <h2 className="mt-2 text-2xl font-bold">Log Your First Session</h2>
-                <p className="mt-2 text-neutral-300">
-                  Record what happened so the next session can progress from real results.
-                </p>
-              </>
-            )}
-          </div>
-        )}
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 py-4 sm:px-6">
-        <div className="mb-3">
-          <p className="text-sm uppercase tracking-[0.2em] text-amber-400">
-            Workflow
-          </p>
-          <h2 className="mt-2 text-2xl font-bold sm:text-3xl">Training workflow</h2>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div
-            className={`rounded border p-5 ${
-              onboardingStep === "create"
-                ? "border-amber-500/30 bg-amber-400/10"
-                : "border-neutral-800 bg-black/30"
-            }`}
-          >
-            <p className="text-xs uppercase tracking-[0.2em] text-amber-400">Step 1</p>
-            <h2 className="mt-2 text-xl font-semibold">Dog Case File</h2>
-            <p className="mt-2 text-neutral-400">
-              Save the active case file, core priorities, household context, and training level.
-            </p>
-          </div>
-
-          <div
-            className={`rounded border p-5 ${
-              onboardingStep === "generate"
-                ? "border-amber-500/30 bg-amber-400/10"
-                : "border-neutral-800 bg-black/30"
-            }`}
-          >
-            <p className="text-xs uppercase tracking-[0.2em] text-amber-400">Step 2</p>
-            <h2 className="mt-2 text-xl font-semibold">Generate Session</h2>
-            <p className="mt-2 text-neutral-400">
-              Build the first session for a new dog or the next session from logged work.
-            </p>
-          </div>
-
-          <div
-            className={`rounded border p-5 ${
-              onboardingStep === "log"
-                ? "border-amber-500/30 bg-amber-400/10"
-                : "border-neutral-800 bg-black/30"
-            }`}
-          >
-            <p className="text-xs uppercase tracking-[0.2em] text-amber-400">Step 3</p>
-            <h2 className="mt-2 text-xl font-semibold">Log Results</h2>
-            <p className="mt-2 text-neutral-400">
-              Record what really happened so future recommendations progress correctly.
-            </p>
-          </div>
-
-          <div className="rounded border border-neutral-800 bg-black/30 p-5">
-            <p className="text-xs uppercase tracking-[0.2em] text-amber-400">Step 4</p>
-            <h2 className="mt-2 text-xl font-semibold">Ask AI Follow-up</h2>
-            <p className="mt-2 text-neutral-400">
-              Troubleshoot the active dog, current plan, and recent session history.
-            </p>
           </div>
         </div>
       </section>
@@ -2214,7 +2134,7 @@ ${recentHistory}`;
                       onClick={() => setProfileCollapsed((prev) => !prev)}
                       className="w-full rounded border border-neutral-600 px-4 py-3 font-semibold hover:bg-neutral-900 sm:w-auto"
                     >
-                      {profileCollapsed ? "Expand Profile" : "Collapse Profile"}
+                      {profileCollapsed ? "View / Edit Case File" : "Hide Case File"}
                     </button>
                   )}
 
@@ -2258,25 +2178,13 @@ ${recentHistory}`;
               {caseFileForm}
             </section>
 
-            <section
-              className={`rounded-lg border p-5 sm:p-6 ${
-                hasActiveDog
-                  ? "border-neutral-800 bg-neutral-950"
-                  : "border-neutral-900 bg-black/20 opacity-65"
-              }`}
-            >
-              <h2 className="text-2xl font-bold sm:text-3xl">Log Session</h2>
-              <p className="mt-3 text-neutral-400">
-                Log what actually happened so the next session is built from real performance.
-              </p>
+            {(workflowState === "plan_ready_to_log" || workflowState === "progressing") && (
+              <section className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
+                <h2 className="text-2xl font-bold sm:text-3xl">Log Today's Training Session</h2>
+                <p className="mt-3 text-neutral-400">
+                  Record what actually happened so the next session is built from real performance.
+                </p>
 
-              {!hasActiveDog && (
-                <div className="mt-5 rounded border border-neutral-800 bg-black/40 p-4 text-sm text-neutral-400">
-                  This section unlocks after you save or select an active dog.
-                </div>
-              )}
-
-              {hasActiveDog && (
                 <div className="mt-6 space-y-5">
                   <div>
                     <label className="mb-2 block text-sm text-white">Date</label>
@@ -2391,100 +2299,109 @@ ${recentHistory}`;
                   <button
                     type="button"
                     onClick={handleSaveSession}
-                    disabled={!hasActiveDog || onboardingStep === "create"}
+                    disabled={!hasActiveDog}
                     className="w-full rounded bg-amber-400 px-5 py-3 font-semibold text-black disabled:opacity-50"
                   >
                     Log Session
                   </button>
                 </div>
-              )}
-            </section>
+              </section>
+            )}
           </div>
 
           <div className="space-y-8">
-            {!hasActiveDog && (
+            {workflowState === "no_dog" && (
               <section className="rounded-lg border border-neutral-800 bg-black/20 p-6 text-center sm:p-8">
                 <p className="text-sm uppercase tracking-[0.2em] text-amber-400">
-                  Locked Until Active Dog
+                  Start Here
                 </p>
                 <h2 className="mt-3 text-2xl font-bold sm:text-3xl">
-                  Save or select a dog first
+                  Start your first dog evaluation
                 </h2>
                 <p className="mx-auto mt-3 max-w-2xl text-neutral-400">
-                  Session generation, AI follow-up help, and session history will appear here after you activate a dog profile.
+                  Start your first dog evaluation to build a case file and generate a structured training plan.
                 </p>
+                <button
+                  type="button"
+                  onClick={handleAddDog}
+                  className="mt-6 rounded bg-amber-400 px-6 py-3 font-semibold text-black"
+                >
+                  Start New Dog Evaluation
+                </button>
               </section>
             )}
 
-            {hasActiveDog && (
+            {workflowState === "case_file_complete" && (
+              <section className="rounded-lg border border-amber-500/30 bg-amber-400/10 p-6 sm:p-8">
+                <p className="text-sm uppercase tracking-[0.2em] text-amber-300">
+                  Case File Complete
+                </p>
+                <h2 className="mt-3 text-2xl font-bold sm:text-3xl">
+                  {dogProfile.name}'s case file is ready
+                </h2>
+                <p className="mt-3 text-neutral-300">
+                  Review the current case summary, then generate the first structured training session.
+                </p>
+
+                <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {activeCaseSummaryItems.map((item) => (
+                    <div
+                      key={item.label}
+                      className="rounded border border-white/10 bg-black/25 p-4"
+                    >
+                      <p className="text-xs uppercase tracking-[0.2em] text-amber-200/80">
+                        {item.label}
+                      </p>
+                      <p className="mt-3 text-sm font-semibold text-white">{item.value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleGenerateFirstSession}
+                  disabled={planLoading || !hasActiveDog}
+                  className="mt-6 w-full rounded bg-amber-400 px-6 py-4 font-semibold text-black disabled:opacity-50 sm:w-auto"
+                >
+                  {planLoading
+                    ? "Generating..."
+                    : `Generate ${dogProfile.name}'s First Training Session`}
+                </button>
+              </section>
+            )}
+
+            {(workflowState === "plan_ready_to_log" || workflowState === "progressing") && (
               <>
                 <section className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
                   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                     <div>
-                      <h2 className="text-2xl font-bold sm:text-3xl">Session Generator</h2>
+                      <h2 className="text-2xl font-bold sm:text-3xl">Current Training Plan</h2>
                       <p className="mt-3 text-neutral-400">
-                        Generate a structured working session from the active dog profile and recent logged performance.
+                        {workflowState === "plan_ready_to_log"
+                          ? "Run the current plan, then log what happened so the trainer can progress from real results."
+                          : "Review the active plan, log real training results, and then progress to the next session."}
                       </p>
                     </div>
 
                     <div className="w-full rounded border border-amber-500/30 bg-amber-400/10 px-4 py-3 text-center text-sm text-amber-200 md:w-auto md:text-left">
-                      AI-generated training plan
+                      {workflowState === "plan_ready_to_log"
+                        ? "Next action: Log today's training session"
+                        : "Next action: Generate the next session"}
                     </div>
                   </div>
 
-                  <div className="mt-6 grid gap-3 lg:grid-cols-2">
-                    <div className="rounded border border-neutral-800 bg-black/40 p-4">
-                      <p className="text-sm font-semibold text-white">Generate First Session</p>
-                      <p className="mt-2 text-sm text-neutral-400">
-                        Use this for a new dog, a fresh goal, or when there is no real session data yet.
-                      </p>
+                  {workflowState === "progressing" && (
+                    <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                      <button
+                        type="button"
+                        onClick={handleGenerateNextSessionPlan}
+                        disabled={!hasActiveDog || !hasSessions || planLoading}
+                        className="w-full rounded bg-amber-400 px-5 py-3 font-semibold text-black disabled:opacity-50 sm:w-auto"
+                      >
+                        {planLoading ? "Generating..." : "Generate Next Session"}
+                      </button>
                     </div>
-                    <div className="rounded border border-neutral-800 bg-black/40 p-4">
-                      <p className="text-sm font-semibold text-white">Generate Next Session</p>
-                      <p className="mt-2 text-sm text-neutral-400">
-                        Use this after logging what really happened so the next plan progresses from the latest result.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                    <button
-                      type="button"
-                      onClick={handleGenerateFirstSession}
-                      disabled={!hasActiveDog || hasSessions || planLoading || onboardingStep === "create"}
-                      className="w-full rounded bg-amber-400 px-5 py-3 font-semibold text-black disabled:opacity-50 sm:w-auto"
-                    >
-                      {planLoading && !hasSessions ? "Generating..." : "Generate First Session"}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handleGenerateNextSessionPlan}
-                      disabled={!hasActiveDog || !hasSessions || planLoading || onboardingStep !== "done"}
-                      className="w-full rounded border border-neutral-600 px-5 py-3 font-semibold hover:bg-neutral-900 disabled:opacity-50 sm:w-auto"
-                    >
-                      {planLoading && hasSessions ? "Generating..." : "Generate Next Session"}
-                    </button>
-                  </div>
-
-                  {!hasSessions && (
-                    <p className="mt-4 text-sm text-neutral-400">
-                      No session logs yet. Start by generating the first session for this dog.
-                    </p>
                   )}
-
-                  {hasSessions && (
-                    <p className="mt-4 text-sm text-neutral-400">
-                      Session history found. Generate the next session from the latest logged work.
-                    </p>
-                  )}
-                </section>
-
-                <section className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
-                  <h2 className="text-2xl font-bold sm:text-3xl">Current Training Plan</h2>
-                  <p className="mt-3 text-neutral-400">
-                    Review the active AI-generated plan, then use it to run the session and measure the next progression.
-                  </p>
 
                   <div className="mt-6 overflow-hidden rounded-lg border border-neutral-800 bg-black p-4 sm:p-5">
                     {currentPlan ? (
@@ -2534,6 +2451,7 @@ ${recentHistory}`;
                   )}
                 </section>
 
+                {workflowState === "progressing" && (
                 <section className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
                   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                     <div>
@@ -2621,7 +2539,9 @@ ${recentHistory}`;
                     </button>
                   </div>
                 </section>
+                )}
 
+                {workflowState === "progressing" && (
                 <section className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
@@ -2745,6 +2665,7 @@ ${recentHistory}`;
                     </div>
                   )}
                 </section>
+                )}
               </>
             )}
           </div>
