@@ -142,6 +142,50 @@ export default function Home() {
       </section>
 
       <section className="border-b border-neutral-800 px-6 py-20">
+        <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[minmax(0,600px)_minmax(0,1fr)]">
+          <figure className="w-full overflow-hidden rounded-3xl border border-neutral-800 bg-black/30 shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
+            <Image
+              src="/images/branding/patriot-k9-pack-engagement-training.jpg"
+              alt="Three Patriot K9 Command dogs practicing engagement and obedience with their trainer."
+              width={2160}
+              height={2880}
+              sizes="(max-width: 768px) calc(100vw - 48px), (max-width: 1280px) 46vw, 600px"
+              className="h-auto w-full object-contain"
+              priority={false}
+            />
+          </figure>
+
+          <div className="max-w-2xl">
+            <p className="text-sm uppercase tracking-[0.25em] text-amber-400">
+              Real Training
+            </p>
+            <h2 className="mt-4 text-3xl font-bold md:text-4xl">
+              Training Built on Relationship, Not Just Commands
+            </h2>
+            <div className="mt-6 space-y-4 text-neutral-300">
+              <p>
+                Every dog you see on this website is part of the real Patriot K9
+                Command training program. We don&apos;t rely on stock photography
+                because we believe your trainer should be able to demonstrate the
+                same standards they teach.
+              </p>
+              <p>
+                Whether we&apos;re training one dog or an entire pack, our focus is
+                calm engagement, reliable obedience, and building a dog that
+                chooses to work with its handler.
+              </p>
+            </div>
+            <Link
+              href="/train"
+              className="mt-8 inline-block rounded bg-amber-400 px-6 py-3 font-semibold text-black"
+            >
+              Start Training
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-b border-neutral-800 px-6 py-20">
         <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[minmax(0,1fr)_700px]">
           <div className="max-w-2xl">
             <p className="text-sm uppercase tracking-[0.25em] text-amber-400">

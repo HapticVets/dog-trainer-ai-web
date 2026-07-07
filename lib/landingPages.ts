@@ -6,6 +6,13 @@ export type LandingPageConfig = {
   description: string;
   heroHeadline: string;
   heroSubheadline: string;
+  heroImage?: {
+    src: string;
+    alt: string;
+    width: number;
+    height: number;
+    caption?: string;
+  };
   supportingSection?: {
     eyebrow: string;
     title: string;
@@ -249,6 +256,14 @@ export const landingPages: Record<LandingPageConfig["slug"], LandingPageConfig> 
     heroHeadline: "German Shepherd Training Built for Drive, Structure, and Control",
     heroSubheadline:
       "Get structured AI guidance for working-line energy, obedience, leash pulling, recall, reactivity, handler leadership, and drive control.",
+    heroImage: {
+      src: "/images/obedience/patriot-k9-german-shepherd-field-training.jpg",
+      alt: "German Shepherds training outdoors with Patriot K9 Command.",
+      width: 2880,
+      height: 2160,
+      caption:
+        "Real Patriot K9 Command training dogs during structured obedience work.",
+    },
     problemTitle: "High-drive German Shepherds need structure, not generic pet-dog advice",
     problemSummary:
       "German Shepherds often struggle when drive, responsibility, and structure are out of balance. Pulling, over-arousal, reactivity, and handler conflict usually improve when the dog gets cleaner standards and clearer leadership.",

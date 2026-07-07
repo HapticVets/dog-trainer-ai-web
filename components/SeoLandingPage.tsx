@@ -10,31 +10,52 @@ export default function SeoLandingPage({ config }: SeoLandingPageProps) {
   return (
     <main className="min-h-screen bg-neutral-950 text-white">
       <section className="border-b border-neutral-800 px-6 py-24">
-        <div className="mx-auto max-w-6xl">
-          <p className="text-sm uppercase tracking-[0.25em] text-amber-400">
-            Patriot K9 AI Trainer
-          </p>
-          <h1 className="mt-4 max-w-4xl text-4xl font-bold leading-tight md:text-6xl">
-            {config.heroHeadline}
-          </h1>
-          <p className="mt-6 max-w-3xl text-lg text-neutral-300">
-            {config.heroSubheadline}
-          </p>
+        <div className={`mx-auto max-w-6xl ${config.heroImage ? "grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)]" : ""}`}>
+          <div>
+            <p className="text-sm uppercase tracking-[0.25em] text-amber-400">
+              Patriot K9 AI Trainer
+            </p>
+            <h1 className="mt-4 max-w-4xl text-4xl font-bold leading-tight md:text-6xl">
+              {config.heroHeadline}
+            </h1>
+            <p className="mt-6 max-w-3xl text-lg text-neutral-300">
+              {config.heroSubheadline}
+            </p>
 
-          <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-            <Link
-              href="/train"
-              className="w-full rounded bg-amber-400 px-6 py-3 text-center font-semibold text-black sm:w-auto"
-            >
-              Start Free Trial
-            </Link>
-            <a
-              href="#example-plan"
-              className="w-full rounded border border-neutral-600 px-6 py-3 text-center font-semibold text-white hover:bg-neutral-900 sm:w-auto"
-            >
-              View Example Plan
-            </a>
+            <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <Link
+                href="/train"
+                className="w-full rounded bg-amber-400 px-6 py-3 text-center font-semibold text-black sm:w-auto"
+              >
+                Start Free Trial
+              </Link>
+              <a
+                href="#example-plan"
+                className="w-full rounded border border-neutral-600 px-6 py-3 text-center font-semibold text-white hover:bg-neutral-900 sm:w-auto"
+              >
+                View Example Plan
+              </a>
+            </div>
           </div>
+
+          {config.heroImage && (
+            <figure className="w-full overflow-hidden rounded-3xl border border-neutral-800 bg-black/30 shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
+              <div className="relative aspect-[4/3] w-full">
+                <Image
+                  src={config.heroImage.src}
+                  alt={config.heroImage.alt}
+                  fill
+                  sizes="(max-width: 768px) calc(100vw - 48px), (max-width: 1280px) 42vw, 520px"
+                  className="object-contain md:object-cover"
+                />
+              </div>
+              {config.heroImage.caption && (
+                <figcaption className="border-t border-neutral-800 px-5 py-4 text-sm text-neutral-400">
+                  {config.heroImage.caption}
+                </figcaption>
+              )}
+            </figure>
+          )}
         </div>
       </section>
 
