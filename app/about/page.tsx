@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 
 export const metadata: Metadata = {
@@ -65,6 +66,21 @@ export default function AboutPage() {
           <p className="text-sm uppercase tracking-[0.25em] text-amber-400">
             The Story Behind Patriot K9 Command
           </p>
+          <figure className="mt-6 overflow-hidden rounded-lg border border-neutral-800 bg-black/30">
+            <div className="relative aspect-[16/10] w-full">
+              <Image
+                src="/images/about/john-reese-patriot-k9-training-german-shepherd.jpg"
+                alt="John Reese training a German Shepherd at Patriot K9 Command."
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1280px) 80vw, 960px"
+                className="object-cover"
+                priority={false}
+              />
+            </div>
+            <figcaption className="border-t border-neutral-800 px-4 py-3 text-sm text-neutral-400">
+              John Reese working with a German Shepherd using the Patriot K9 Command training system.
+            </figcaption>
+          </figure>
           <div className="mt-6 space-y-5 text-neutral-300">
             <p>
               Patriot K9 Command was built on a simple belief: dog training should
