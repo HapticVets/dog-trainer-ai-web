@@ -220,6 +220,22 @@ export default function SeoLandingPage({ config }: SeoLandingPageProps) {
               </Link>
             ))}
           </div>
+
+          <div className="mt-8 rounded border border-neutral-800 bg-black/30 p-5">
+            <p className="text-sm font-semibold text-white">
+              Want to know who built Patriot K9 AI Trainer?
+            </p>
+            <p className="mt-2 text-sm text-neutral-400">
+              Learn about John Reese, the story behind Patriot K9 Command, and
+              the philosophy guiding the AI trainer.
+            </p>
+            <Link
+              href="/about"
+              className="mt-4 inline-block rounded border border-neutral-700 px-4 py-3 text-sm font-semibold text-white hover:bg-neutral-900"
+            >
+              Read About Patriot K9 Command
+            </Link>
+          </div>
         </div>
       </section>
 
