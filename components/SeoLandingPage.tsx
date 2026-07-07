@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { LandingPageConfig } from "@/lib/landingPages";
 
@@ -68,6 +69,42 @@ export default function SeoLandingPage({ config }: SeoLandingPageProps) {
           </div>
         </div>
       </section>
+
+      {config.supportingSection && (
+        <section className="border-b border-neutral-800 px-6 py-20">
+          <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)]">
+            <div className="max-w-2xl">
+              <p className="text-sm uppercase tracking-[0.25em] text-amber-400">
+                {config.supportingSection.eyebrow}
+              </p>
+              <h2 className="mt-4 text-3xl font-bold md:text-4xl">
+                {config.supportingSection.title}
+              </h2>
+              <div className="mt-6 space-y-4 text-neutral-300">
+                {config.supportingSection.body.map((paragraph) => (
+                  <p key={paragraph}>{paragraph}</p>
+                ))}
+              </div>
+            </div>
+
+            <figure className="w-full overflow-hidden rounded-3xl border border-neutral-800 bg-black/30 shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
+              <Image
+                src={config.supportingSection.image.src}
+                alt={config.supportingSection.image.alt}
+                width={config.supportingSection.image.width}
+                height={config.supportingSection.image.height}
+                sizes="(max-width: 768px) calc(100vw - 48px), (max-width: 1280px) 42vw, 520px"
+                className="h-auto w-full object-contain"
+              />
+              {config.supportingSection.image.caption && (
+                <figcaption className="border-t border-neutral-800 px-5 py-4 text-sm text-neutral-400">
+                  {config.supportingSection.image.caption}
+                </figcaption>
+              )}
+            </figure>
+          </div>
+        </section>
+      )}
 
       <section className="border-b border-neutral-800 px-6 py-20">
         <div className="mx-auto max-w-6xl">

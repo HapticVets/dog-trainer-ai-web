@@ -6,6 +6,18 @@ export type LandingPageConfig = {
   description: string;
   heroHeadline: string;
   heroSubheadline: string;
+  supportingSection?: {
+    eyebrow: string;
+    title: string;
+    body: string[];
+    image: {
+      src: string;
+      alt: string;
+      width: number;
+      height: number;
+      caption?: string;
+    };
+  };
   problemTitle: string;
   problemSummary: string;
   focusAreas: string[];
@@ -35,6 +47,22 @@ export const landingPages: Record<LandingPageConfig["slug"], LandingPageConfig> 
     heroHeadline: "Puppy Training Plans Built Around Your Puppy",
     heroSubheadline:
       "Get structured puppy guidance for biting, crate training, potty training, socialization, basic obedience, and home structure built from Patriot K9 Command doctrine.",
+    supportingSection: {
+      eyebrow: "Early Confidence Matters",
+      title: "Puppy development starts with calm exposure and clean structure",
+      body: [
+        "Good puppy work is not just about teaching commands. It is about building confidence through everyday structure, calm travel, and controlled exposure to new environments.",
+        "When a puppy learns to settle, observe, and move through normal experiences without chaos, socialization becomes cleaner and future training has a stronger foundation.",
+      ],
+      image: {
+        src: "/images/puppies/patriot-k9-puppy-training-travel.jpg",
+        alt: "German Shepherd puppy calmly riding in a vehicle during Patriot K9 puppy training.",
+        width: 2160,
+        height: 2880,
+        caption:
+          "Confidence starts with everyday experiences like calm, structured travel.",
+      },
+    },
     problemTitle: "Puppy problems get harder when structure is inconsistent",
     problemSummary:
       "Most puppy problems are not random. Biting, crate resistance, accidents in the house, and chaos around routines usually come from unclear structure, low consistency, and too much freedom too early.",
