@@ -66,49 +66,52 @@ export default function AboutPage() {
           <p className="text-sm uppercase tracking-[0.25em] text-amber-400">
             The Story Behind Patriot K9 Command
           </p>
-          <figure className="mt-6 overflow-hidden rounded-lg border border-neutral-800 bg-black/30">
-            <div className="relative aspect-[16/10] w-full">
-              <Image
-                src="/images/about/john-reese-patriot-k9-training-german-shepherd.jpg"
-                alt="John Reese training a German Shepherd at Patriot K9 Command."
-                fill
-                sizes="(max-width: 768px) 100vw, (max-width: 1280px) 80vw, 960px"
-                className="object-cover"
-                priority={false}
-              />
+          <div className="mt-6 grid gap-10 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-start">
+            <div className="space-y-5 text-neutral-300">
+              <p>
+                Patriot K9 Command was built on a simple belief: dog training should
+                create better relationships, not just better obedience.
+              </p>
+              <p>
+                Many owners struggle because they receive conflicting advice from
+                videos, social media, or generic training programs. Patriot K9
+                Command was created to provide a structured system that helps owners
+                understand why their dog behaves the way it does and how to build
+                lasting habits through consistent leadership.
+              </p>
+              <p>
+                Our training philosophy emphasizes communication, engagement,
+                structure, and gradual progression. Every dog learns at its own pace,
+                but every owner deserves a clear plan to follow.
+              </p>
+              <p>
+                That philosophy became the foundation for Patriot K9 AI Trainer.
+              </p>
+              <p>
+                Instead of replacing the experience of working with a trainer,
+                Patriot K9 AI organizes proven training principles into personalized
+                coaching available whenever owners need guidance. Each dog begins
+                with a detailed case file, receives structured training sessions,
+                tracks progress over time, and continues building toward long-term
+                goals.
+              </p>
             </div>
-            <figcaption className="border-t border-neutral-800 px-4 py-3 text-sm text-neutral-400">
-              John Reese working with a German Shepherd using the Patriot K9 Command training system.
-            </figcaption>
-          </figure>
-          <div className="mt-6 space-y-5 text-neutral-300">
-            <p>
-              Patriot K9 Command was built on a simple belief: dog training should
-              create better relationships, not just better obedience.
-            </p>
-            <p>
-              Many owners struggle because they receive conflicting advice from
-              videos, social media, or generic training programs. Patriot K9
-              Command was created to provide a structured system that helps owners
-              understand why their dog behaves the way it does and how to build
-              lasting habits through consistent leadership.
-            </p>
-            <p>
-              Our training philosophy emphasizes communication, engagement,
-              structure, and gradual progression. Every dog learns at its own pace,
-              but every owner deserves a clear plan to follow.
-            </p>
-            <p>
-              That philosophy became the foundation for Patriot K9 AI Trainer.
-            </p>
-            <p>
-              Instead of replacing the experience of working with a trainer,
-              Patriot K9 AI organizes proven training principles into personalized
-              coaching available whenever owners need guidance. Each dog begins
-              with a detailed case file, receives structured training sessions,
-              tracks progress over time, and continues building toward long-term
-              goals.
-            </p>
+
+            <figure className="mx-auto w-full max-w-[420px] overflow-hidden rounded-lg border border-neutral-800 bg-black/30 lg:mx-0 lg:justify-self-end">
+              <div className="relative aspect-[16/10] w-full">
+                <Image
+                  src="/images/about/john-reese-patriot-k9-training-german-shepherd.jpg"
+                  alt="John Reese training a German Shepherd at Patriot K9 Command."
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 420px"
+                  className="object-cover"
+                  priority={false}
+                />
+              </div>
+              <figcaption className="border-t border-neutral-800 px-4 py-3 text-sm text-neutral-400">
+                John Reese working with a German Shepherd using the Patriot K9 Command training system.
+              </figcaption>
+            </figure>
           </div>
         </div>
       </section>
