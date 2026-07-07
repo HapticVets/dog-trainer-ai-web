@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 const corePrinciples = [
@@ -39,10 +40,13 @@ export default function MethodPage() {
   return (
     <main className="min-h-screen bg-neutral-950 text-white">
       <section className="relative border-b border-neutral-800">
-        <img
+        <Image
           src="/german-shepherd-hero.png"
           alt="German Shepherd training under structured handling"
-          className="absolute inset-0 h-full w-full object-cover opacity-35"
+          fill
+          sizes="100vw"
+          className="absolute inset-0 object-cover opacity-35"
+          priority
         />
 
         <div className="relative mx-auto max-w-6xl px-6 py-32">

@@ -32,7 +32,7 @@ export default function AboutPage() {
           <p className="text-sm uppercase tracking-[0.25em] text-amber-400">
             The Story Behind Patriot K9 Command
           </p>
-          <div className="mt-6 grid gap-10 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-start">
+          <div className="mt-6 grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)] lg:items-start">
             <div className="space-y-5 text-neutral-300">
               <p>
                 Patriot K9 Command was built on a simple belief: dog training should
@@ -63,43 +63,23 @@ export default function AboutPage() {
               </p>
             </div>
 
-            <figure className="mx-auto w-full max-w-[420px] overflow-hidden rounded-lg border border-neutral-800 bg-black/30 lg:mx-0 lg:justify-self-end">
-              <div className="relative aspect-[16/10] w-full">
-                <Image
-                  src="/images/about/john-reese-patriot-k9-training-german-shepherd.jpg"
-                  alt="John Reese training a German Shepherd at Patriot K9 Command."
-                  fill
-                  sizes="(max-width: 1024px) 100vw, 420px"
-                  className="object-cover"
-                  priority={false}
-                />
-              </div>
-              <figcaption className="border-t border-neutral-800 px-4 py-3 text-sm text-neutral-400">
-                John Reese working with a German Shepherd using the Patriot K9 Command training system.
+            <figure className="mx-auto w-full max-w-[460px] overflow-hidden rounded-3xl border border-neutral-800 bg-black/30 shadow-[0_20px_50px_rgba(0,0,0,0.35)] lg:mx-0 lg:justify-self-end">
+              <Image
+                src="/images/branding/patriot-k9-german-shepherd-pack-sunset.jpg"
+                alt="German Shepherds relaxing after a Patriot K9 Command training session."
+                width={2880}
+                height={2160}
+                sizes="(max-width: 1024px) 100vw, 460px"
+                className="h-auto w-full object-contain"
+                priority={false}
+              />
+              <figcaption className="border-t border-neutral-800 px-5 py-4 text-sm text-neutral-400">
+                Every dog shown throughout Patriot K9 Command is part of our real
+                training program. We use actual dogs, actual sessions, and real
+                progress—not stock photography.
               </figcaption>
             </figure>
           </div>
-        </div>
-      </section>
-
-      <section className="border-b border-neutral-800 px-6 py-20">
-        <div className="mx-auto max-w-5xl">
-          <figure className="mx-auto w-full max-w-[700px] overflow-hidden rounded-3xl border border-neutral-800 bg-black/30 shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
-            <Image
-              src="/images/branding/patriot-k9-german-shepherd-pack-sunset.jpg"
-              alt="German Shepherds relaxing after a Patriot K9 Command training session."
-              width={2880}
-              height={2160}
-              sizes="(max-width: 768px) calc(100vw - 48px), (max-width: 1280px) 80vw, 700px"
-              className="h-auto w-full object-contain"
-              priority={false}
-            />
-            <figcaption className="border-t border-neutral-800 px-5 py-4 text-center text-sm text-neutral-400">
-              Every dog shown throughout Patriot K9 Command is part of our real
-              training program. We use actual dogs, actual sessions, and real
-              progress—not stock photography.
-            </figcaption>
-          </figure>
         </div>
       </section>
 
@@ -108,31 +88,49 @@ export default function AboutPage() {
           <p className="text-sm uppercase tracking-[0.25em] text-amber-400">
             Meet John Reese
           </p>
-          <div className="mt-6 space-y-5 text-neutral-300">
-            <p>
-              John Reese is the founder of Patriot K9 Command and the creator of the
-              Patriot K9 AI Trainer.
-            </p>
-            <p>
-              A United States Marine Corps veteran, John has spent years working
-              with dogs and helping owners build clear communication, structure, and
-              lasting relationships with their companions. His training philosophy
-              focuses on leadership, consistency, and teaching owners how to become
-              confident handlers, not just teaching dogs commands.
-            </p>
-            <p>
-              Through years of working with family pets, German Shepherds, and
-              working-line dogs, John developed the Patriot K9 training system to
-              simplify dog training into clear, repeatable steps that owners can
-              confidently follow.
-            </p>
-            <p>
-              Patriot K9 AI Trainer brings that same approach online by giving dog
-              owners access to structured guidance anytime they need it. Rather than
-              replacing a professional trainer, the AI acts as a coaching partner
-              that walks owners through each stage of training using the Patriot K9
-              methodology.
-            </p>
+          <div className="mt-6 grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)] lg:items-start">
+            <div className="space-y-5 text-neutral-300">
+              <p>
+                John Reese is the founder of Patriot K9 Command and the creator of the
+                Patriot K9 AI Trainer.
+              </p>
+              <p>
+                A United States Marine Corps veteran, John has spent years working
+                with dogs and helping owners build clear communication, structure, and
+                lasting relationships with their companions. His training philosophy
+                focuses on leadership, consistency, and teaching owners how to become
+                confident handlers, not just teaching dogs commands.
+              </p>
+              <p>
+                Through years of working with family pets, German Shepherds, and
+                working-line dogs, John developed the Patriot K9 training system to
+                simplify dog training into clear, repeatable steps that owners can
+                confidently follow.
+              </p>
+              <p>
+                Patriot K9 AI Trainer brings that same approach online by giving dog
+                owners access to structured guidance anytime they need it. Rather than
+                replacing a professional trainer, the AI acts as a coaching partner
+                that walks owners through each stage of training using the Patriot K9
+                methodology.
+              </p>
+            </div>
+
+            <figure className="mx-auto w-full max-w-[460px] overflow-hidden rounded-3xl border border-neutral-800 bg-black/30 shadow-[0_20px_50px_rgba(0,0,0,0.35)] lg:mx-0 lg:justify-self-end">
+              <div className="relative aspect-[16/10] w-full">
+                <Image
+                  src="/images/about/john-reese-patriot-k9-training-german-shepherd.jpg"
+                  alt="John Reese training a German Shepherd at Patriot K9 Command."
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 460px"
+                  className="object-cover"
+                  priority={false}
+                />
+              </div>
+              <figcaption className="border-t border-neutral-800 px-5 py-4 text-sm text-neutral-400">
+                John Reese working with a German Shepherd using the Patriot K9 Command training system.
+              </figcaption>
+            </figure>
           </div>
         </div>
       </section>

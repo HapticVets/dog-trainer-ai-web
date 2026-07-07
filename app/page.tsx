@@ -141,15 +141,35 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="border-b border-neutral-800 px-6 py-16">
-        <div className="mx-auto max-w-6xl">
-          <figure className="mx-auto w-full max-w-[700px] overflow-hidden rounded-3xl border border-neutral-800 bg-black/30 shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
+      <section className="border-b border-neutral-800 px-6 py-20">
+        <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[minmax(0,1fr)_700px]">
+          <div className="max-w-2xl">
+            <p className="text-sm uppercase tracking-[0.25em] text-amber-400">
+              Real Training Environment
+            </p>
+            <h2 className="mt-4 text-3xl font-bold md:text-4xl">
+              Built around real dogs, real structure, and practical handling
+            </h2>
+            <div className="mt-6 space-y-4 text-neutral-300">
+              <p>
+                Patriot K9 AI Trainer is grounded in the same training environment
+                and day-to-day standards used inside Patriot K9 Command.
+              </p>
+              <p>
+                That means the guidance is built around structure, clarity,
+                progression, and real handler follow-through, not generic advice
+                written in a vacuum.
+              </p>
+            </div>
+          </div>
+
+          <figure className="w-full overflow-hidden rounded-3xl border border-neutral-800 bg-black/30 shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
             <Image
               src="/images/branding/patriot-k9-pack-training-property.jpg"
               alt="German Shepherds training on the Patriot K9 Command property."
               width={2880}
               height={2160}
-              sizes="(max-width: 768px) calc(100vw - 48px), (max-width: 1280px) 80vw, 700px"
+              sizes="(max-width: 768px) calc(100vw - 48px), (max-width: 1280px) 50vw, 700px"
               className="h-auto w-full object-contain"
               priority={false}
             />
