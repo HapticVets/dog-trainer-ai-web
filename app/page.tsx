@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
 
@@ -137,6 +138,25 @@ export default function Home() {
               className="w-full rounded-lg border border-neutral-800"
             />
           </div>
+        </div>
+      </section>
+
+      <section className="border-b border-neutral-800 px-6 py-16">
+        <div className="mx-auto max-w-6xl">
+          <figure className="mx-auto w-full max-w-[700px] overflow-hidden rounded-3xl border border-neutral-800 bg-black/30 shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
+            <Image
+              src="/images/branding/patriot-k9-pack-training-property.jpg"
+              alt="German Shepherds training on the Patriot K9 Command property."
+              width={2880}
+              height={2160}
+              sizes="(max-width: 768px) calc(100vw - 48px), (max-width: 1280px) 80vw, 700px"
+              className="h-auto w-full object-contain"
+              priority={false}
+            />
+            <figcaption className="border-t border-neutral-800 px-5 py-4 text-center text-sm text-neutral-400">
+              Real Patriot K9 dogs. Real training environment. Real structure.
+            </figcaption>
+          </figure>
         </div>
       </section>
 
