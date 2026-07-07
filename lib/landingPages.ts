@@ -6,6 +6,12 @@ export type LandingPageConfig = {
   description: string;
   heroHeadline: string;
   heroSubheadline: string;
+  heroVideo?: {
+    src: string;
+    eyebrow: string;
+    title: string;
+    description: string;
+  };
   heroImage?: {
     src: string;
     alt: string;
@@ -54,6 +60,12 @@ export const landingPages: Record<LandingPageConfig["slug"], LandingPageConfig> 
     heroHeadline: "Puppy Training Plans Built Around Your Puppy",
     heroSubheadline:
       "Get structured puppy guidance for biting, crate training, potty training, socialization, basic obedience, and home structure built from Patriot K9 Command doctrine.",
+    heroVideo: {
+      src: "/videos/puppy-training/patriot-k9-puppy-training-session.mp4",
+      eyebrow: "Watch a Real Puppy Training Session",
+      title: "Watch a Real Puppy Training Session",
+      description: "This is actual Patriot K9 training—not stock footage.",
+    },
     supportingSection: {
       eyebrow: "Early Confidence Matters",
       title: "Puppy development starts with calm exposure and clean structure",

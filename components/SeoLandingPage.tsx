@@ -91,6 +91,36 @@ export default function SeoLandingPage({ config }: SeoLandingPageProps) {
         </div>
       </section>
 
+      {config.heroVideo && (
+        <section className="border-b border-neutral-800 px-6 py-20">
+          <div className="mx-auto max-w-6xl text-center">
+            <p className="text-sm uppercase tracking-[0.25em] text-amber-400">
+              {config.heroVideo.eyebrow}
+            </p>
+            <h2 className="mt-4 text-3xl font-bold md:text-4xl">
+              {config.heroVideo.title}
+            </h2>
+            <p className="mx-auto mt-4 max-w-3xl text-neutral-300">
+              {config.heroVideo.description}
+            </p>
+
+            <div className="mx-auto mt-10 w-full max-w-full overflow-hidden rounded-3xl border border-amber-400/40 bg-black/30 shadow-[0_20px_50px_rgba(0,0,0,0.35)] sm:max-w-[700px] xl:max-w-[850px]">
+              <video
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                controls
+                className="aspect-video w-full"
+              >
+                <source src={config.heroVideo.src} type="video/mp4" />
+              </video>
+            </div>
+          </div>
+        </section>
+      )}
+
       {config.supportingSection && (
         <section className="border-b border-neutral-800 px-6 py-20">
           <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)]">
