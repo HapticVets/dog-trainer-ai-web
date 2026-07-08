@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
+import { absoluteUrl } from "@/lib/site";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
@@ -42,7 +43,7 @@ export async function POST() {
 
     const session = await stripe.billingPortal.sessions.create({
       customer: stripeCustomerId,
-      return_url: "https://train.hapticvets.com/dashboard",
+      return_url: absoluteUrl("/dashboard"),
     });
 
     return NextResponse.json({ url: session.url });

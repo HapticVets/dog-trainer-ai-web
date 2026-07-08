@@ -6,6 +6,7 @@ import {
   PREMIUM_SUBSCRIPTION_PRICE_CENTS,
   PREMIUM_SUBSCRIPTION_PRICE_ID,
 } from "@/lib/subscriptionPricing";
+import { absoluteUrl } from "@/lib/site";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
@@ -26,9 +27,10 @@ export async function POST() {
           quantity: 1,
         },
       ],
-      success_url:
-        "https://train.hapticvets.com/subscription-success?session_id={CHECKOUT_SESSION_ID}",
-      cancel_url: "https://train.hapticvets.com/cancel",
+      success_url: absoluteUrl(
+        "/subscription-success?session_id={CHECKOUT_SESSION_ID}"
+      ),
+      cancel_url: absoluteUrl("/cancel"),
       metadata: {
         clerkUserId: userId,
         plan: "premium",

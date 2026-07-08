@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { absoluteUrl, siteConfig } from "@/lib/site";
 
 export type LandingPageConfig = {
   slug: "puppy-training" | "stop-barking" | "leash-training" | "german-shepherd-training";
@@ -336,12 +337,17 @@ export const landingPages: Record<LandingPageConfig["slug"], LandingPageConfig> 
 export const getLandingPageMetadata = (config: LandingPageConfig): Metadata => ({
   title: config.title,
   description: config.description,
+  alternates: {
+    canonical: `/${config.slug}`,
+  },
   openGraph: {
     title: config.title,
     description: config.description,
-    url: `https://train.hapticvets.com/${config.slug}`,
+    url: absoluteUrl(`/${config.slug}`),
+    siteName: siteConfig.siteName,
   },
   twitter: {
+    card: "summary_large_image",
     title: config.title,
     description: config.description,
   },

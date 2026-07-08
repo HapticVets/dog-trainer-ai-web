@@ -3,33 +3,38 @@ import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import GlobalNavbar from "@/components/GlobalNavbar";
 import GoogleAdsTag from "@/components/GoogleAdsTag";
+import { siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteConfig.appUrl),
   title: {
-    default: "Patriot K9 Command",
-    template: "%s | Patriot K9 Command",
+    default: siteConfig.siteName,
+    template: `%s | ${siteConfig.brandName}`,
   },
   description:
     "Structured dog training platform built for real-world results. Log sessions, track progress, and generate precise training plans using the 4C K9 Doctrine.",
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
-    title: "Patriot K9 Command",
+    title: siteConfig.siteName,
     description:
       "Structured dog training platform built for real-world results.",
-    url: "https://train.hapticvets.com",
-    siteName: "Patriot K9 Command",
+    url: siteConfig.appUrl,
+    siteName: siteConfig.siteName,
     images: [
       {
         url: "/patriot-k9-embed.jpg",
         width: 1200,
         height: 630,
-        alt: "Patriot K9 Command",
+        alt: siteConfig.siteName,
       },
     ],
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Patriot K9 Command",
+    title: siteConfig.siteName,
     description:
       "Structured dog training platform built for real-world results.",
     images: ["/patriot-k9-embed.jpg"],
