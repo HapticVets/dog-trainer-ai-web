@@ -67,6 +67,7 @@ type TrainerAccessState = {
   firstSessionsGenerated: number;
   sessionLogsUsed: number;
   nextSessionsGenerated: number;
+  dogProfilesUsed: number;
   canCreateCaseFile: boolean;
   canGenerateFirstSession: boolean;
   canLogSession: boolean;
@@ -408,6 +409,15 @@ export default function TrainPage() {
     });
   };
 
+  const showMultiDogUpgradePrompt = () => {
+    setUpgradeCheckoutError("");
+    setUpgradeModal({
+      title: "Upgrade to train multiple dogs",
+      description:
+        "The free plan includes one dog profile. Upgrade to add more dogs, generate ongoing sessions, and unlock unlimited AI coaching.",
+    });
+  };
+
   useEffect(() => {
     if (!user) return;
 
@@ -697,6 +707,11 @@ export default function TrainPage() {
   };
 
   const handleAddDog = () => {
+    if (!isPremiumUser && trainerAccess && !trainerAccess.canCreateCaseFile) {
+      showMultiDogUpgradePrompt();
+      return;
+    }
+
     setUpgradeModal(null);
     setUpgradeCheckoutError("");
     setPreviousActiveDogId(selectedDogId);
@@ -800,6 +815,12 @@ export default function TrainPage() {
       const data = await res.json();
 
       if (!res.ok) {
+        if (data.requiresUpgrade) {
+          showMultiDogUpgradePrompt();
+          await refreshTrainerAccess();
+          return;
+        }
+
         console.error("Failed to save dog profile:", data.error);
         alert("Failed to save dog profile.");
         return;

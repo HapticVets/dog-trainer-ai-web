@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getDefaultMainGoal, normalizeGoalType } from '@/lib/dogGoals'
+import { getTrainerAccess } from '@/app/lib/trainer-access'
 
 export async function GET() {
   try {
@@ -70,6 +71,19 @@ export async function POST(request: Request) {
       }
 
       return NextResponse.json({ profile: data })
+    }
+
+    const access = await getTrainerAccess(userId)
+
+    if (!access.canCreateCaseFile) {
+      return NextResponse.json(
+        {
+          error:
+            "The free plan includes one dog profile. Upgrade to add more dogs, generate ongoing sessions, and unlock unlimited AI coaching.",
+          requiresUpgrade: true,
+        },
+        { status: 403 }
+      )
     }
 
     const { data, error } = await supabaseAdmin
