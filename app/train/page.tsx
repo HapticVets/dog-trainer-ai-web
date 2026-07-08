@@ -75,6 +75,11 @@ type TrainerAccessState = {
   hasAccess: boolean;
 };
 
+type UpgradeModalState = {
+  title: string;
+  description: string;
+};
+
 const rewardTypeOptions = ["Food", "Toy", "Ball", "Food and Toy", "Praise"];
 
 const skillLevelOptions = [
@@ -246,7 +251,9 @@ export default function TrainPage() {
     useState<DogCaseFile | null>(null);
   const [dogProfilesLoaded, setDogProfilesLoaded] = useState(false);
   const [trainerAccess, setTrainerAccess] = useState<TrainerAccessState | null>(null);
-  const [upgradePrompt, setUpgradePrompt] = useState<string>("");
+  const [upgradeModal, setUpgradeModal] = useState<UpgradeModalState | null>(null);
+  const [upgradeCheckoutLoading, setUpgradeCheckoutLoading] = useState(false);
+  const [upgradeCheckoutError, setUpgradeCheckoutError] = useState("");
 
   const hasActiveDog = Boolean(selectedDogId && dogProfile.name.trim());
   const hasSessions = sessionLogs.length > 0;
@@ -372,6 +379,9 @@ export default function TrainPage() {
   };
 
   const handleUpgrade = async () => {
+    setUpgradeCheckoutLoading(true);
+    setUpgradeCheckoutError("");
+
     try {
       const res = await fetch("/api/checkout", { method: "POST" });
       const data = await res.json();
@@ -381,15 +391,21 @@ export default function TrainPage() {
         return;
       }
 
-      alert(data?.error || "Unable to start checkout.");
+      setUpgradeCheckoutError(data?.error || "Unable to start checkout right now.");
     } catch (error) {
       console.error("Checkout error:", error);
-      alert("Unable to start checkout.");
+      setUpgradeCheckoutError("Unable to start checkout right now.");
+    } finally {
+      setUpgradeCheckoutLoading(false);
     }
   };
 
-  const showUpgradePrompt = (message: string) => {
-    setUpgradePrompt(message);
+  const showUpgradePrompt = (description: string) => {
+    setUpgradeCheckoutError("");
+    setUpgradeModal({
+      title: "Upgrade to continue training",
+      description,
+    });
   };
 
   useEffect(() => {
@@ -681,7 +697,8 @@ export default function TrainPage() {
   };
 
   const handleAddDog = () => {
-    setUpgradePrompt("");
+    setUpgradeModal(null);
+    setUpgradeCheckoutError("");
     setPreviousActiveDogId(selectedDogId);
     setPreviousActiveDogProfile(selectedDogId ? dogProfile : null);
     setEvaluationMode(true);
@@ -705,7 +722,8 @@ export default function TrainPage() {
   };
 
   const handleCancelEvaluation = () => {
-    setUpgradePrompt("");
+    setUpgradeModal(null);
+    setUpgradeCheckoutError("");
     setEvaluationMode(false);
     setEvaluationStep(1);
 
@@ -805,7 +823,8 @@ export default function TrainPage() {
       setPreviousActiveDogId("");
       setPreviousActiveDogProfile(null);
       setProfileCollapsed(true);
-      setUpgradePrompt("");
+      setUpgradeModal(null);
+      setUpgradeCheckoutError("");
       alert("Dog profile saved.");
     } catch (error) {
       console.error("Failed to save dog profile:", error);
@@ -873,7 +892,7 @@ export default function TrainPage() {
 
     if (!isPremiumUser && trainerAccess && !trainerAccess.canUseAiChat) {
       showUpgradePrompt(
-        "Upgrade to continue training. Free access includes three AI training questions."
+        "You’ve used your free AI coaching messages. Upgrade to unlock unlimited training sessions, AI coaching, session history, and ongoing progression."
       );
       return;
     }
@@ -916,7 +935,7 @@ export default function TrainPage() {
 
         if (data.requiresUpgrade) {
           showUpgradePrompt(
-            "Upgrade to continue training. Free access includes three AI training questions."
+            "You’ve used your free AI coaching messages. Upgrade to unlock unlimited training sessions, AI coaching, session history, and ongoing progression."
           );
           await refreshTrainerAccess();
         }
@@ -933,7 +952,8 @@ export default function TrainPage() {
       setMessages([...nextMessages, assistantMessage]);
       await saveChatMessage("user", userMessage.content);
       await saveChatMessage("assistant", assistantText);
-      setUpgradePrompt("");
+      setUpgradeModal(null);
+      setUpgradeCheckoutError("");
       await refreshTrainerAccess();
     } catch (error) {
       console.error("Chat error:", error);
@@ -973,7 +993,7 @@ export default function TrainPage() {
 
     if (!isPremiumUser && trainerAccess && !trainerAccess.canLogSession) {
       showUpgradePrompt(
-        "Upgrade to continue training. Free access includes one logged training session."
+        "You’ve used your free training session. Upgrade to unlock unlimited training sessions, AI coaching, session history, and ongoing progression."
       );
       return;
     }
@@ -1005,7 +1025,7 @@ export default function TrainPage() {
         if (data.requiresUpgrade) {
           showUpgradePrompt(
             data.error ||
-              "Upgrade to continue training. Free access includes one logged training session."
+              "You’ve used your free training session. Upgrade to unlock unlimited training sessions, AI coaching, session history, and ongoing progression."
           );
           await refreshTrainerAccess();
           return;
@@ -1038,7 +1058,8 @@ export default function TrainPage() {
         wins: "",
         issues: "",
       });
-      setUpgradePrompt("");
+      setUpgradeModal(null);
+      setUpgradeCheckoutError("");
       await refreshTrainerAccess();
     } catch (error) {
       console.error("Failed to save session log:", error);
@@ -1077,7 +1098,7 @@ export default function TrainPage() {
 
     if (!isPremiumUser && trainerAccess && !trainerAccess.canGenerateFirstSession) {
       showUpgradePrompt(
-        "Upgrade to continue training. Free access includes one first training session."
+        "You’ve used your free training session. Upgrade to unlock unlimited training sessions, AI coaching, session history, and ongoing progression."
       );
       return;
     }
@@ -1138,7 +1159,7 @@ ${buildDogCaseFileContext(dogProfile)}`;
         if (data.requiresUpgrade) {
           showUpgradePrompt(
             data.reply ||
-              "Upgrade to continue training. Free access includes one first training session."
+              "You’ve used your free training session. Upgrade to unlock unlimited training sessions, AI coaching, session history, and ongoing progression."
           );
           await refreshTrainerAccess();
           return;
@@ -1152,7 +1173,8 @@ ${buildDogCaseFileContext(dogProfile)}`;
 
       setCurrentPlan(outputText);
       await saveOutput(outputText, "initial_session_plan");
-      setUpgradePrompt("");
+      setUpgradeModal(null);
+      setUpgradeCheckoutError("");
       await refreshTrainerAccess();
     } catch (error) {
       console.error("First session error:", error);
@@ -1177,7 +1199,7 @@ ${buildDogCaseFileContext(dogProfile)}`;
 
     if (!isPremiumUser) {
       showUpgradePrompt(
-        "Upgrade to continue training. Next session generation is available with premium access."
+        "You’ve used your free training session. Upgrade to unlock unlimited training sessions, AI coaching, session history, and ongoing progression."
       );
       return;
     }
@@ -1262,7 +1284,7 @@ ${recentHistory}`;
         if (data.requiresUpgrade) {
           showUpgradePrompt(
             data.reply ||
-              "Upgrade to continue training. Next session generation is available with premium access."
+              "You’ve used your free training session. Upgrade to unlock unlimited training sessions, AI coaching, session history, and ongoing progression."
           );
           await refreshTrainerAccess();
           return;
@@ -1276,7 +1298,8 @@ ${recentHistory}`;
 
       setCurrentPlan(outputText);
       await saveOutput(outputText, "next_session_plan");
-      setUpgradePrompt("");
+      setUpgradeModal(null);
+      setUpgradeCheckoutError("");
       await refreshTrainerAccess();
     } catch (error) {
       console.error("Next session plan error:", error);
@@ -2276,58 +2299,74 @@ ${recentHistory}`;
         </div>
       </section>
 
-      {!isInitializingTrainer && (upgradePrompt || (trainerAccess && !trainerAccess.premium)) && (
+      {!isInitializingTrainer && trainerAccess && !trainerAccess.premium && (
         <section className="mx-auto max-w-7xl px-4 pt-6 sm:px-6">
-          <div
-            className={`rounded-lg border p-5 sm:p-6 ${
-              upgradePrompt
-                ? "border-amber-500/40 bg-amber-400/10"
-                : "border-neutral-800 bg-black/30"
-            }`}
-          >
-            {upgradePrompt ? (
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <p className="text-sm uppercase tracking-[0.2em] text-amber-300">
-                    Upgrade Required
-                  </p>
-                  <p className="mt-3 max-w-3xl text-neutral-200">{upgradePrompt}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleUpgrade}
-                  className="w-full rounded bg-amber-400 px-6 py-3 font-semibold text-black sm:w-auto"
-                >
-                  Upgrade to continue training
-                </button>
+          <div className="rounded-lg border border-neutral-800 bg-black/30 p-5 sm:p-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p className="text-sm uppercase tracking-[0.2em] text-amber-400">
+                  Free Access
+                </p>
+                <p className="mt-3 max-w-3xl text-neutral-300">
+                  Free access includes one first training session, one logged session,
+                  and up to three AI training questions before upgrade is required.
+                </p>
               </div>
-            ) : (
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <p className="text-sm uppercase tracking-[0.2em] text-amber-400">
-                    Free Access
-                  </p>
-                  <p className="mt-3 max-w-3xl text-neutral-300">
-                    Free access includes one first training session, one logged session,
-                    and up to three AI training questions before upgrade is required.
-                  </p>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-200">
+                  First session:{" "}
+                  {trainerAccess.canGenerateFirstSession ? "available" : "used"}
                 </div>
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <div className="rounded border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-200">
-                    First session:{" "}
-                    {trainerAccess?.canGenerateFirstSession ? "available" : "used"}
-                  </div>
-                  <div className="rounded border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-200">
-                    Session log: {trainerAccess?.canLogSession ? "available" : "used"}
-                  </div>
-                  <div className="rounded border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-200">
-                    AI questions left: {trainerAccess?.aiChatMessagesRemaining ?? 0}
-                  </div>
+                <div className="rounded border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-200">
+                  Session log: {trainerAccess.canLogSession ? "available" : "used"}
+                </div>
+                <div className="rounded border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-200">
+                  AI questions left: {trainerAccess.aiChatMessagesRemaining}
                 </div>
               </div>
-            )}
+            </div>
           </div>
         </section>
+      )}
+
+      {upgradeModal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 px-4 py-6">
+          <div className="w-full max-w-lg rounded-2xl border border-amber-500/40 bg-neutral-950 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.5)] sm:p-7">
+            <p className="text-sm uppercase tracking-[0.2em] text-amber-300">
+              Upgrade Required
+            </p>
+            <h2 className="mt-3 text-2xl font-bold">{upgradeModal.title}</h2>
+            <p className="mt-4 text-neutral-300">{upgradeModal.description}</p>
+
+            {upgradeCheckoutError && (
+              <div className="mt-4 rounded border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                {upgradeCheckoutError}
+              </div>
+            )}
+
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <button
+                type="button"
+                onClick={handleUpgrade}
+                disabled={upgradeCheckoutLoading}
+                className="w-full rounded bg-amber-400 px-5 py-3 font-semibold text-black disabled:opacity-60 sm:w-auto"
+              >
+                {upgradeCheckoutLoading ? "Starting checkout..." : "Upgrade Now"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setUpgradeModal(null);
+                  setUpgradeCheckoutError("");
+                }}
+                disabled={upgradeCheckoutLoading}
+                className="w-full rounded border border-neutral-600 px-5 py-3 font-semibold text-white hover:bg-neutral-900 disabled:opacity-60 sm:w-auto"
+              >
+                Not now
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {isInitializingTrainer ? (
@@ -2750,6 +2789,9 @@ ${recentHistory}`;
 
                   <p className="mt-6 text-sm text-neutral-400">
                     Ask follow-up questions about the active dog, current plan, or recent session history.
+                  </p>
+                  <p className="mt-2 text-sm text-amber-300/90">
+                    Free plan includes 3 AI messages. Upgrade for unlimited coaching.
                   </p>
 
                   <div className="mt-6 overflow-hidden rounded-lg border border-neutral-800 bg-black p-3 sm:p-4">
