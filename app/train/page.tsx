@@ -227,10 +227,12 @@ export default function TrainPage() {
   const [previousActiveDogId, setPreviousActiveDogId] = useState<string>("");
   const [previousActiveDogProfile, setPreviousActiveDogProfile] =
     useState<DogCaseFile | null>(null);
+  const [dogProfilesLoaded, setDogProfilesLoaded] = useState(false);
 
   const hasActiveDog = Boolean(selectedDogId && dogProfile.name.trim());
   const hasSessions = sessionLogs.length > 0;
   const hasCurrentPlan = Boolean(currentPlan.trim());
+  const isInitializingTrainer = !dogProfilesLoaded && !evaluationMode;
   const latestSession = sessionLogs[0];
   const selectedGoals = dogProfile.selectedGoals;
   const categoryGoalOptions = useMemo(
@@ -348,15 +350,23 @@ export default function TrainPage() {
         setDogProfiles(mapped);
 
         if (mapped.length > 0) {
+          setEvaluationMode(false);
           const persistedActiveDogId = getPersistedActiveDogId();
           const persistedDog = mapped.find((dog) => dog.id === persistedActiveDogId) ?? null;
           const newestDog = mapped[mapped.length - 1] ?? null;
           activateDog(persistedDog ?? newestDog);
         } else {
+          setEvaluationMode(true);
+          setEvaluationStep(1);
+          setProfileCollapsed(false);
+          setPreviousActiveDogId("");
+          setPreviousActiveDogProfile(null);
           activateDog(null);
         }
       } catch (error) {
         console.error("Failed to load dog profiles:", error);
+      } finally {
+        setDogProfilesLoaded(true);
       }
     };
 
@@ -2047,10 +2057,16 @@ ${recentHistory}`;
                 Patriot K9 Command
               </p>
               <h1 className="mt-4 text-3xl font-bold leading-tight sm:text-4xl md:text-6xl">
-                {evaluationMode ? "Start New Dog Evaluation" : "Training Control Center"}
+                {isInitializingTrainer
+                  ? "Loading Training Center"
+                  : evaluationMode
+                  ? "Start New Dog Evaluation"
+                  : "Training Control Center"}
               </h1>
               <p className="mt-6 max-w-2xl text-lg text-neutral-300">
-                {evaluationMode
+                {isInitializingTrainer
+                  ? "Checking for saved dog case files so the trainer can open the right workflow."
+                  : evaluationMode
                   ? "Build a case file for this dog so the AI can create a structured Patriot K9 training plan."
                   : "Save a dog, generate the first session, log what happened, then build the next session from real results."}
               </p>
@@ -2077,7 +2093,18 @@ ${recentHistory}`;
         </div>
       </section>
 
-      {evaluationMode ? (
+      {isInitializingTrainer ? (
+        <section className="mx-auto max-w-4xl px-4 pb-12 pt-8 sm:px-6 sm:pb-16 sm:pt-10">
+          <section className="rounded-lg border border-neutral-800 bg-neutral-950 p-6 text-center sm:p-8">
+            <p className="text-sm uppercase tracking-[0.2em] text-amber-400">
+              Preparing Trainer
+            </p>
+            <p className="mt-4 text-neutral-300">
+              Loading your saved dog profiles and deciding the next step.
+            </p>
+          </section>
+        </section>
+      ) : evaluationMode ? (
         <section className="mx-auto max-w-4xl px-4 pb-12 pt-8 sm:px-6 sm:pb-16 sm:pt-10">
           <section className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
             {evaluationWizardContent}
