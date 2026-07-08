@@ -11,4 +11,11 @@ export const siteConfig = {
   oldAppUrl: "https://train.hapticvets.com",
 } as const;
 
+export const authRoutes = {
+  signInUrl: "/sign-in",
+  signUpUrl: "/sign-up",
+  postSignInUrl: "/train",
+  postSignUpUrl: "/train",
+} as const;
+
 export const absoluteUrl = (path = "/") => new URL(path, `${siteConfig.appUrl}/`).toString();

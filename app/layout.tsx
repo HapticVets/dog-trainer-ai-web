@@ -3,7 +3,7 @@ import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import GlobalNavbar from "@/components/GlobalNavbar";
 import GoogleAdsTag from "@/components/GoogleAdsTag";
-import { siteConfig } from "@/lib/site";
+import { authRoutes, siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.appUrl),
@@ -50,7 +50,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider
+      signInUrl={authRoutes.signInUrl}
+      signUpUrl={authRoutes.signUpUrl}
+    >
       <html lang="en">
         <body className="bg-[#0b0f17] text-white antialiased">
           <GoogleAdsTag />
