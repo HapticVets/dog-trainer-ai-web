@@ -1,10 +1,7 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import {
-  getTrainerAccess,
-  incrementFreeMessageUsage,
-} from "@/app/lib/trainer-access";
+import { getTrainerAccess } from "@/app/lib/trainer-access";
 import { buildDogCaseFileContext, hydrateDogCaseFile } from "@/lib/dogCaseFile";
 import { buildPatriotK9DoctrinePrompt } from "@/lib/patriotK9Protocols";
 
@@ -32,22 +29,56 @@ export async function POST(req: Request) {
     }
 
     const access = await getTrainerAccess(userId);
+    const body = await req.json();
+    const requestType = body.requestType ?? "assistant_chat";
 
-    if (!access.hasAccess) {
+    if (requestType === "next_session_plan" && !access.canGenerateNextSession) {
       return NextResponse.json(
         {
           reply:
-            "Your 8 free AI trainer messages have been used. Upgrade to continue.",
+            "Upgrade to continue training. Next session generation is available with premium access.",
           premium: access.premium,
           freeMessagesUsed: access.freeMessagesUsed,
           freeMessagesRemaining: access.freeMessagesRemaining,
+          aiChatMessagesUsed: access.aiChatMessagesUsed,
+          aiChatMessagesRemaining: access.aiChatMessagesRemaining,
           requiresUpgrade: true,
         },
         { status: 403 }
       );
     }
 
-    const body = await req.json();
+    if (requestType === "initial_session_plan" && !access.canGenerateFirstSession) {
+      return NextResponse.json(
+        {
+          reply:
+            "Upgrade to continue training. Free access includes one first training session.",
+          premium: access.premium,
+          freeMessagesUsed: access.freeMessagesUsed,
+          freeMessagesRemaining: access.freeMessagesRemaining,
+          aiChatMessagesUsed: access.aiChatMessagesUsed,
+          aiChatMessagesRemaining: access.aiChatMessagesRemaining,
+          requiresUpgrade: true,
+        },
+        { status: 403 }
+      );
+    }
+
+    if (requestType === "assistant_chat" && !access.canUseAiChat) {
+      return NextResponse.json(
+        {
+          reply:
+            "Upgrade to continue training. Free access includes three AI training questions.",
+          premium: access.premium,
+          freeMessagesUsed: access.freeMessagesUsed,
+          freeMessagesRemaining: access.freeMessagesRemaining,
+          aiChatMessagesUsed: access.aiChatMessagesUsed,
+          aiChatMessagesRemaining: access.aiChatMessagesRemaining,
+          requiresUpgrade: true,
+        },
+        { status: 403 }
+      );
+    }
 
     const messages = body.messages || [];
     const hydratedDogProfile = hydrateDogCaseFile({
@@ -311,10 +342,6 @@ HARD RULES
 
     const reply =
       completion.choices[0]?.message?.content || "No response generated.";
-
-    if (!access.premium) {
-      await incrementFreeMessageUsage(userId);
-    }
 
     const refreshedAccess = await getTrainerAccess(userId);
 

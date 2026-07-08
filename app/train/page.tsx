@@ -58,6 +58,23 @@ type PlanSection = {
   content: string;
 };
 
+type TrainerAccessState = {
+  premium: boolean;
+  freeMessagesUsed: number;
+  freeMessagesRemaining: number;
+  aiChatMessagesUsed: number;
+  aiChatMessagesRemaining: number;
+  firstSessionsGenerated: number;
+  sessionLogsUsed: number;
+  nextSessionsGenerated: number;
+  canCreateCaseFile: boolean;
+  canGenerateFirstSession: boolean;
+  canLogSession: boolean;
+  canUseAiChat: boolean;
+  canGenerateNextSession: boolean;
+  hasAccess: boolean;
+};
+
 const rewardTypeOptions = ["Food", "Toy", "Ball", "Food and Toy", "Praise"];
 
 const skillLevelOptions = [
@@ -228,11 +245,14 @@ export default function TrainPage() {
   const [previousActiveDogProfile, setPreviousActiveDogProfile] =
     useState<DogCaseFile | null>(null);
   const [dogProfilesLoaded, setDogProfilesLoaded] = useState(false);
+  const [trainerAccess, setTrainerAccess] = useState<TrainerAccessState | null>(null);
+  const [upgradePrompt, setUpgradePrompt] = useState<string>("");
 
   const hasActiveDog = Boolean(selectedDogId && dogProfile.name.trim());
   const hasSessions = sessionLogs.length > 0;
   const hasCurrentPlan = Boolean(currentPlan.trim());
   const isInitializingTrainer = !dogProfilesLoaded && !evaluationMode;
+  const isPremiumUser = trainerAccess?.premium === true;
   const latestSession = sessionLogs[0];
   const selectedGoals = dogProfile.selectedGoals;
   const categoryGoalOptions = useMemo(
@@ -326,6 +346,52 @@ export default function TrainPage() {
     persistActiveDogId(dog.id);
   };
 
+  const refreshTrainerAccess = async () => {
+    if (!user) {
+      setTrainerAccess(null);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/trainer/access", {
+        method: "GET",
+        cache: "no-store",
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.error("Failed to load trainer access:", data.error);
+        return;
+      }
+
+      setTrainerAccess(data);
+    } catch (error) {
+      console.error("Failed to load trainer access:", error);
+    }
+  };
+
+  const handleUpgrade = async () => {
+    try {
+      const res = await fetch("/api/checkout", { method: "POST" });
+      const data = await res.json();
+
+      if (data?.url) {
+        window.location.href = data.url;
+        return;
+      }
+
+      alert(data?.error || "Unable to start checkout.");
+    } catch (error) {
+      console.error("Checkout error:", error);
+      alert("Unable to start checkout.");
+    }
+  };
+
+  const showUpgradePrompt = (message: string) => {
+    setUpgradePrompt(message);
+  };
+
   useEffect(() => {
     if (!user) return;
 
@@ -371,6 +437,15 @@ export default function TrainPage() {
     };
 
     loadDogProfiles();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      setTrainerAccess(null);
+      return;
+    }
+
+    refreshTrainerAccess();
   }, [user]);
 
   useEffect(() => {
@@ -565,6 +640,14 @@ export default function TrainPage() {
       const data = await res.json();
 
       if (!res.ok) {
+        if (data.requiresUpgrade) {
+          showUpgradePrompt(
+            data.error || "Upgrade to continue training."
+          );
+          await refreshTrainerAccess();
+          return;
+        }
+
         console.error("Failed to save output:", data.error);
         return;
       }
@@ -577,6 +660,7 @@ export default function TrainPage() {
       };
 
       setSavedOutputs((prev) => [saved, ...prev]);
+      await refreshTrainerAccess();
     } catch (error) {
       console.error("Failed to save output:", error);
     }
@@ -597,6 +681,7 @@ export default function TrainPage() {
   };
 
   const handleAddDog = () => {
+    setUpgradePrompt("");
     setPreviousActiveDogId(selectedDogId);
     setPreviousActiveDogProfile(selectedDogId ? dogProfile : null);
     setEvaluationMode(true);
@@ -620,6 +705,7 @@ export default function TrainPage() {
   };
 
   const handleCancelEvaluation = () => {
+    setUpgradePrompt("");
     setEvaluationMode(false);
     setEvaluationStep(1);
 
@@ -719,6 +805,7 @@ export default function TrainPage() {
       setPreviousActiveDogId("");
       setPreviousActiveDogProfile(null);
       setProfileCollapsed(true);
+      setUpgradePrompt("");
       alert("Dog profile saved.");
     } catch (error) {
       console.error("Failed to save dog profile:", error);
@@ -784,6 +871,13 @@ export default function TrainPage() {
 
     if (!input.trim() || loading) return;
 
+    if (!isPremiumUser && trainerAccess && !trainerAccess.canUseAiChat) {
+      showUpgradePrompt(
+        "Upgrade to continue training. Free access includes three AI training questions."
+      );
+      return;
+    }
+
     const userMessage: ChatMessage = {
       role: "user",
       content: input.trim(),
@@ -794,8 +888,6 @@ export default function TrainPage() {
     setInput("");
     setLoading(true);
 
-    await saveChatMessage("user", userMessage.content);
-
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
@@ -803,6 +895,7 @@ export default function TrainPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          requestType: "assistant_chat",
           messages: nextMessages,
           dogProfile,
           sessionLogs: sessionLogs.slice(0, 10),
@@ -810,6 +903,27 @@ export default function TrainPage() {
       });
 
       const data = await res.json();
+
+      if (!res.ok) {
+        const assistantText =
+          data.reply || data.error || "Upgrade to continue training.";
+        const assistantMessage: ChatMessage = {
+          role: "assistant",
+          content: assistantText,
+        };
+
+        setMessages([...nextMessages, assistantMessage]);
+
+        if (data.requiresUpgrade) {
+          showUpgradePrompt(
+            "Upgrade to continue training. Free access includes three AI training questions."
+          );
+          await refreshTrainerAccess();
+        }
+
+        return;
+      }
+
       const assistantText = data.reply || "No response generated.";
       const assistantMessage: ChatMessage = {
         role: "assistant",
@@ -817,7 +931,10 @@ export default function TrainPage() {
       };
 
       setMessages([...nextMessages, assistantMessage]);
+      await saveChatMessage("user", userMessage.content);
       await saveChatMessage("assistant", assistantText);
+      setUpgradePrompt("");
+      await refreshTrainerAccess();
     } catch (error) {
       console.error("Chat error:", error);
 
@@ -854,6 +971,13 @@ export default function TrainPage() {
         : sessionForm.issue;
     const winsSummary = `${sessionForm.result}. ${sessionForm.wins.trim()}`;
 
+    if (!isPremiumUser && trainerAccess && !trainerAccess.canLogSession) {
+      showUpgradePrompt(
+        "Upgrade to continue training. Free access includes one logged training session."
+      );
+      return;
+    }
+
     try {
       const res = await fetch("/api/session-logs", {
         method: "POST",
@@ -878,6 +1002,15 @@ export default function TrainPage() {
       const data = await res.json();
 
       if (!res.ok) {
+        if (data.requiresUpgrade) {
+          showUpgradePrompt(
+            data.error ||
+              "Upgrade to continue training. Free access includes one logged training session."
+          );
+          await refreshTrainerAccess();
+          return;
+        }
+
         console.error("Failed to save session log:", data.error);
         alert("Failed to save session log.");
         return;
@@ -905,6 +1038,8 @@ export default function TrainPage() {
         wins: "",
         issues: "",
       });
+      setUpgradePrompt("");
+      await refreshTrainerAccess();
     } catch (error) {
       console.error("Failed to save session log:", error);
       alert("Failed to save session log.");
@@ -939,6 +1074,13 @@ export default function TrainPage() {
     }
 
     if (planLoading) return;
+
+    if (!isPremiumUser && trainerAccess && !trainerAccess.canGenerateFirstSession) {
+      showUpgradePrompt(
+        "Upgrade to continue training. Free access includes one first training session."
+      );
+      return;
+    }
 
     setPlanLoading(true);
 
@@ -979,6 +1121,7 @@ ${buildDogCaseFileContext(dogProfile)}`;
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          requestType: "initial_session_plan",
           messages: [
             {
               role: "user",
@@ -991,10 +1134,26 @@ ${buildDogCaseFileContext(dogProfile)}`;
       });
 
       const data = await res.json();
+      if (!res.ok) {
+        if (data.requiresUpgrade) {
+          showUpgradePrompt(
+            data.reply ||
+              "Upgrade to continue training. Free access includes one first training session."
+          );
+          await refreshTrainerAccess();
+          return;
+        }
+
+        setCurrentPlan("Error generating first session.");
+        return;
+      }
+
       const outputText = data.reply || "No first session generated.";
 
       setCurrentPlan(outputText);
       await saveOutput(outputText, "initial_session_plan");
+      setUpgradePrompt("");
+      await refreshTrainerAccess();
     } catch (error) {
       console.error("First session error:", error);
       setCurrentPlan("Error generating first session.");
@@ -1013,6 +1172,13 @@ ${buildDogCaseFileContext(dogProfile)}`;
 
     if (sessionLogs.length === 0) {
       alert("Log at least one session before generating the next session.");
+      return;
+    }
+
+    if (!isPremiumUser) {
+      showUpgradePrompt(
+        "Upgrade to continue training. Next session generation is available with premium access."
+      );
       return;
     }
 
@@ -1079,6 +1245,7 @@ ${recentHistory}`;
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          requestType: "next_session_plan",
           messages: [
             {
               role: "user",
@@ -1091,10 +1258,26 @@ ${recentHistory}`;
       });
 
       const data = await res.json();
+      if (!res.ok) {
+        if (data.requiresUpgrade) {
+          showUpgradePrompt(
+            data.reply ||
+              "Upgrade to continue training. Next session generation is available with premium access."
+          );
+          await refreshTrainerAccess();
+          return;
+        }
+
+        setCurrentPlan("Error generating next session.");
+        return;
+      }
+
       const outputText = data.reply || "No next session generated.";
 
       setCurrentPlan(outputText);
       await saveOutput(outputText, "next_session_plan");
+      setUpgradePrompt("");
+      await refreshTrainerAccess();
     } catch (error) {
       console.error("Next session plan error:", error);
       setCurrentPlan("Error generating next session.");
@@ -2092,6 +2275,60 @@ ${recentHistory}`;
           </div>
         </div>
       </section>
+
+      {!isInitializingTrainer && (upgradePrompt || (trainerAccess && !trainerAccess.premium)) && (
+        <section className="mx-auto max-w-7xl px-4 pt-6 sm:px-6">
+          <div
+            className={`rounded-lg border p-5 sm:p-6 ${
+              upgradePrompt
+                ? "border-amber-500/40 bg-amber-400/10"
+                : "border-neutral-800 bg-black/30"
+            }`}
+          >
+            {upgradePrompt ? (
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <p className="text-sm uppercase tracking-[0.2em] text-amber-300">
+                    Upgrade Required
+                  </p>
+                  <p className="mt-3 max-w-3xl text-neutral-200">{upgradePrompt}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleUpgrade}
+                  className="w-full rounded bg-amber-400 px-6 py-3 font-semibold text-black sm:w-auto"
+                >
+                  Upgrade to continue training
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <p className="text-sm uppercase tracking-[0.2em] text-amber-400">
+                    Free Access
+                  </p>
+                  <p className="mt-3 max-w-3xl text-neutral-300">
+                    Free access includes one first training session, one logged session,
+                    and up to three AI training questions before upgrade is required.
+                  </p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="rounded border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-200">
+                    First session:{" "}
+                    {trainerAccess?.canGenerateFirstSession ? "available" : "used"}
+                  </div>
+                  <div className="rounded border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-200">
+                    Session log: {trainerAccess?.canLogSession ? "available" : "used"}
+                  </div>
+                  <div className="rounded border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-200">
+                    AI questions left: {trainerAccess?.aiChatMessagesRemaining ?? 0}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {isInitializingTrainer ? (
         <section className="mx-auto max-w-4xl px-4 pb-12 pt-8 sm:px-6 sm:pb-16 sm:pt-10">

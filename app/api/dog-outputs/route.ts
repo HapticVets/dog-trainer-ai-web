@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { getTrainerAccess } from "@/app/lib/trainer-access";
 
 export async function GET(request: NextRequest) {
   const { userId } = await auth();
@@ -44,6 +45,28 @@ export async function POST(request: Request) {
 
   if (!body.outputType || !body.content) {
     return NextResponse.json({ error: "outputType and content are required" }, { status: 400 });
+  }
+
+  const access = await getTrainerAccess(userId);
+
+  if (body.outputType === "next_session_plan" && !access.canGenerateNextSession) {
+    return NextResponse.json(
+      {
+        error: "Upgrade to continue training. Next session generation is available with premium access.",
+        requiresUpgrade: true,
+      },
+      { status: 403 }
+    );
+  }
+
+  if (body.outputType === "initial_session_plan" && !access.canGenerateFirstSession) {
+    return NextResponse.json(
+      {
+        error: "Upgrade to continue training. Free access includes one first training session.",
+        requiresUpgrade: true,
+      },
+      { status: 403 }
+    );
   }
 
   const { data, error } = await supabaseAdmin
