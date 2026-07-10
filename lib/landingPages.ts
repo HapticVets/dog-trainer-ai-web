@@ -270,12 +270,28 @@ export const landingPages: Record<LandingPageConfig["slug"], LandingPageConfig> 
     heroSubheadline:
       "Get structured AI guidance for working-line energy, obedience, leash pulling, recall, reactivity, handler leadership, and drive control.",
     heroImage: {
-      src: "/images/obedience/patriot-k9-german-shepherd-field-training.jpg",
-      alt: "German Shepherds training outdoors with Patriot K9 Command.",
-      width: 2880,
+      src: "/images/german-shepherd-training/german-shepherd-portrait.jpg",
+      alt: "Focused German Shepherd portrait representing Patriot K9 Command breed-specific structure and engagement.",
+      width: 1863,
       height: 2160,
       caption:
-        "Real Patriot K9 Command training dogs during structured obedience work.",
+        "German Shepherd training starts with structure, drive control, and a dog that stays mentally with the handler.",
+    },
+    supportingSection: {
+      eyebrow: "Drive, Movement, and Recovery",
+      title: "Working ability has to be paired with confidence and clear structure",
+      body: [
+        "German Shepherds do best when energy, movement, and responsibility are directed instead of left to turn into chaos. The goal is not just a tired dog. The goal is a dog that can work, recover, and stay mentally available to the handler.",
+        "That is why Patriot K9 AI Trainer builds exercise, obedience, engagement, and progression together so drive supports control instead of fighting it.",
+      ],
+      image: {
+        src: "/images/german-shepherd-training/german-shepherd-field-run.jpg",
+        alt: "German Shepherd running confidently across the field during Patriot K9 training work.",
+        width: 1388,
+        height: 844,
+        caption:
+          "Confidence, movement, and working ability matter most when they stay connected to structure.",
+      },
     },
     problemTitle: "High-drive German Shepherds need structure, not generic pet-dog advice",
     problemSummary:

@@ -340,11 +340,16 @@ export default function Home() {
       <section className="border-t border-neutral-800 px-6 py-24">
         <div className="mx-auto grid max-w-7xl items-center gap-12 md:grid-cols-2">
           <div>
-            <img
-              src="/dog-obedience.jpg"
-              alt="Obedient dog training"
-              className="w-full rounded-lg border border-neutral-800"
-            />
+            <figure className="overflow-hidden rounded-3xl border border-neutral-800 bg-black/30 shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
+              <Image
+                src="/images/homepage/calm-trained-dogs.jpg"
+                alt="Calm, trained Patriot K9 dogs holding steady attention during structured obedience work."
+                width={2880}
+                height={2160}
+                sizes="(max-width: 768px) calc(100vw - 48px), (max-width: 1280px) 48vw, 720px"
+                className="h-auto w-full object-contain"
+              />
+            </figure>
           </div>
 
           <div>

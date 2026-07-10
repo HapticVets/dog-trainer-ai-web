@@ -82,23 +82,36 @@ export default function MethodPage() {
             Calm, repeatable communication is the standard
           </h2>
 
-          <div className="mt-8 space-y-5 text-neutral-300">
-            <p>
-              Dogs learn best when expectations are consistent. The method is not
-              built around chaos, bribery, or emotional correction. It is built
-              around repeatable communication that the dog can understand and the
-              handler can apply under pressure.
-            </p>
-            <p>
-              The handler's timing, markers, leash communication, body language,
-              and follow-through all matter. When those pieces stay clean, the dog
-              gets clear information about what is right, what is wrong, and how
-              to get back to success.
-            </p>
-            <p>
-              The goal is not noise. The goal is structure that produces stable
-              behavior and real obedience in daily life.
-            </p>
+          <div className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)] lg:items-start">
+            <div className="space-y-5 text-neutral-300">
+              <p>
+                Dogs learn best when expectations are consistent. The method is not
+                built around chaos, bribery, or emotional correction. It is built
+                around repeatable communication that the dog can understand and the
+                handler can apply under pressure.
+              </p>
+              <p>
+                The handler&apos;s timing, markers, leash communication, body
+                language, and follow-through all matter. When those pieces stay
+                clean, the dog gets clear information about what is right, what is
+                wrong, and how to get back to success.
+              </p>
+              <p>
+                The goal is not noise. The goal is structure that produces stable
+                behavior and real obedience in daily life.
+              </p>
+            </div>
+
+            <figure className="overflow-hidden rounded-3xl border border-neutral-800 bg-black/30 shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
+              <Image
+                src="/images/obedience/calm-obedience-two-dogs-field.jpg"
+                alt="Two Patriot K9 dogs holding calm obedience positions in the field during structured training."
+                width={2880}
+                height={2160}
+                sizes="(max-width: 768px) calc(100vw - 48px), (max-width: 1280px) 42vw, 460px"
+                className="h-auto w-full object-contain"
+              />
+            </figure>
           </div>
         </div>
       </section>
@@ -139,29 +152,42 @@ export default function MethodPage() {
             Structured guidance, not disconnected advice
           </h2>
 
-          <div className="mt-8 grid gap-6 md:grid-cols-2">
-            <div className="rounded-lg border border-neutral-800 bg-black/30 p-6">
-              <ul className="space-y-3 text-neutral-300">
-                <li>• Identifies the problem</li>
-                <li>• Explains why it is happening</li>
-                <li>• Gives a step-by-step plan</li>
-                <li>• Provides criteria for success</li>
-                <li>• Warns about common handler mistakes</li>
-                <li>• Gives the next practical step</li>
-              </ul>
-            </div>
+          <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,460px)_minmax(0,1fr)] lg:items-start">
+            <figure className="overflow-hidden rounded-3xl border border-neutral-800 bg-black/30 shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
+              <Image
+                src="/images/ai-trainer/engagement-focus-training.jpg"
+                alt="A Patriot K9 dog working in close engagement and focus with its handler during foundation training."
+                width={2160}
+                height={2880}
+                sizes="(max-width: 768px) calc(100vw - 48px), (max-width: 1280px) 42vw, 460px"
+                className="h-auto w-full object-contain"
+              />
+            </figure>
 
-            <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 p-6">
-              <p className="text-sm uppercase tracking-[0.2em] text-amber-300">
-                Response Format
-              </p>
-              <div className="mt-4 space-y-2 text-sm font-semibold text-white">
-                <p>Problem</p>
-                <p>Why It&apos;s Happening</p>
-                <p>Plan</p>
-                <p>Criteria</p>
-                <p>Common Mistakes</p>
-                <p>Next Step</p>
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="rounded-lg border border-neutral-800 bg-black/30 p-6">
+                <ul className="space-y-3 text-neutral-300">
+                  <li>&bull; Identifies the problem</li>
+                  <li>&bull; Explains why it is happening</li>
+                  <li>&bull; Gives a step-by-step plan</li>
+                  <li>&bull; Provides criteria for success</li>
+                  <li>&bull; Warns about common handler mistakes</li>
+                  <li>&bull; Gives the next practical step</li>
+                </ul>
+              </div>
+
+              <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 p-6">
+                <p className="text-sm uppercase tracking-[0.2em] text-amber-300">
+                  Response Format
+                </p>
+                <div className="mt-4 space-y-2 text-sm font-semibold text-white">
+                  <p>Problem</p>
+                  <p>Why It&apos;s Happening</p>
+                  <p>Plan</p>
+                  <p>Criteria</p>
+                  <p>Common Mistakes</p>
+                  <p>Next Step</p>
+                </div>
               </div>
             </div>
           </div>
@@ -184,11 +210,11 @@ export default function MethodPage() {
                 What Patriot K9 AI Trainer is
               </h3>
               <ul className="mt-4 space-y-2 text-neutral-300">
-                <li>• Structured</li>
-                <li>• Progressive</li>
-                <li>• Handler-focused</li>
-                <li>• Built for real dogs in real homes</li>
-                <li>• Especially useful for high-drive working breeds like German Shepherds</li>
+                <li>&bull; Structured</li>
+                <li>&bull; Progressive</li>
+                <li>&bull; Handler-focused</li>
+                <li>&bull; Built for real dogs in real homes</li>
+                <li>&bull; Especially useful for high-drive working breeds like German Shepherds</li>
               </ul>
             </div>
 
@@ -197,11 +223,11 @@ export default function MethodPage() {
                 What it is not
               </h3>
               <ul className="mt-4 space-y-2 text-neutral-300">
-                <li>• Random internet dog training advice</li>
-                <li>• Disconnected YouTube tips</li>
-                <li>• Emotional handling</li>
-                <li>• One-size-fits-all programs</li>
-                <li>• Advice without progression or measurable criteria</li>
+                <li>&bull; Random internet dog training advice</li>
+                <li>&bull; Disconnected YouTube tips</li>
+                <li>&bull; Emotional handling</li>
+                <li>&bull; One-size-fits-all programs</li>
+                <li>&bull; Advice without progression or measurable criteria</li>
               </ul>
             </div>
           </div>
