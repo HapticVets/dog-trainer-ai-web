@@ -32,6 +32,33 @@ export type LandingPageConfig = {
       caption?: string;
     };
   };
+  extraSections?: Array<{
+    placement:
+      | "afterSupporting"
+      | "afterCommonMistakes"
+      | "afterExamplePlan"
+      | "afterAskTheAi"
+      | "afterFaq";
+    eyebrow: string;
+    title: string;
+    body: string[];
+    reverse?: boolean;
+    media:
+      | {
+          type: "image";
+          src: string;
+          alt: string;
+          width: number;
+          height: number;
+          caption?: string;
+        }
+      | {
+          type: "video";
+          src: string;
+          caption?: string;
+          poster?: string;
+        };
+  }>;
   problemTitle: string;
   problemSummary: string;
   focusAreas: string[];
@@ -293,6 +320,73 @@ export const landingPages: Record<LandingPageConfig["slug"], LandingPageConfig> 
           "Confidence, movement, and working ability matter most when they stay connected to structure.",
       },
     },
+    extraSections: [
+      {
+        placement: "afterCommonMistakes",
+        eyebrow: "Public Obedience",
+        title: "Place command and calm public behavior have to hold outside the house",
+        body: [
+          "German Shepherds need more than obedience on familiar ground. Real reliability shows up when the dog can settle, hold position, and stay mentally available in public environments.",
+          "That is where place command, handler clarity, and calm follow-through matter. The goal is not just motion. The goal is composure under real-world pressure.",
+        ],
+        reverse: true,
+        media: {
+          type: "image",
+          src: "/images/german-shepherd-training/german-shepherd-public-place-command.jpg",
+          alt: "German Shepherd holding a structured public place command during Patriot K9 training.",
+          width: 2160,
+          height: 2880,
+          caption:
+            "Public obedience matters when the dog can settle, hold position, and stay accountable around real distractions.",
+        },
+      },
+      {
+        placement: "afterExamplePlan",
+        eyebrow: "Advanced Engagement",
+        title: "Confidence grows when structure is carried into movement and problem-solving",
+        body: [
+          "Obstacle work is not about making training flashy. It is useful when it builds engagement, body awareness, confidence, and cleaner handler follow-through without creating chaos.",
+          "For high-drive German Shepherds, structured progression keeps intensity useful instead of letting it become frantic or disconnected.",
+        ],
+        media: {
+          type: "video",
+          src: "/videos/german-shepherd-training/german-shepherd-obstacle-training.mp4",
+          caption:
+            "Structured obstacle work can build confidence, engagement, and cleaner decision-making when the dog stays connected to the handler.",
+        },
+      },
+      {
+        placement: "afterAskTheAi",
+        eyebrow: "Neutrality Around Dogs",
+        title: "Socialization should build calm balance, not overstimulation",
+        body: [
+          "Balanced German Shepherd training is not about forcing interaction with every dog. It is about teaching neutrality, calm coexistence, and the ability to stay composed around movement and pack pressure.",
+          "That gives owners a dog that can recover, observe, and stay responsive instead of rehearsing excitement, fixation, or conflict.",
+        ],
+        reverse: true,
+        media: {
+          type: "video",
+          src: "/videos/german-shepherd-training/german-shepherd-pack-socialization.mp4",
+          caption:
+            "Real socialization means learning to stay balanced, neutral, and responsive around other dogs.",
+        },
+      },
+      {
+        placement: "afterFaq",
+        eyebrow: "Public Stability",
+        title: "Calm behavior in public is built through repetition, standards, and recovery",
+        body: [
+          "Public training matters because that is where many owners actually feel the gap between a dog that understands commands and a dog that can live with structure.",
+          "Patriot K9 AI Trainer helps owners build that progression step by step so calm behavior, obedience, and handler control transfer into real stores, sidewalks, and everyday environments.",
+        ],
+        media: {
+          type: "video",
+          src: "/videos/german-shepherd-training/german-shepherd-public-store-training.mp4",
+          caption:
+            "Real-world public training is where calm behavior, obedience, and handler accountability have to work together.",
+        },
+      },
+    ],
     problemTitle: "High-drive German Shepherds need structure, not generic pet-dog advice",
     problemSummary:
       "German Shepherds often struggle when drive, responsibility, and structure are out of balance. Pulling, over-arousal, reactivity, and handler conflict usually improve when the dog gets cleaner standards and clearer leadership.",

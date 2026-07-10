@@ -7,10 +7,87 @@ type SeoLandingPageProps = {
 };
 
 export default function SeoLandingPage({ config }: SeoLandingPageProps) {
+  const renderExtraSections = (
+    placement: NonNullable<LandingPageConfig["extraSections"]>[number]["placement"],
+  ) => {
+    const sections = config.extraSections?.filter((section) => section.placement === placement);
+
+    if (!sections?.length) {
+      return null;
+    }
+
+    return sections.map((section) => (
+      <section
+        key={`${section.placement}-${section.title}`}
+        className="border-b border-neutral-800 px-6 py-20"
+      >
+        <div
+          className={`mx-auto grid max-w-6xl items-center gap-10 ${
+            section.reverse
+              ? "lg:grid-cols-[minmax(0,520px)_minmax(0,1fr)]"
+              : "lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)]"
+          }`}
+        >
+          <div className={section.reverse ? "lg:order-2" : ""}>
+            <p className="text-sm uppercase tracking-[0.25em] text-amber-400">
+              {section.eyebrow}
+            </p>
+            <h2 className="mt-4 text-3xl font-bold md:text-4xl">
+              {section.title}
+            </h2>
+            <div className="mt-6 space-y-4 text-neutral-300">
+              {section.body.map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
+            </div>
+          </div>
+
+          <figure
+            className={`w-full overflow-hidden rounded-3xl border border-neutral-800 bg-black/30 shadow-[0_20px_50px_rgba(0,0,0,0.35)] ${
+              section.reverse ? "lg:order-1" : ""
+            }`}
+          >
+            {section.media.type === "image" ? (
+              <Image
+                src={section.media.src}
+                alt={section.media.alt}
+                width={section.media.width}
+                height={section.media.height}
+                sizes="(max-width: 768px) calc(100vw - 48px), (max-width: 1280px) 42vw, 520px"
+                className="h-auto w-full object-contain"
+              />
+            ) : (
+              <video
+                controls
+                playsInline
+                preload="metadata"
+                poster={section.media.poster}
+                className="aspect-video w-full"
+              >
+                <source src={section.media.src} type="video/mp4" />
+              </video>
+            )}
+            {section.media.caption && (
+              <figcaption className="border-t border-neutral-800 px-5 py-4 text-sm text-neutral-400">
+                {section.media.caption}
+              </figcaption>
+            )}
+          </figure>
+        </div>
+      </section>
+    ));
+  };
+
   return (
     <main className="min-h-screen bg-neutral-950 text-white">
       <section className="border-b border-neutral-800 px-6 py-24">
-        <div className={`mx-auto max-w-6xl ${config.heroImage ? "grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)]" : ""}`}>
+        <div
+          className={`mx-auto max-w-6xl ${
+            config.heroImage
+              ? "grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)]"
+              : ""
+          }`}
+        >
           <div>
             <p className="text-sm uppercase tracking-[0.25em] text-amber-400">
               Patriot K9 AI Trainer
@@ -157,6 +234,8 @@ export default function SeoLandingPage({ config }: SeoLandingPageProps) {
         </section>
       )}
 
+      {renderExtraSections("afterSupporting")}
+
       <section className="border-b border-neutral-800 px-6 py-20">
         <div className="mx-auto max-w-6xl">
           <div className="grid gap-6 lg:grid-cols-2">
@@ -166,7 +245,7 @@ export default function SeoLandingPage({ config }: SeoLandingPageProps) {
               </p>
               <ul className="mt-5 space-y-3 text-neutral-300">
                 {config.commonMistakes.map((item) => (
-                  <li key={item}>• {item}</li>
+                  <li key={item}>&bull; {item}</li>
                 ))}
               </ul>
             </div>
@@ -177,13 +256,15 @@ export default function SeoLandingPage({ config }: SeoLandingPageProps) {
               </p>
               <ul className="mt-5 space-y-3 text-neutral-300">
                 {config.aiHelps.map((item) => (
-                  <li key={item}>• {item}</li>
+                  <li key={item}>&bull; {item}</li>
                 ))}
               </ul>
             </div>
           </div>
         </div>
       </section>
+
+      {renderExtraSections("afterCommonMistakes")}
 
       <section id="example-plan" className="border-b border-neutral-800 px-6 py-20">
         <div className="mx-auto max-w-6xl">
@@ -239,6 +320,8 @@ export default function SeoLandingPage({ config }: SeoLandingPageProps) {
         </div>
       </section>
 
+      {renderExtraSections("afterExamplePlan")}
+
       <section className="border-b border-neutral-800 px-6 py-20">
         <div className="mx-auto max-w-6xl">
           <p className="text-sm uppercase tracking-[0.25em] text-amber-400">
@@ -256,6 +339,8 @@ export default function SeoLandingPage({ config }: SeoLandingPageProps) {
           </div>
         </div>
       </section>
+
+      {renderExtraSections("afterAskTheAi")}
 
       <section className="border-b border-neutral-800 px-6 py-20">
         <div className="mx-auto max-w-6xl rounded-lg border border-neutral-800 bg-black/30 p-8">
@@ -291,6 +376,8 @@ export default function SeoLandingPage({ config }: SeoLandingPageProps) {
           </div>
         </div>
       </section>
+
+      {renderExtraSections("afterFaq")}
 
       <section className="border-b border-neutral-800 px-6 py-16">
         <div className="mx-auto max-w-6xl rounded-lg border border-neutral-800 bg-neutral-950 p-8">
