@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
+import GlobalFooter from "@/components/GlobalFooter";
 import GlobalNavbar from "@/components/GlobalNavbar";
 import GoogleAdsTag from "@/components/GoogleAdsTag";
 import { authRoutes, siteConfig } from "@/lib/site";
@@ -59,6 +60,7 @@ export default function RootLayout({
           <GoogleAdsTag />
           <GlobalNavbar />
           {children}
+          <GlobalFooter />
         </body>
       </html>
     </ClerkProvider>
