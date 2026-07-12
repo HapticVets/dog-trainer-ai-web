@@ -9,18 +9,18 @@ import { authRoutes, siteConfig } from "@/lib/site";
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.appUrl),
   title: {
-    default: siteConfig.siteName,
+    default: "Patriot K9 AI Trainer | Personalized Dog Training Plans",
     template: `%s | ${siteConfig.brandName}`,
   },
   description:
-    "Structured dog training platform built for real-world results. Log sessions, track progress, and generate precise training plans using the 4C K9 Doctrine.",
+    "Create personalized dog training sessions, track progress, and get ongoing AI coaching built around your dog's needs.",
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: siteConfig.siteName,
+    title: "Patriot K9 AI Trainer | Personalized Dog Training Plans",
     description:
-      "Structured dog training platform built for real-world results.",
+      "Create personalized dog training sessions, track progress, and get ongoing AI coaching built around your dog's needs.",
     url: siteConfig.appUrl,
     siteName: siteConfig.siteName,
     images: [
@@ -35,9 +35,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: siteConfig.siteName,
+    title: "Patriot K9 AI Trainer | Personalized Dog Training Plans",
     description:
-      "Structured dog training platform built for real-world results.",
+      "Create personalized dog training sessions, track progress, and get ongoing AI coaching built around your dog's needs.",
     images: ["/patriot-k9-embed.jpg"],
   },
   icons: {
