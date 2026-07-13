@@ -64,15 +64,20 @@ export default function AboutPage() {
             </div>
 
             <figure className="mx-auto w-full max-w-[460px] overflow-hidden rounded-3xl border border-neutral-800 bg-black/30 shadow-[0_20px_50px_rgba(0,0,0,0.35)] lg:mx-0 lg:justify-self-end">
-              <Image
-                src="/images/branding/patriot-k9-german-shepherd-pack-sunset.jpg"
-                alt="German Shepherds relaxing after a Patriot K9 Command training session."
-                width={2880}
-                height={2160}
-                sizes="(max-width: 1024px) 100vw, 460px"
-                className="h-auto w-full object-contain"
-                priority={false}
-              />
+              <video
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                aria-label="John Reese training two German Shepherds at Patriot K9 Command"
+                className="aspect-video w-full bg-black object-cover"
+              >
+                <source
+                  src="/videos/branding/trainer-with-two-german-shepherds.mp4"
+                  type="video/mp4"
+                />
+              </video>
               <figcaption className="border-t border-neutral-800 px-5 py-4 text-sm text-neutral-400">
                 Every dog shown throughout Patriot K9 Command is part of our real
                 training program. We use actual dogs, actual sessions, and real
@@ -136,11 +141,12 @@ export default function AboutPage() {
       </section>
 
       <section className="border-b border-neutral-800 px-6 py-20">
-        <div className="mx-auto max-w-5xl rounded-lg border border-neutral-800 bg-black/30 p-8">
-          <p className="text-sm uppercase tracking-[0.25em] text-amber-400">
-            Why Patriot K9 AI Exists
-          </p>
-          <div className="mt-6 space-y-5 text-neutral-300">
+        <div className="mx-auto grid max-w-5xl gap-10 rounded-lg border border-neutral-800 bg-black/30 p-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)] lg:items-center">
+          <div>
+            <p className="text-sm uppercase tracking-[0.25em] text-amber-400">
+              Why Patriot K9 AI Exists
+            </p>
+            <div className="mt-6 space-y-5 text-neutral-300">
             <p>
               Patriot K9 AI was built to make structured dog training more
               accessible. Not every owner can afford private lessons or
@@ -153,7 +159,25 @@ export default function AboutPage() {
               give owners a better starting point, help them stay consistent, and
               show them when a problem may need hands-on professional help.
             </p>
+            </div>
           </div>
+
+          <figure className="mx-auto w-full max-w-[460px] overflow-hidden rounded-3xl border border-neutral-800 bg-black/30 shadow-[0_20px_50px_rgba(0,0,0,0.35)] lg:mx-0 lg:justify-self-end">
+            <video
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              aria-label="Patriot K9 Command engagement training session"
+              className="aspect-video w-full bg-black object-cover"
+            >
+              <source
+                src="/videos/branding/patriot-k9-drone-engagement-session.mp4"
+                type="video/mp4"
+              />
+            </video>
+          </figure>
         </div>
       </section>
 

@@ -57,6 +57,7 @@ export type LandingPageConfig = {
           src: string;
           caption?: string;
           poster?: string;
+          cinematic?: boolean;
         };
   }>;
   problemTitle: string;
@@ -331,11 +332,9 @@ export const landingPages: Record<LandingPageConfig["slug"], LandingPageConfig> 
         ],
         reverse: true,
         media: {
-          type: "image",
-          src: "/images/german-shepherd-training/german-shepherd-engagement-eye-contact.JPG",
-          alt: "German Shepherd giving focused eye contact to its handler during Patriot K9 engagement work.",
-          width: 5184,
-          height: 3888,
+          type: "video",
+          src: "/videos/branding/patriot-k9-drone-obedience-overhead.mp4",
+          cinematic: true,
           caption:
             "Real engagement work starts with a dog that stays mentally connected before pressure increases.",
         },

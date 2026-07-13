@@ -58,12 +58,14 @@ export default function SeoLandingPage({ config }: SeoLandingPageProps) {
               />
             ) : (
               <video
-                controls
+                autoPlay={section.media.cinematic}
                 muted
+                loop={section.media.cinematic}
                 playsInline
                 preload="metadata"
                 poster={section.media.poster}
-                className="aspect-video w-full"
+                controls={!section.media.cinematic}
+                className="aspect-video w-full bg-black object-cover"
               >
                 <source src={section.media.src} type="video/mp4" />
               </video>

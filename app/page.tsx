@@ -202,6 +202,40 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="border-b border-neutral-800 bg-black px-6 py-20">
+        <div className="mx-auto max-w-7xl overflow-hidden rounded-3xl border border-amber-400/25 bg-neutral-950 shadow-[0_20px_50px_rgba(0,0,0,0.4)]">
+          <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:items-center">
+            <div className="order-2 p-8 sm:p-10 lg:order-1 lg:p-12">
+              <p className="text-sm uppercase tracking-[0.25em] text-amber-400">
+                Real Patriot K9 Training
+              </p>
+              <h2 className="mt-4 text-3xl font-bold md:text-4xl">
+                Train Where Real Dogs Are Trained
+              </h2>
+              <p className="mt-6 max-w-xl text-lg leading-8 text-neutral-300">
+                Every lesson inside Patriot K9 AI is built from real-world training
+                sessions on our own property—not generic internet advice.
+              </p>
+            </div>
+
+            <video
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              aria-label="Patriot K9 Command training property"
+              className="order-1 aspect-video h-full w-full bg-black object-cover lg:order-2"
+            >
+              <source
+                src="/videos/branding/patriot-k9-training-property-reveal.mp4"
+                type="video/mp4"
+              />
+            </video>
+          </div>
+        </div>
+      </section>
+
       <section className="border-b border-neutral-800 px-6 py-20">
         <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)] lg:items-center">
           <div className="max-w-3xl">
@@ -595,6 +629,38 @@ export default function Home() {
             <p className="mt-4 text-sm text-neutral-400">
               No credit card required.
             </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-b border-neutral-800 bg-black px-6 py-20">
+        <div className="mx-auto max-w-6xl overflow-hidden rounded-3xl border border-neutral-800 bg-neutral-950 shadow-[0_20px_50px_rgba(0,0,0,0.4)]">
+          <div className="relative aspect-video">
+            <video
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              aria-label="Patriot K9 Command training property"
+              className="h-full w-full object-cover"
+            >
+              <source
+                src="/videos/branding/patriot-k9-training-property-reveal.mp4"
+                type="video/mp4"
+              />
+            </video>
+            <div className="absolute inset-0 flex items-center justify-center bg-black/55 p-6 text-center">
+              <div className="max-w-2xl">
+                <h2 className="text-3xl font-bold md:text-4xl">Ready to Start Training?</h2>
+                <Link
+                  href="/train"
+                  className="mt-7 inline-block rounded bg-amber-400 px-6 py-3 font-semibold text-black"
+                >
+                  Start Training
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </section>
