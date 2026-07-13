@@ -6,39 +6,45 @@ import GlobalNavbar from "@/components/GlobalNavbar";
 import GoogleAdsTag from "@/components/GoogleAdsTag";
 import { authRoutes, siteConfig } from "@/lib/site";
 
+const defaultMetadataTitle = "Patriot K9 AI Trainer | Personalized Dog Training Plans";
+const defaultMetadataDescription =
+  "Create personalized dog training sessions, track progress, and get ongoing AI coaching built around your dog's needs.";
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.appUrl),
   title: {
-    default: "Patriot K9 AI Trainer | Personalized Dog Training Plans",
+    default: defaultMetadataTitle,
     template: `%s | ${siteConfig.brandName}`,
   },
-  description:
-    "Create personalized dog training sessions, track progress, and get ongoing AI coaching built around your dog's needs.",
+  description: defaultMetadataDescription,
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "Patriot K9 AI Trainer | Personalized Dog Training Plans",
-    description:
-      "Create personalized dog training sessions, track progress, and get ongoing AI coaching built around your dog's needs.",
+    title: defaultMetadataTitle,
+    description: defaultMetadataDescription,
     url: siteConfig.appUrl,
     siteName: siteConfig.siteName,
     images: [
       {
-        url: "/patriot-k9-embed.jpg",
+        url: siteConfig.socialShareImagePath,
         width: 1200,
         height: 630,
-        alt: siteConfig.siteName,
+        alt: "Patriot K9 Command AI Dog Trainer",
       },
     ],
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Patriot K9 AI Trainer | Personalized Dog Training Plans",
-    description:
-      "Create personalized dog training sessions, track progress, and get ongoing AI coaching built around your dog's needs.",
-    images: ["/patriot-k9-embed.jpg"],
+    title: defaultMetadataTitle,
+    description: defaultMetadataDescription,
+    images: [
+      {
+        url: siteConfig.socialShareImagePath,
+        alt: "Patriot K9 Command AI Dog Trainer",
+      },
+    ],
   },
   icons: {
     icon: "/favicon.ico",

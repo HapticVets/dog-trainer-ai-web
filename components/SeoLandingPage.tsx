@@ -59,6 +59,7 @@ export default function SeoLandingPage({ config }: SeoLandingPageProps) {
             ) : (
               <video
                 controls
+                muted
                 playsInline
                 preload="metadata"
                 poster={section.media.poster}
@@ -183,12 +184,10 @@ export default function SeoLandingPage({ config }: SeoLandingPageProps) {
 
             <div className="mx-auto mt-10 w-full max-w-full overflow-hidden rounded-3xl border border-amber-400/40 bg-black/30 shadow-[0_20px_50px_rgba(0,0,0,0.35)] sm:max-w-[700px] xl:max-w-[850px]">
               <video
-                autoPlay
+                controls
                 muted
-                loop
                 playsInline
                 preload="metadata"
-                controls
                 className="aspect-video w-full"
               >
                 <source src={config.heroVideo.src} type="video/mp4" />

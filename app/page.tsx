@@ -28,6 +28,27 @@ const howItWorks = [
   "Get the next progression",
 ];
 
+const realTrainingVideos = [
+  {
+    title: "Field obedience with clear positioning",
+    caption: "Proof heel work in open environments instead of only training inside the house.",
+    src: "/videos/german-shepherd-training/german-shepherd-field-heel-toward.mp4",
+    poster: "/images/obedience/patriot-k9-german-shepherd-field-training.jpg",
+  },
+  {
+    title: "Calm control in public",
+    caption: "Show the dog how to settle and stay accountable when distractions are real.",
+    src: "/videos/german-shepherd-training/german-shepherd-public-down-stay.mp4",
+    poster: "/images/german-shepherd-training/german-shepherd-public-place-command.jpg",
+  },
+  {
+    title: "Engagement before distractions take over",
+    caption: "Build reward timing and focus so the dog chooses to work with the handler.",
+    src: "/videos/german-shepherd-training/german-shepherd-engagement-reward-play.mp4",
+    poster: "/images/german-shepherd-training/german-shepherd-engagement-eye-contact.JPG",
+  },
+];
+
 const outcomeCards = [
   {
     title: "Enjoy walks without being dragged",
@@ -130,7 +151,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-neutral-950 text-white">
       <section className="border-b border-neutral-800 px-6 py-24">
-        <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)]">
+        <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,560px)]">
           <div>
             <p className="text-sm uppercase tracking-[0.25em] text-amber-400">
               Patriot K9 Command AI Trainer
@@ -169,12 +190,12 @@ export default function Home() {
 
           <figure className="overflow-hidden rounded-3xl border border-neutral-800 bg-black/30 shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
             <Image
-              src="/hero-dog.jpg"
-              alt="Dog working in training with focused attention and structure."
-              width={1400}
-              height={1200}
-              sizes="(max-width: 768px) calc(100vw - 48px), (max-width: 1280px) 42vw, 520px"
-              className="h-auto w-full object-cover"
+              src="/images/branding/trainer-with-ollie-and-adolf.JPG"
+              alt="Patriot K9 trainer working with two German Shepherds in the field."
+              width={5184}
+              height={3888}
+              sizes="(max-width: 768px) calc(100vw - 48px), (max-width: 1280px) 46vw, 560px"
+              className="h-auto w-full object-contain"
               priority
             />
           </figure>
@@ -287,6 +308,50 @@ export default function Home() {
         <div className="mx-auto max-w-6xl">
           <div className="max-w-3xl">
             <p className="text-sm uppercase tracking-[0.25em] text-amber-400">
+              Real Training. Real Environments.
+            </p>
+            <h2 className="mt-4 text-3xl font-bold md:text-4xl">
+              Proof that the standards hold up outside theory
+            </h2>
+            <p className="mt-6 text-neutral-300">
+              Patriot K9 AI is built from real sessions in real environments, not
+              decorative dog art. These clips show the kinds of outcomes the
+              training system is designed to support.
+            </p>
+          </div>
+
+          <div className="mt-10 grid gap-6 lg:grid-cols-3">
+            {realTrainingVideos.map((video) => (
+              <article
+                key={video.src}
+                className="rounded-2xl border border-neutral-800 bg-black/30 p-5"
+              >
+                <div className="overflow-hidden rounded-2xl border border-neutral-800 bg-black">
+                  <video
+                    controls
+                    muted
+                    playsInline
+                    preload="metadata"
+                    poster={video.poster}
+                    className="aspect-video w-full"
+                  >
+                    <source src={video.src} type="video/mp4" />
+                  </video>
+                </div>
+                <h3 className="mt-4 text-lg font-semibold">{video.title}</h3>
+                <p className="mt-3 text-sm leading-7 text-neutral-400">
+                  {video.caption}
+                </p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-b border-neutral-800 px-6 py-24">
+        <div className="mx-auto max-w-6xl">
+          <div className="max-w-3xl">
+            <p className="text-sm uppercase tracking-[0.25em] text-amber-400">
               Real-Life Outcomes
             </p>
             <h2 className="mt-4 text-3xl font-bold md:text-4xl">
@@ -314,7 +379,7 @@ export default function Home() {
         <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,720px)] lg:items-center">
           <div className="max-w-2xl">
             <p className="text-sm uppercase tracking-[0.25em] text-amber-400">
-              Real-Life Results
+              Calm Outcomes
             </p>
             <h2 className="mt-4 text-3xl font-bold md:text-4xl">
               Calm behavior matters more than checking off commands
@@ -386,10 +451,10 @@ export default function Home() {
         <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)] lg:items-center">
           <figure className="overflow-hidden rounded-3xl border border-neutral-800 bg-black/30 shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
             <Image
-              src="/images/about/john-reese-patriot-k9-training-german-shepherd.jpg"
-              alt="John Reese training a German Shepherd at Patriot K9 Command."
-              width={2160}
-              height={2880}
+              src="/images/branding/trainer-and-german-shepherd-field-overlook.JPG"
+              alt="Patriot K9 trainer standing with a German Shepherd overlooking the training field."
+              width={5184}
+              height={3888}
               sizes="(max-width: 768px) calc(100vw - 48px), (max-width: 1280px) 36vw, 440px"
               className="h-auto w-full object-contain"
             />

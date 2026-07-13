@@ -322,6 +322,25 @@ export const landingPages: Record<LandingPageConfig["slug"], LandingPageConfig> 
     },
     extraSections: [
       {
+        placement: "afterSupporting",
+        eyebrow: "Handler Focus",
+        title: "Engagement starts with a dog that stays mentally present with the handler",
+        body: [
+          "High-drive German Shepherds do better when attention is trained on purpose instead of taken for granted. Engagement is what lets obedience stay clear before the environment starts adding pressure.",
+          "That is why Patriot K9 work builds eye contact, reward timing, and clean handler communication before expecting precision under distraction.",
+        ],
+        reverse: true,
+        media: {
+          type: "image",
+          src: "/images/german-shepherd-training/german-shepherd-engagement-eye-contact.JPG",
+          alt: "German Shepherd giving focused eye contact to its handler during Patriot K9 engagement work.",
+          width: 5184,
+          height: 3888,
+          caption:
+            "Real engagement work starts with a dog that stays mentally connected before pressure increases.",
+        },
+      },
+      {
         placement: "afterCommonMistakes",
         eyebrow: "Public Obedience",
         title: "Place command and calm public behavior have to hold outside the house",
@@ -342,23 +361,24 @@ export const landingPages: Record<LandingPageConfig["slug"], LandingPageConfig> 
       },
       {
         placement: "afterExamplePlan",
-        eyebrow: "Advanced Engagement",
-        title: "Confidence grows when structure is carried into movement and problem-solving",
+        eyebrow: "Field Obedience",
+        title: "Heel work should stay clean while the dog is moving, stopping, and resetting with purpose",
         body: [
-          "Obstacle work is not about making training flashy. It is useful when it builds engagement, body awareness, confidence, and cleaner handler follow-through without creating chaos.",
-          "For high-drive German Shepherds, structured progression keeps intensity useful instead of letting it become frantic or disconnected.",
+          "Strong field obedience matters because it shows whether the dog understands position, follow-through, and accountability away from easy indoor reps.",
+          "A good heel-to-sit sequence is not a trick. It is proof that the dog can stay with the handler through motion, transitions, and clean stopping mechanics.",
         ],
         media: {
           type: "video",
-          src: "/videos/german-shepherd-training/german-shepherd-obstacle-training.mp4",
+          src: "/videos/german-shepherd-training/german-shepherd-field-heel-to-sit.mp4",
+          poster: "/images/obedience/patriot-k9-german-shepherd-field-training.jpg",
           caption:
-            "Structured obstacle work can build confidence, engagement, and cleaner decision-making when the dog stays connected to the handler.",
+            "Field heel-to-sit work shows whether structure and responsiveness stay clean through transitions.",
         },
       },
       {
         placement: "afterAskTheAi",
         eyebrow: "Neutrality Around Dogs",
-        title: "Socialization should build calm balance, not overstimulation",
+        title: "Socialization should build calm balance instead of overstimulation",
         body: [
           "Balanced German Shepherd training is not about forcing interaction with every dog. It is about teaching neutrality, calm coexistence, and the ability to stay composed around movement and pack pressure.",
           "That gives owners a dog that can recover, observe, and stay responsive instead of rehearsing excitement, fixation, or conflict.",
@@ -367,8 +387,25 @@ export const landingPages: Record<LandingPageConfig["slug"], LandingPageConfig> 
         media: {
           type: "video",
           src: "/videos/german-shepherd-training/german-shepherd-pack-socialization.mp4",
+          poster: "/images/german-shepherd-training/german-shepherd-public-place-command.jpg",
           caption:
             "Real socialization means learning to stay balanced, neutral, and responsive around other dogs.",
+        },
+      },
+      {
+        placement: "afterFaq",
+        eyebrow: "Reward and Re-Engagement",
+        title: "Drive can stay powerful without taking the dog out of structure",
+        body: [
+          "Working dogs do not need their energy crushed. They need it directed. Reward play, re-engagement, and clear recovery rules help the dog stay intense without becoming chaotic.",
+          "That lets the handler bring drive into training in a way that still supports obedience, focus, and cleaner next repetitions.",
+        ],
+        media: {
+          type: "video",
+          src: "/videos/german-shepherd-training/german-shepherd-engagement-reward-play.mp4",
+          poster: "/images/german-shepherd-training/german-shepherd-engagement-eye-contact.JPG",
+          caption:
+            "Reward play should build engagement and clarity, not create frantic disconnect from the handler.",
         },
       },
       {
@@ -381,9 +418,10 @@ export const landingPages: Record<LandingPageConfig["slug"], LandingPageConfig> 
         ],
         media: {
           type: "video",
-          src: "/videos/german-shepherd-training/german-shepherd-public-store-training.mp4",
+          src: "/videos/german-shepherd-training/german-shepherd-public-down-stay.mp4",
+          poster: "/images/german-shepherd-training/german-shepherd-public-place-command.jpg",
           caption:
-            "Real-world public training is where calm behavior, obedience, and handler accountability have to work together.",
+            "Public down-stay work is where calm behavior, obedience, and handler accountability have to hold together in real life.",
         },
       },
     ],

@@ -41,11 +41,11 @@ export default function MethodPage() {
     <main className="min-h-screen bg-neutral-950 text-white">
       <section className="relative border-b border-neutral-800">
         <Image
-          src="/german-shepherd-hero.png"
-          alt="German Shepherd training under structured handling"
+          src="/images/branding/trainer-and-german-shepherd-field-overlook.JPG"
+          alt="Patriot K9 trainer and German Shepherd overlooking the training field."
           fill
           sizes="100vw"
-          className="absolute inset-0 object-cover opacity-35"
+          className="absolute inset-0 object-cover object-center opacity-30"
           priority
         />
 
