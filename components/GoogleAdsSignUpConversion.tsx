@@ -95,9 +95,21 @@ export default function GoogleAdsSignUpConversion({
         return;
       }
 
-      window.gtag("event", "conversion", {
-        send_to: GOOGLE_ADS_SIGN_UP_SEND_TO,
-      });
+      console.log(
+        "GoogleAdsSignUpConversion calling gtag with send_to:",
+        GOOGLE_ADS_SIGN_UP_SEND_TO
+      );
+
+      try {
+        window.gtag("event", "conversion", {
+          send_to: GOOGLE_ADS_SIGN_UP_SEND_TO,
+        });
+        console.log("GoogleAdsSignUpConversion gtag call completed");
+      } catch (error) {
+        console.error("GoogleAdsSignUpConversion gtag failed:", error);
+        throw error;
+      }
+
       console.log("GoogleAdsSignUpConversion conversion fired");
 
       window.localStorage.setItem(storageKey, "sent");
