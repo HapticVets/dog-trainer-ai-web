@@ -17,7 +17,7 @@ export const authRoutes = {
   signInUrl: "/sign-in",
   signUpUrl: "/sign-up",
   postSignInUrl: "/train",
-  postSignUpUrl: "/train",
+  postSignUpUrl: "/train?signup=complete",
 } as const;
 
 export const absoluteUrl = (path = "/") => new URL(path, `${siteConfig.appUrl}/`).toString();

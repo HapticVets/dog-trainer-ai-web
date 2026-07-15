@@ -1,13 +1,13 @@
 import Link from "next/link";
 import Stripe from "stripe";
 import GoogleAdsPurchaseConversion from "@/components/GoogleAdsPurchaseConversion";
+import { GOOGLE_ADS_PURCHASE_SEND_TO } from "@/lib/googleAds";
 import {
   PREMIUM_SUBSCRIPTION_CURRENCY,
   PREMIUM_SUBSCRIPTION_PRICE_CENTS,
 } from "@/lib/subscriptionPricing";
 
 const supportDiscordUrl = "https://discord.gg/Mmb4KSp9Y8";
-const googleAdsPurchaseSendTo = "AW-18273570871/84CKCIDwkcgcELegwolE";
 
 const onboardingCards = [
   {
@@ -76,7 +76,7 @@ export default async function SubscriptionSuccessPage({
     <main className="min-h-screen bg-neutral-950 text-white">
       <GoogleAdsPurchaseConversion
         currency={conversionCurrency}
-        sendTo={googleAdsPurchaseSendTo}
+        sendTo={GOOGLE_ADS_PURCHASE_SEND_TO}
         transactionId={transactionId}
         value={conversionValue}
       />

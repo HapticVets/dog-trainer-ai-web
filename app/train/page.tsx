@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useUser } from "@clerk/nextjs";
+import GoogleAdsSignUpConversion from "@/components/GoogleAdsSignUpConversion";
 import {
   getAvailableMainGoals,
   getDefaultMainGoal,
@@ -2276,6 +2277,10 @@ ${recentHistory}`;
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-neutral-950 text-white">
+      <GoogleAdsSignUpConversion
+        userCreatedAt={user?.createdAt?.getTime()}
+        userId={user?.id}
+      />
       <section className="border-b border-neutral-800">
         <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">

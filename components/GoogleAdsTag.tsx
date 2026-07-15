@@ -1,13 +1,12 @@
 import Script from "next/script";
-
-const GOOGLE_ADS_TAG_ID = "AW-18273570871";
+import { GOOGLE_ADS_ID } from "@/lib/googleAds";
 
 export default function GoogleAdsTag() {
   return (
     <>
       <Script
         id="google-ads-tag-src"
-        src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ADS_TAG_ID}`}
+        src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ADS_ID}`}
         strategy="afterInteractive"
       />
       <Script id="google-ads-tag-init" strategy="afterInteractive">
@@ -16,7 +15,7 @@ export default function GoogleAdsTag() {
           function gtag(){dataLayer.push(arguments);}
           window.gtag = window.gtag || gtag;
           gtag('js', new Date());
-          gtag('config', '${GOOGLE_ADS_TAG_ID}');
+          gtag('config', '${GOOGLE_ADS_ID}');
         `}
       </Script>
     </>
