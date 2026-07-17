@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   buildDogCaseFileContext,
   hydrateDogCaseFile,
@@ -77,6 +78,26 @@ const getPlanSection = (plan: string, heading: string) => {
 const getPlanDuration = (setup: string) =>
   setup.match(/\b(\d{1,2}\s*(?:minutes?|mins?))\b/i)?.[1] ?? "Not specified";
 
+const getPreview = (value: string, limit = 180) =>
+  value.length > limit ? `${value.slice(0, limit).trim()}...` : value;
+
+const DashboardIcon = ({ type }: { type: "dog" | "phase" | "sessions" | "focus" }) => {
+  const paths = {
+    dog: <path d="M3 12.5c1.4-3.8 3-5.7 5-5.7s3.6 1.9 5 5.7M5.2 7.2 4 4.5l2.6.7M10.8 7.2 12 4.5l-2.6.7" />,
+    phase: <path d="M8 2.5v11M3.3 5.2 8 2.5l4.7 2.7L8 8l-4.7-2.8Zm0 5.6L8 8l4.7 2.8L8 13.5l-4.7-2.7Z" />,
+    sessions: <path d="M4 2.8v2.4M12 2.8v2.4M3 5.2h10v8.3H3V5.2Zm2.2 3h5.6M5.2 10.7h3.2" />,
+    focus: <path d="m8 2.5 1.4 3.1 3.4.3-2.6 2.2.8 3.4L8 9.7l-3 1.8.8-3.4-2.6-2.2 3.4-.3L8 2.5Z" />,
+  };
+
+  return (
+    <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-amber-500/25 bg-amber-400/10 text-amber-200">
+      <svg viewBox="0 0 16 16" className="h-5 w-5 fill-none stroke-current stroke-[1.5]" aria-hidden="true">
+        {paths[type]}
+      </svg>
+    </span>
+  );
+};
+
 export default function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -114,6 +135,9 @@ export default function DashboardPage() {
     : "Your next mission is ready to begin.";
   const activePlanSessionType = activeTrainingPlan
     ? getPlanSection(activeTrainingPlan.content, "SESSION TYPE") || "Not specified"
+    : "Not specified";
+  const activePlanPrimaryCue = activeTrainingPlan
+    ? getPlanSection(activeTrainingPlan.content, "PRIMARY C") || "Not specified"
     : "Not specified";
   const activePlanDuration = activeTrainingPlan
     ? getPlanDuration(getPlanSection(activeTrainingPlan.content, "SETUP"))
@@ -420,14 +444,35 @@ ${sessionSummary}`;
 
   return (
     <main className="min-h-screen bg-neutral-950 text-white">
-      <section className="border-b border-neutral-800">
-        <div className="mx-auto max-w-7xl px-6 py-14">
+      <section className="relative overflow-hidden border-b border-neutral-800 bg-gradient-to-br from-black via-neutral-950 to-amber-950/20">
+        <Image
+          src="/logo-icon-white.png"
+          alt=""
+          width={360}
+          height={360}
+          className="pointer-events-none absolute -right-16 -top-20 h-80 w-80 opacity-[0.045] sm:right-1/3 sm:top-1/2 sm:h-[28rem] sm:w-[28rem] sm:-translate-y-1/2"
+          aria-hidden="true"
+        />
+        {selectedDogProfile?.profileImageUrl && (
+          <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-2/5 overflow-hidden lg:block">
+            <Image
+              src={selectedDogProfile.profileImageUrl}
+              alt=""
+              fill
+              sizes="40vw"
+              className="object-cover opacity-15"
+              aria-hidden="true"
+            />
+            <div className="absolute inset-0 bg-gradient-to-l from-neutral-950/30 via-neutral-950/60 to-neutral-950" />
+          </div>
+        )}
+        <div className="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
               <p className="text-sm uppercase tracking-[0.25em] text-amber-400">
                 Patriot K9 Command
               </p>
-              <h1 className="mt-4 text-4xl font-bold md:text-6xl leading-tight">
+              <h1 className="mt-4 text-4xl font-bold leading-tight md:text-6xl">
                 Patriot K9 Command Center
               </h1>
               <p className="mt-6 max-w-2xl text-lg text-neutral-300">
@@ -436,7 +481,7 @@ ${sessionSummary}`;
             </div>
 
             <div className="flex flex-col items-start gap-4 md:items-end">
-              <div className="rounded border border-amber-500/30 bg-amber-400/10 px-6 py-4 text-sm text-amber-200">
+              <div className="rounded-lg border border-amber-500/30 bg-amber-400/10 px-5 py-3 text-sm text-amber-100 shadow-[0_12px_30px_rgba(0,0,0,0.24)]">
                 {hasActiveDog ? (
                   <>
                     <span className="font-semibold">Active Dog:</span> {selectedDogName}
@@ -451,14 +496,14 @@ ${sessionSummary}`;
                   type="button"
                   onClick={handleManageSubscription}
                   disabled={portalLoading}
-                  className="rounded border border-neutral-600 px-6 py-3 font-semibold text-white hover:bg-neutral-900 disabled:opacity-50"
+                  className="rounded border border-neutral-600 px-5 py-3 font-semibold text-white transition-colors hover:bg-neutral-900 disabled:opacity-50"
                 >
                   {portalLoading ? "Opening..." : "Manage Subscription"}
                 </button>
 
                 <Link
                   href="/train"
-                  className="rounded bg-amber-400 px-6 py-3 font-semibold text-black"
+                  className="rounded bg-amber-400 px-5 py-3 font-semibold text-black transition-colors hover:bg-amber-300"
                 >
                   Open Trainer
                 </Link>
@@ -470,14 +515,26 @@ ${sessionSummary}`;
 
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14">
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Active Dog</p>
-            <p className="mt-3 text-2xl font-bold text-white">{selectedDogName || "Not set"}</p>
+          <div className="group rounded-xl border border-neutral-800 bg-gradient-to-br from-neutral-900 to-neutral-950 p-5 shadow-[0_12px_28px_rgba(0,0,0,0.2)] transition duration-200 hover:-translate-y-0.5 hover:border-amber-500/35 sm:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Active Dog</p>
+                <p className="mt-3 text-2xl font-bold text-white">{selectedDogName || "Not set"}</p>
+              </div>
+              <DashboardIcon type="dog" />
+            </div>
+            <p className="mt-3 text-sm text-neutral-400">Selected training case</p>
           </div>
 
-          <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Training Phase</p>
-            <p className="mt-3 text-lg font-bold text-white">{hasActiveDog ? activeTrainingPhase : "Not set"}</p>
+          <div className="group rounded-xl border border-neutral-800 bg-gradient-to-br from-neutral-900 to-neutral-950 p-5 shadow-[0_12px_28px_rgba(0,0,0,0.2)] transition duration-200 hover:-translate-y-0.5 hover:border-amber-500/35 sm:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Training Phase</p>
+                <p className="mt-3 text-lg font-bold text-white">{hasActiveDog ? activeTrainingPhase : "Not set"}</p>
+              </div>
+              <DashboardIcon type="phase" />
+            </div>
+            <p className="mt-3 text-sm text-neutral-400">Current structured progression</p>
           </div>
 
           <div className="hidden">
@@ -504,23 +561,36 @@ ${sessionSummary}`;
             )}
           </div>
 
-          <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Sessions Completed</p>
-            <p className="mt-3 text-3xl font-bold text-white">{sessionLogs.length}</p>
+          <div className="group rounded-xl border border-neutral-800 bg-gradient-to-br from-neutral-900 to-neutral-950 p-5 shadow-[0_12px_28px_rgba(0,0,0,0.2)] transition duration-200 hover:-translate-y-0.5 hover:border-amber-500/35 sm:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Sessions Completed</p>
+                <p className="mt-3 text-3xl font-bold text-white">{sessionLogs.length}</p>
+              </div>
+              <DashboardIcon type="sessions" />
+            </div>
+            <p className="mt-3 text-sm text-neutral-400">Logged missions for this dog</p>
           </div>
 
-          <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Current Focus</p>
-            <p className="mt-3 text-lg font-bold text-white">{selectedDogProfile?.mainGoal || "Not set"}</p>
+          <div className="group rounded-xl border border-neutral-800 bg-gradient-to-br from-neutral-900 to-neutral-950 p-5 shadow-[0_12px_28px_rgba(0,0,0,0.2)] transition duration-200 hover:-translate-y-0.5 hover:border-amber-500/35 sm:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Current Focus</p>
+                <p className="mt-3 text-lg font-bold text-white">{selectedDogProfile?.mainGoal || "Not set"}</p>
+              </div>
+              <DashboardIcon type="focus" />
+            </div>
+            <p className="mt-3 text-sm text-neutral-400">Primary training objective</p>
           </div>
         </div>
 
         <div className="mt-8 grid gap-8 xl:grid-cols-2">
-          <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-6">
-            <h2 className="text-3xl font-bold">Latest Session</h2>
+          <div className="rounded-2xl border border-neutral-800 bg-gradient-to-br from-neutral-900 to-neutral-950 p-6 shadow-[0_18px_44px_rgba(0,0,0,0.24)] sm:p-7">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">Mission Report</p>
+            <h2 className="mt-3 text-3xl font-bold">Latest Session</h2>
 
             {!summary?.latestSession && (
-              <p className="mt-4 text-neutral-400">No session logs yet.</p>
+              <p className="mt-4 text-sm leading-6 text-neutral-400">Complete and log your first training mission to begin building reports.</p>
             )}
 
             {summary?.latestSession && (
@@ -531,23 +601,30 @@ ${sessionSummary}`;
                     ? ` • ${summary.latestSession.duration} min`
                     : ""}
                 </p>
-                <p className="text-neutral-400">
-                  Date: {summary.latestSession.session_date || "Not provided"}
+                <p className="text-sm text-neutral-400">
+                  <span className="font-semibold uppercase tracking-[0.14em] text-neutral-500">Date</span>
+                  <span className="ml-3 text-neutral-200">{summary.latestSession.session_date || "Not provided"}</span>
                 </p>
-                <p className="text-neutral-300">
-                  <strong>Focus:</strong> {summary.latestSession.focus || "None"}
+                <p className="text-sm text-neutral-300">
+                  <span className="font-semibold uppercase tracking-[0.14em] text-neutral-500">Focus</span>
+                  <span className="ml-3 text-neutral-100">{summary.latestSession.focus || "None"}</span>
                 </p>
-                <p className="text-neutral-300">
-                  <strong>Wins:</strong> {summary.latestSession.wins || "None"}
+                <p className="text-sm leading-6 text-neutral-300">
+                  <span className="font-semibold uppercase tracking-[0.14em] text-neutral-500">Wins</span>
+                  <span className="ml-3 text-neutral-100">{getPreview(summary.latestSession.wins || "None")}</span>
                 </p>
-                <p className="text-neutral-300">
-                  <strong>Issues:</strong> {summary.latestSession.issues || "None"}
+                <p className="text-sm leading-6 text-neutral-300">
+                  <span className="font-semibold uppercase tracking-[0.14em] text-neutral-500">Challenges</span>
+                  <span className="ml-3 text-neutral-100">{getPreview(summary.latestSession.issues || "None")}</span>
                 </p>
+                <Link href="/train" className="inline-flex text-sm font-semibold text-amber-300 transition-colors hover:text-amber-200">
+                  View full report
+                </Link>
               </div>
             )}
           </div>
 
-          <div className="rounded-xl border border-amber-500/25 bg-gradient-to-br from-amber-400/10 via-neutral-950 to-neutral-950 p-5 sm:p-6">
+          <div className="rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-400/15 via-neutral-950 to-neutral-950 p-6 shadow-[0_18px_44px_rgba(0,0,0,0.28)] sm:p-7">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">Next Mission</p>
             <h2 className="mt-3 text-3xl font-bold">{hasActiveDog ? activeTrainingPhase : "Training starts here"}</h2>
 
@@ -555,7 +632,7 @@ ${sessionSummary}`;
               <dl className="mt-6 grid gap-4 sm:grid-cols-2">
                 <div>
                   <dt className="text-xs uppercase tracking-[0.16em] text-neutral-500">Objective</dt>
-                  <dd className="mt-2 text-sm leading-6 text-neutral-200">{activePlanObjective}</dd>
+                  <dd className="mt-2 text-sm leading-6 text-neutral-200">{getPreview(activePlanObjective, 220)}</dd>
                 </div>
                 <div>
                   <dt className="text-xs uppercase tracking-[0.16em] text-neutral-500">Session Type</dt>
@@ -564,6 +641,10 @@ ${sessionSummary}`;
                 <div>
                   <dt className="text-xs uppercase tracking-[0.16em] text-neutral-500">Estimated Duration</dt>
                   <dd className="mt-2 text-sm font-semibold text-white">{activePlanDuration}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs uppercase tracking-[0.16em] text-neutral-500">Primary Cue</dt>
+                  <dd className="mt-2 text-sm font-semibold text-white">{activePlanPrimaryCue}</dd>
                 </div>
               </dl>
             ) : (
@@ -586,7 +667,29 @@ ${sessionSummary}`;
           <h2 className="mt-3 text-3xl font-bold">Active Dog Profile</h2>
 
           {selectedDogProfile ? (
-            <dl className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <>
+              <div className="mt-6 flex flex-col gap-4 rounded-xl border border-amber-500/20 bg-black/30 p-4 sm:flex-row sm:items-center">
+                <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-amber-500/30 bg-neutral-900">
+                  {selectedDogProfile.profileImageUrl ? (
+                    <Image
+                      src={selectedDogProfile.profileImageUrl}
+                      alt={`${selectedDogProfile.name} profile`}
+                      fill
+                      sizes="80px"
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-neutral-800 to-black text-xl font-bold text-amber-300">
+                      {selectedDogProfile.name.slice(0, 1).toUpperCase() || "K9"}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-white">{selectedDogProfile.name}</p>
+                  <p className="mt-1 text-sm text-neutral-400">Active case file and training record</p>
+                </div>
+              </div>
+              <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {[
                 ["Dog Name", selectedDogProfile.name],
                 ["Breed", selectedDogProfile.breed || "Not set"],
@@ -608,7 +711,8 @@ ${sessionSummary}`;
                   <dd className="mt-2 break-words text-sm font-semibold leading-6 text-white">{value}</dd>
                 </div>
               ))}
-            </dl>
+              </dl>
+            </>
           ) : (
             <p className="mt-5 text-sm leading-6 text-neutral-400">
               Select a dog to review its professional training record.
@@ -616,20 +720,24 @@ ${sessionSummary}`;
           )}
         </section>
 
-        <div className="mt-8 rounded-lg border border-neutral-800 bg-neutral-950 p-6">
+        <div className="mt-8 rounded-2xl border border-neutral-800 bg-gradient-to-br from-neutral-900 to-neutral-950 p-6 shadow-[0_18px_44px_rgba(0,0,0,0.24)] sm:p-7">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">Progress Intelligence</p>
               <h2 className="text-3xl font-bold">Progress Report Center</h2>
               <p className="mt-3 text-neutral-400">
                 Progress reports are generated from real training sessions. Select a dog with logged sessions before generating a report.
               </p>
+              <div className="mt-4 rounded-lg border border-amber-500/20 bg-amber-400/10 px-4 py-3 text-sm leading-6 text-amber-100">
+                Reports unlock as training sessions are completed. Each mission adds context to your dog&apos;s progress history.
+              </div>
             </div>
 
             <button
               type="button"
               onClick={handleGenerateReport}
               disabled={reportLoading || sessionLogs.length === 0 || !selectedDogId}
-              className="rounded bg-amber-400 px-6 py-3 font-semibold text-black disabled:opacity-50"
+              className="w-full rounded bg-amber-400 px-6 py-3 font-semibold text-black transition-colors hover:bg-amber-300 disabled:opacity-50 md:w-auto"
             >
               {reportLoading
                 ? "Generating..."
@@ -656,7 +764,7 @@ ${sessionSummary}`;
           </div>
 
           {hasActiveDog && selectedDogProfile && (
-            <div className="mt-5 rounded border border-amber-500/30 bg-amber-400/10 p-5">
+            <div className="mt-5 rounded-xl border border-amber-500/30 bg-amber-400/10 p-5">
               <p className="text-xs uppercase tracking-[0.2em] text-amber-300">
                 Active Dog
               </p>
@@ -700,23 +808,39 @@ ${sessionSummary}`;
           )}
         </div>
 
-        <div className="mt-8 rounded-lg border border-neutral-800 bg-neutral-950 p-6">
-          <h2 className="text-3xl font-bold">Latest Next Session Plan</h2>
+        <div className="mt-8 rounded-2xl border border-neutral-800 bg-gradient-to-br from-neutral-900 to-neutral-950 p-6 shadow-[0_18px_44px_rgba(0,0,0,0.24)] sm:p-7">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">Training Plan</p>
+          <h2 className="mt-3 text-3xl font-bold">Latest Training Plan</h2>
 
-          {!summary?.latestNextSessionPlan && (
-            <p className="mt-4 text-neutral-400">No saved next session plans yet.</p>
-          )}
-
-          {summary?.latestNextSessionPlan && (
-            <div className="mt-6">
-              <p className="mb-3 text-neutral-400">
-                Saved {new Date(summary.latestNextSessionPlan.created_at).toLocaleString()}
-              </p>
-              <div className="whitespace-pre-wrap rounded-lg border border-neutral-800 bg-black p-4 text-neutral-200">
-                {summary.latestNextSessionPlan.content}
+          {activeTrainingPlan ? (
+            <div className="mt-6 grid gap-4 md:grid-cols-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">Current Objective</p>
+                <p className="mt-2 text-sm leading-6 text-neutral-200">{getPreview(activePlanObjective, 160)}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">Current Phase</p>
+                <p className="mt-2 text-sm font-semibold text-white">{activeTrainingPhase}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">Session Type</p>
+                <p className="mt-2 text-sm font-semibold text-white">{activePlanSessionType}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">Last Generated</p>
+                <p className="mt-2 text-sm font-semibold text-white">{new Date(activeTrainingPlan.createdAt).toLocaleString()}</p>
               </div>
             </div>
+          ) : (
+            <p className="mt-5 text-sm leading-6 text-neutral-400">No saved training plan yet. Start in the Trainer to generate your first mission.</p>
           )}
+
+          <Link
+            href="/train"
+            className="mt-6 inline-flex w-full justify-center rounded border border-amber-500/40 px-5 py-3 text-sm font-semibold text-amber-200 transition-colors hover:bg-amber-400/10 focus:outline-none focus:ring-2 focus:ring-amber-200 focus:ring-offset-2 focus:ring-offset-neutral-950 sm:w-auto"
+          >
+            View Full Plan
+          </Link>
         </div>
       </section>
     </main>
