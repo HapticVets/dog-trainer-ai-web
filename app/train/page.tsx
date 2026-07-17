@@ -220,6 +220,14 @@ const parsePlanSections = (plan: string): PlanSection[] => {
   return sections.filter((section) => section.content);
 };
 
+const getPlanSectionContent = (sections: PlanSection[], label: string) =>
+  sections.find((section) => section.label === label)?.content || "";
+
+const getPlanObjectivePreview = (sections: PlanSection[]) => {
+  const objective = getPlanSectionContent(sections, "Objective").replace(/\s+/g, " ").trim();
+  return objective ? objective.slice(0, 140) : "Objective not available in this saved plan.";
+};
+
 const getSessionOutcome = (wins: string) => {
   const trimmed = wins.trim();
 
@@ -275,6 +283,10 @@ export default function TrainPage() {
   const [currentPlan, setCurrentPlan] = useState("");
   const [planLoading, setPlanLoading] = useState(false);
   const [savedOutputs, setSavedOutputs] = useState<SavedOutput[]>([]);
+  const [openPlanSections, setOpenPlanSections] = useState<string[]>([
+    "Objective",
+    "Working Reps",
+  ]);
   const [onboardingStep, setOnboardingStep] = useState<OnboardingStep>("create");
   const [profileCollapsed, setProfileCollapsed] = useState(false);
   const [historyCollapsed, setHistoryCollapsed] = useState(false);
@@ -315,10 +327,27 @@ export default function TrainPage() {
     [dogProfile.goalType, dogProfile.mainGoal]
   );
   const parsedCurrentPlan = useMemo(() => parsePlanSections(currentPlan), [currentPlan]);
-  const savedPlans = savedOutputs.filter(
-    (output) =>
-      output.outputType === "initial_session_plan" ||
-      output.outputType === "next_session_plan"
+  const savedPlans = useMemo(
+    () =>
+      savedOutputs.filter(
+        (output) =>
+          output.outputType === "initial_session_plan" ||
+          output.outputType === "next_session_plan"
+      ),
+    [savedOutputs]
+  );
+  const savedPlanSummaries = useMemo(
+    () =>
+      savedPlans.map((plan) => {
+        const sections = parsePlanSections(plan.content);
+
+        return {
+          ...plan,
+          objectivePreview: getPlanObjectivePreview(sections),
+          phase: getPlanSectionContent(sections, "Current Phase"),
+        };
+      }),
+    [savedPlans]
   );
 
   const workflowState: TrainingWorkflowState = !hasActiveDog
@@ -339,8 +368,14 @@ export default function TrainPage() {
       : "Generate the next session or ask AI follow-up";
 
   const currentPlanPhase =
-    parsedCurrentPlan.find((section) => section.label === "Current Phase")?.content ||
+    getPlanSectionContent(parsedCurrentPlan, "Current Phase") ||
     (hasCurrentPlan ? "Current plan active" : "Case file stage");
+  const currentPlanSessionType = getPlanSectionContent(parsedCurrentPlan, "Session Type");
+  const currentPlanPrimaryCue = getPlanSectionContent(parsedCurrentPlan, "Primary Cue");
+  const durationMatch = getPlanSectionContent(parsedCurrentPlan, "Setup").match(
+    /\b(\d{1,2}\s*(?:minutes?|mins?))\b/i
+  );
+  const currentPlanDuration = durationMatch?.[1] || "Not specified";
   const todaysObjective =
     parsedCurrentPlan.find((section) => section.label === "Objective")?.content ||
     dogProfile.mainGoal ||
@@ -366,7 +401,7 @@ export default function TrainPage() {
       ? { label: "Generate First Session", targetId: "first-session-section" }
       : workflowState === "plan_ready_to_log"
       ? { label: "Log Today’s Session", targetId: "session-log-section" }
-      : { label: "Generate Next Session", targetId: "current-plan-section" };
+      : { label: "Review Current Plan", targetId: "current-plan-section" };
 
   const statusCardItems = [
     {
@@ -455,6 +490,14 @@ export default function TrainPage() {
       behavior: "smooth",
       block: "start",
     });
+  };
+
+  const togglePlanSection = (label: string) => {
+    setOpenPlanSections((openSections) =>
+      openSections.includes(label)
+        ? openSections.filter((sectionLabel) => sectionLabel !== label)
+        : [...openSections, label]
+    );
   };
 
   const refreshTrainerAccess = async () => {
@@ -3090,8 +3133,8 @@ ${recentHistory}`;
             {(workflowState === "plan_ready_to_log" || workflowState === "progressing") && (
               <>
                 <section id="current-plan-section" className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                    <div>
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0">
                       <h2 className="text-2xl font-bold sm:text-3xl">Current Training Plan</h2>
                       <p className="mt-3 text-neutral-400">
                         {workflowState === "plan_ready_to_log"
@@ -3100,43 +3143,103 @@ ${recentHistory}`;
                       </p>
                     </div>
 
-                    <div className="w-full rounded border border-amber-500/30 bg-amber-400/10 px-4 py-3 text-center text-sm text-amber-200 md:w-auto md:text-left">
+                    <div className="w-full rounded border border-amber-500/30 bg-amber-400/10 px-4 py-3 text-center text-sm text-amber-200 lg:w-auto lg:text-left">
                       {workflowState === "plan_ready_to_log"
                         ? "Next action: Log today's training session"
                         : "Next action: Generate the next session"}
                     </div>
                   </div>
 
+                  <div className="mt-6 grid gap-3 rounded-lg border border-neutral-800 bg-black p-4 sm:grid-cols-2 lg:grid-cols-5 sm:p-5">
+                    <div className="min-w-0">
+                      <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">Active dog</p>
+                      <p className="mt-1 truncate text-sm font-semibold text-white">{dogProfile.name || "Not set"}</p>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">Current phase</p>
+                      <p className="mt-1 break-words text-sm font-semibold text-white">{currentPlanPhase}</p>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">Session type</p>
+                      <p className="mt-1 break-words text-sm font-semibold text-white">{currentPlanSessionType || "Not specified"}</p>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">Estimated duration</p>
+                      <p className="mt-1 text-sm font-semibold text-white">{currentPlanDuration}</p>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">Primary cue</p>
+                      <p className="mt-1 break-words text-sm font-semibold text-white">{currentPlanPrimaryCue || "Not specified"}</p>
+                    </div>
+                  </div>
+
                   {workflowState === "progressing" && (
-                    <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                    <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-sm text-neutral-400">
+                        Use logged training results to guide the next progression.
+                      </p>
                       <button
                         type="button"
                         onClick={handleGenerateNextSessionPlan}
                         disabled={!hasActiveDog || !hasSessions || planLoading}
-                        className="w-full rounded bg-amber-400 px-5 py-3 font-semibold text-black disabled:opacity-50 sm:w-auto"
+                        className="min-h-11 w-full shrink-0 rounded bg-amber-400 px-5 py-3 font-semibold text-black hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-200 focus:ring-offset-2 focus:ring-offset-neutral-950 disabled:opacity-50 sm:w-auto"
                       >
                         {planLoading ? "Generating..." : "Generate Next Session"}
                       </button>
                     </div>
                   )}
 
-                  <div className="mt-6 overflow-hidden rounded-lg border border-neutral-800 bg-black p-4 sm:p-5">
+                  <div className="mt-6 overflow-hidden rounded-lg border border-neutral-800 bg-black p-3 sm:p-4">
                     {currentPlan ? (
                       parsedCurrentPlan.length > 0 ? (
-                        <div className="grid gap-4 lg:grid-cols-2">
-                          {parsedCurrentPlan.map((section) => (
-                            <div
-                              key={section.label}
-                              className="rounded border border-neutral-800 bg-neutral-950/80 p-4"
-                            >
-                              <p className="text-xs uppercase tracking-[0.2em] text-amber-400">
-                                {section.label}
-                              </p>
-                              <div className="mt-3 whitespace-pre-wrap text-sm leading-7 text-neutral-200">
-                                {section.content}
+                        <div className="space-y-2">
+                          {parsedCurrentPlan.map((section) => {
+                            const sectionId = `training-plan-${section.label
+                              .toLowerCase()
+                              .replace(/[^a-z0-9]+/g, "-")}`;
+                            const isOpen = openPlanSections.includes(section.label);
+
+                            return (
+                              <div
+                                key={section.label}
+                                className="overflow-hidden rounded border border-neutral-800 bg-neutral-950/80"
+                              >
+                                <button
+                                  type="button"
+                                  id={`${sectionId}-trigger`}
+                                  aria-controls={`${sectionId}-panel`}
+                                  aria-expanded={isOpen}
+                                  onClick={() => togglePlanSection(section.label)}
+                                  className="flex min-h-12 w-full items-center justify-between gap-4 px-4 py-3 text-left hover:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-amber-300"
+                                >
+                                  <span className="min-w-0 text-xs font-semibold uppercase tracking-[0.16em] text-amber-400">
+                                    {section.label}
+                                  </span>
+                                  <svg
+                                    viewBox="0 0 16 16"
+                                    className={`h-4 w-4 shrink-0 fill-none stroke-current text-amber-200 transition-transform duration-150 ${
+                                      isOpen ? "rotate-180" : ""
+                                    }`}
+                                    aria-hidden="true"
+                                  >
+                                    <path d="m3 6 5 5 5-5" strokeWidth="1.8" />
+                                  </svg>
+                                </button>
+                                {isOpen && (
+                                  <div
+                                    id={`${sectionId}-panel`}
+                                    role="region"
+                                    aria-labelledby={`${sectionId}-trigger`}
+                                    className="border-t border-neutral-800 px-4 py-4"
+                                  >
+                                    <div className="whitespace-pre-wrap text-sm leading-7 text-neutral-200">
+                                      {section.content}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       ) : (
                         <div className="whitespace-pre-wrap text-sm leading-7 text-white">
@@ -3148,22 +3251,45 @@ ${recentHistory}`;
                     )}
                   </div>
 
-                  {savedPlans.length > 0 && (
+                  {savedPlanSummaries.length > 0 && (
                     <div className="mt-6 space-y-3">
                       <h3 className="text-xl font-semibold">Saved Session Plans</h3>
-                      {savedPlans.map((plan) => (
-                        <button
-                          key={plan.id}
-                          type="button"
-                          onClick={() => setCurrentPlan(plan.content)}
-                          className="block w-full rounded border border-neutral-800 bg-black p-3 text-left text-sm text-neutral-300 hover:bg-neutral-900"
-                        >
-                          {plan.outputType === "initial_session_plan"
-                            ? "First Session"
-                            : "Next Session"}{" "}
-                          | {new Date(plan.createdAt).toLocaleString()}
-                        </button>
-                      ))}
+                      <div className="space-y-2">
+                        {savedPlanSummaries.map((plan) => (
+                          <button
+                            key={plan.id}
+                            type="button"
+                            onClick={() => setCurrentPlan(plan.content)}
+                            aria-pressed={plan.content === currentPlan}
+                            className={`block min-h-12 w-full rounded border p-4 text-left transition-colors focus:outline-none focus:ring-2 focus:ring-amber-300 focus:ring-offset-2 focus:ring-offset-neutral-950 ${
+                              plan.content === currentPlan
+                                ? "border-amber-500/50 bg-amber-400/10 text-white"
+                                : "border-neutral-800 bg-black text-neutral-300 hover:bg-neutral-900"
+                            }`}
+                          >
+                            <span className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                              <span className="min-w-0">
+                                <span className="block font-semibold text-white">
+                                  {plan.outputType === "initial_session_plan"
+                                    ? "First Session Plan"
+                                    : "Next Session Plan"}
+                                </span>
+                                <span className="mt-1 block line-clamp-2 text-sm leading-6 text-neutral-400">
+                                  {plan.objectivePreview}
+                                </span>
+                                {plan.phase && (
+                                  <span className="mt-2 inline-flex rounded-full border border-neutral-700 px-2 py-0.5 text-xs font-medium text-neutral-300">
+                                    Phase: {plan.phase}
+                                  </span>
+                                )}
+                              </span>
+                              <span className="shrink-0 text-xs text-neutral-500">
+                                {new Date(plan.createdAt).toLocaleString()}
+                              </span>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </section>
