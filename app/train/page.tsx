@@ -2925,27 +2925,74 @@ ${recentHistory}`;
               </div>
             )}
 
-            {!evaluationMode && isPremiumUser && (
-              <div className="rounded border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-200">
-                Premium Active
-              </div>
-            )}
           </div>
         </div>
       </section>
 
-      {!isInitializingTrainer && trainerAccess && !trainerAccess.premium && (
+      {!isInitializingTrainer && trainerAccess && !evaluationMode && (
         <section className="mx-auto max-w-7xl px-4 pt-6 sm:px-6">
-          <div className="rounded-lg border border-amber-500/20 bg-black/30 p-5 sm:p-6">
+          {isPremiumUser ? (
+            <div className="rounded-xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-neutral-950 to-neutral-950 p-5 shadow-[0_16px_44px_rgba(0,0,0,0.2)] sm:p-6">
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                <div className="max-w-3xl">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">
+                      Membership
+                    </p>
+                    <span className="rounded-full border border-emerald-500/35 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-100">
+                      Premium Active
+                    </span>
+                  </div>
+                  <h2 className="mt-3 text-2xl font-bold text-white">Patriot K9 Premium</h2>
+                  <p className="mt-2 text-sm leading-6 text-neutral-300">
+                    Your membership is active with the full Patriot K9 training experience.
+                  </p>
+                  <ul className="mt-5 grid gap-2 text-sm text-neutral-200 sm:grid-cols-2 lg:grid-cols-3">
+                    {[
+                      "Unlimited AI coaching",
+                      "Personalized training plans",
+                      "Training history memory",
+                      "Progress tracking",
+                      "Mission Reports",
+                      "Advanced training guidance",
+                    ].map((benefit) => (
+                      <li key={benefit} className="flex items-center gap-2">
+                        <svg
+                          viewBox="0 0 16 16"
+                          className="h-4 w-4 shrink-0 fill-none stroke-emerald-300 stroke-[2]"
+                          aria-hidden="true"
+                        >
+                          <path d="m3.5 8.2 2.6 2.5 6.4-6.1" />
+                        </svg>
+                        {benefit}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-amber-500/25 bg-gradient-to-br from-amber-400/10 via-neutral-950 to-neutral-950 p-5 shadow-[0_16px_44px_rgba(0,0,0,0.2)] sm:p-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <p className="text-sm uppercase tracking-[0.2em] text-amber-400">
-                  Free Access
+              <div className="max-w-2xl">
+                <div className="flex flex-wrap items-center gap-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">
+                    Membership
+                  </p>
+                  <span className="rounded-full border border-amber-500/35 bg-amber-400/10 px-2.5 py-1 text-xs font-semibold text-amber-100">
+                    Free Plan
+                  </span>
+                </div>
+                <h2 className="mt-3 text-2xl font-bold text-white">Patriot K9 Free</h2>
+                <p className="mt-2 text-sm leading-6 text-neutral-300">
+                  Your free plan is active. Experience the first training steps, then upgrade when you are ready for ongoing coaching.
                 </p>
-                <p className="mt-3 max-w-3xl text-neutral-300">
-                  Free access includes one first training session, one logged session,
-                  and up to three AI training questions before upgrade is required.
-                </p>
+                <div className="mt-4 rounded-lg border border-neutral-800 bg-black/30 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">
+                    Current plan status
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-white">{workflowNextAction}</p>
+                </div>
               </div>
               <div className="w-full max-w-xl rounded-lg border border-neutral-800 bg-neutral-950 p-4">
                 <div className="flex items-center justify-between gap-4 text-sm">
@@ -2981,8 +3028,9 @@ ${recentHistory}`;
                   </button>
                 </div>
               </div>
+              </div>
             </div>
-          </div>
+          )}
         </section>
       )}
 
