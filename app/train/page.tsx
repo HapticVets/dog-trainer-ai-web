@@ -2850,6 +2850,97 @@ ${recentHistory}`;
     </div>
   );
 
+  const completedCaseFileManagement = (
+    <div className="space-y-5">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
+        <div className="min-w-0 flex-1">
+          <label className="mb-2 block text-sm text-white">Saved Dogs</label>
+          <select
+            value={selectedDogId}
+            onChange={(e) => handleSelectDog(e.target.value)}
+            className="min-h-11 w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/30"
+          >
+            {dogProfiles.map((dog) => (
+              <option key={dog.id} value={dog.id}>
+                {dog.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <button
+          type="button"
+          onClick={handleDeleteDogProfile}
+          disabled={!selectedDogId}
+          className="min-h-11 w-full rounded border border-red-500/40 px-4 py-3 text-sm font-semibold text-red-200 transition-colors hover:bg-red-500/10 focus:outline-none focus:ring-2 focus:ring-red-300 disabled:opacity-50 lg:w-auto"
+        >
+          Delete Dog
+        </button>
+      </div>
+
+      <div className="rounded-xl border border-amber-500/25 bg-gradient-to-br from-amber-400/10 via-neutral-950 to-neutral-950 p-4 sm:p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">
+              Active Case File
+            </p>
+            <h2 className="mt-2 text-2xl font-bold text-white">{dogProfile.name}</h2>
+            <p className="mt-2 text-sm leading-6 text-neutral-300">
+              This dog already has an active case file.
+            </p>
+          </div>
+          <span className="w-fit rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-200">
+            Active Case
+          </span>
+        </div>
+      </div>
+
+      {isPremiumUser ? (
+        <DogProfilePhotoPicker
+          key={selectedDogId || "active-dog-photo"}
+          dogName={dogProfile.name}
+          statusLabel="Active Case"
+          imageUrl={dogProfile.profileImageUrl}
+          pendingImage={pendingProfileImage}
+          pendingRemoval={pendingProfileImageRemoval}
+          disabled={profileSaving}
+          onChange={(image) => {
+            setPendingProfileImage(image);
+            setPendingProfileImageRemoval(false);
+            setProfileImageError("");
+          }}
+          onRemove={() => {
+            setPendingProfileImage(null);
+            setPendingProfileImageRemoval(true);
+            setProfileImageError("");
+          }}
+          onReset={resetPendingProfileImage}
+        />
+      ) : (
+        photoUpgradeNotice
+      )}
+
+      {profileImageError && <p className="text-sm text-red-300" role="alert">{profileImageError}</p>}
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+        <button
+          type="button"
+          onClick={handleSaveDogProfile}
+          disabled={profileSaving}
+          className="min-h-11 w-full rounded bg-amber-400 px-5 py-3 font-semibold text-black transition-colors hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-200 focus:ring-offset-2 focus:ring-offset-neutral-950 disabled:opacity-50 sm:w-auto"
+        >
+          {profileSaving ? "Saving..." : "Update Case File"}
+        </button>
+        <button
+          type="button"
+          onClick={handleAddDog}
+          className="min-h-11 w-full rounded border border-neutral-600 px-5 py-3 font-semibold text-white transition-colors hover:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-amber-300 sm:w-auto"
+        >
+          Add Another Dog
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <main className="min-h-screen overflow-x-hidden bg-neutral-950 text-white">
       <GoogleAdsSignUpConversion
@@ -3442,7 +3533,11 @@ ${recentHistory}`;
         <div className="grid gap-6 xl:grid-cols-[minmax(420px,0.38fr)_minmax(0,0.62fr)] xl:gap-8">
           <div className="space-y-8">
             <section id="case-file-section" className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
-              <div className="flex flex-col items-start justify-between gap-3 sm:flex-row">
+              {hasActiveDog && !evaluationMode && profileCollapsed ? (
+                completedCaseFileManagement
+              ) : (
+                <>
+                  <div className="flex flex-col items-start justify-between gap-3 sm:flex-row">
                 <div>
                   <h2 className="text-2xl font-bold sm:text-3xl">Dog Case File</h2>
                   <p className="mt-3 text-neutral-400">
@@ -3498,7 +3593,9 @@ ${recentHistory}`;
                 </div>
               )}
 
-              {caseFileForm}
+                  {caseFileForm}
+                </>
+              )}
             </section>
 
             {(workflowState === "plan_ready_to_log" || workflowState === "progressing") && (
