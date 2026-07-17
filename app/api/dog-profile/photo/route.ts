@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
+import { getTrainerAccess } from "@/app/lib/trainer-access";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 const BUCKET = "dog-profile-images";
@@ -86,6 +87,17 @@ export async function POST(request: NextRequest) {
   try {
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const access = await getTrainerAccess(userId);
+    if (!access.premium) {
+      return NextResponse.json(
+        {
+          error: "Dog profile photos are a Premium personalization feature.",
+          requiresUpgrade: true,
+        },
+        { status: 403 }
+      );
+    }
 
     const formData = await request.formData();
     const dogProfileId = formData.get("dogProfileId");

@@ -710,6 +710,15 @@ export default function TrainPage() {
     });
   };
 
+  const showPhotoUpgradePrompt = () => {
+    setUpgradeCheckoutError("");
+    setUpgradeModal({
+      title: "Upgrade to add dog photos",
+      description:
+        "Dog profile photos are a Premium personalization feature. Upgrade to add photos to your Training Center and Patriot K9 Coach.",
+    });
+  };
+
   useEffect(() => {
     if (!user) return;
 
@@ -1817,6 +1826,25 @@ ${recentHistory}`;
     },
   ];
 
+  const photoUpgradeNotice = (
+    <div className="rounded-lg border border-amber-500/30 bg-amber-400/10 p-4 sm:p-5">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">
+        Premium Personalization
+      </p>
+      <h3 className="mt-2 text-lg font-bold text-white">Add a dog profile photo with Premium</h3>
+      <p className="mt-2 text-sm leading-6 text-neutral-300">
+        Keep your dog&apos;s Training Center and Patriot K9 Coach personalized with a profile photo.
+      </p>
+      <button
+        type="button"
+        onClick={showPhotoUpgradePrompt}
+        className="mt-4 w-full rounded bg-amber-400 px-4 py-3 text-sm font-semibold text-black hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-200 focus:ring-offset-2 focus:ring-offset-neutral-950 sm:w-auto"
+      >
+        Upgrade to add a photo
+      </button>
+    </div>
+  );
+
   const evaluationWizardContent = (
     <div className="mt-6 space-y-6">
       <div className="rounded-lg border border-neutral-800 bg-black/30 p-4 sm:p-5">
@@ -1846,26 +1874,30 @@ ${recentHistory}`;
 
       {evaluationStep === 1 && (
         <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
-          <DogProfilePhotoPicker
-            key="new-dog-evaluation-photo"
-            dogName={dogProfile.name}
-            statusLabel="New Case"
-            imageUrl={dogProfile.profileImageUrl}
-            pendingImage={pendingProfileImage}
-            pendingRemoval={pendingProfileImageRemoval}
-            disabled={profileSaving}
-            onChange={(image) => {
-              setPendingProfileImage(image);
-              setPendingProfileImageRemoval(false);
-              setProfileImageError("");
-            }}
-            onRemove={() => {
-              setPendingProfileImage(null);
-              setPendingProfileImageRemoval(true);
-              setProfileImageError("");
-            }}
-            onReset={resetPendingProfileImage}
-          />
+          {isPremiumUser ? (
+            <DogProfilePhotoPicker
+              key="new-dog-evaluation-photo"
+              dogName={dogProfile.name}
+              statusLabel="New Case"
+              imageUrl={dogProfile.profileImageUrl}
+              pendingImage={pendingProfileImage}
+              pendingRemoval={pendingProfileImageRemoval}
+              disabled={profileSaving}
+              onChange={(image) => {
+                setPendingProfileImage(image);
+                setPendingProfileImageRemoval(false);
+                setProfileImageError("");
+              }}
+              onRemove={() => {
+                setPendingProfileImage(null);
+                setPendingProfileImageRemoval(true);
+                setProfileImageError("");
+              }}
+              onReset={resetPendingProfileImage}
+            />
+          ) : (
+            photoUpgradeNotice
+          )}
           {profileImageError && (
             <p className="mt-4 text-sm text-red-300" role="alert">{profileImageError}</p>
           )}
@@ -2329,26 +2361,30 @@ ${recentHistory}`;
         </div>
       )}
 
-      <DogProfilePhotoPicker
-        key={selectedDogId || "new-dog-photo"}
-        dogName={dogProfile.name}
-        statusLabel={hasActiveDog ? "Active Case" : "New Case"}
-        imageUrl={dogProfile.profileImageUrl}
-        pendingImage={pendingProfileImage}
-        pendingRemoval={pendingProfileImageRemoval}
-        disabled={profileSaving}
-        onChange={(image) => {
-          setPendingProfileImage(image);
-          setPendingProfileImageRemoval(false);
-          setProfileImageError("");
-        }}
-        onRemove={() => {
-          setPendingProfileImage(null);
-          setPendingProfileImageRemoval(true);
-          setProfileImageError("");
-        }}
-        onReset={resetPendingProfileImage}
-      />
+      {isPremiumUser ? (
+        <DogProfilePhotoPicker
+          key={selectedDogId || "new-dog-photo"}
+          dogName={dogProfile.name}
+          statusLabel={hasActiveDog ? "Active Case" : "New Case"}
+          imageUrl={dogProfile.profileImageUrl}
+          pendingImage={pendingProfileImage}
+          pendingRemoval={pendingProfileImageRemoval}
+          disabled={profileSaving}
+          onChange={(image) => {
+            setPendingProfileImage(image);
+            setPendingProfileImageRemoval(false);
+            setProfileImageError("");
+          }}
+          onRemove={() => {
+            setPendingProfileImage(null);
+            setPendingProfileImageRemoval(true);
+            setProfileImageError("");
+          }}
+          onReset={resetPendingProfileImage}
+        />
+      ) : (
+        photoUpgradeNotice
+      )}
 
       {profileImageError && (
         <p className="text-sm text-red-300" role="alert">{profileImageError}</p>
