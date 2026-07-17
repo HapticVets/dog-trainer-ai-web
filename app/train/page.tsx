@@ -121,6 +121,15 @@ const skillLevelOptions = [
   "Competition ready",
 ];
 
+const coachPromptSuggestions = [
+  "What should I work on today?",
+  "Is my dog ready for more distractions?",
+  "Why did my dog regress?",
+  "Should I shorten the next session?",
+  "How do I improve engagement?",
+  "What should I do after a bad session?",
+];
+
 const sessionFocusOptions = [
   "Heel",
   "Sit",
@@ -365,7 +374,7 @@ export default function TrainPage() {
       ? `Generate ${dogProfile.name || "this dog's"} first session`
       : workflowState === "plan_ready_to_log"
       ? "Log today's training session"
-      : "Generate the next session or ask AI follow-up";
+      : "Generate the next session or ask Patriot K9 Coach";
 
   const currentPlanPhase =
     getPlanSectionContent(parsedCurrentPlan, "Current Phase") ||
@@ -1127,7 +1136,7 @@ export default function TrainPage() {
 
   const handleSend = async () => {
     if (!selectedDogId) {
-      showToast("Save a dog profile first.", "warning");
+      showToast("Create or select a dog case file before asking Patriot K9 Coach.", "warning");
       return;
     }
 
@@ -1201,7 +1210,7 @@ export default function TrainPage() {
     } catch (error) {
       console.error("Chat error:", error);
 
-      const assistantText = "Error connecting to the AI training assistant.";
+      const assistantText = "Patriot K9 Coach could not respond right now. Please try again.";
       const assistantMessage: ChatMessage = {
         role: "assistant",
         content: assistantText,
@@ -3295,140 +3304,225 @@ ${recentHistory}`;
                 </section>
 
                 {workflowState === "progressing" && (
-                <section className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                    <div>
-                      <h2 className="text-2xl font-bold sm:text-3xl">AI Training Assistant</h2>
-                      <p className="mt-3 text-neutral-400">
-                        Ask for troubleshooting, progression decisions, or clarification on the current training plan.
+                  <section className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-amber-500/30 bg-neutral-900 text-lg font-bold text-amber-300">
+                          {dogProfile.profileImageUrl ? (
+                            <Image
+                              src={dogProfile.profileImageUrl}
+                              alt={`${dogProfile.name} active dog profile`}
+                              fill
+                              sizes="48px"
+                              className="object-cover"
+                            />
+                          ) : (
+                            dogProfile.name.trim().slice(0, 1).toUpperCase() || "K9"
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-400">
+                            Patriot K9 Coach
+                          </p>
+                          <h2 className="mt-1 truncate text-2xl font-bold sm:text-3xl">
+                            Coaching for {dogProfile.name || "your active dog"}
+                          </h2>
+                          <p className="mt-2 text-sm text-neutral-400">
+                            Get guidance based on your dog&apos;s case file, current training plan, and logged sessions.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex w-full flex-wrap gap-2 lg:w-auto lg:justify-end">
+                        <span className="rounded border border-neutral-700 bg-black/30 px-3 py-2 text-xs font-medium text-neutral-300">
+                          Phase: {currentPlanPhase}
+                        </span>
+                        {isPremiumUser ? (
+                          <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-200">
+                            Premium Active
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={handleUpgrade}
+                            disabled={upgradeCheckoutLoading}
+                            className="min-h-10 rounded bg-amber-400 px-4 py-2 text-sm font-semibold text-black hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-200 focus:ring-offset-2 focus:ring-offset-neutral-950 disabled:opacity-60"
+                          >
+                            {upgradeCheckoutLoading ? "Starting checkout..." : "Upgrade to Premium"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-5 flex flex-wrap gap-2" aria-label="Coach context">
+                      {hasActiveDog && (
+                        <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-200">
+                          Case file loaded
+                        </span>
+                      )}
+                      {hasCurrentPlan && (
+                        <span className="rounded-full border border-amber-500/30 bg-amber-400/10 px-3 py-1 text-xs font-medium text-amber-200">
+                          Current plan loaded
+                        </span>
+                      )}
+                      {hasSessions && (
+                        <span className="rounded-full border border-neutral-700 bg-black/30 px-3 py-1 text-xs font-medium text-neutral-300">
+                          Session history available
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="mt-5 rounded border border-amber-500/25 bg-amber-400/5 p-4">
+                      <p className="text-sm font-semibold text-amber-200">Need hands-on support?</p>
+                      <p className="mt-1 text-sm leading-6 text-neutral-300">
+                        Join the{" "}
+                        <a
+                          href="https://discord.gg/Mmb4KSp9Y8"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-semibold text-amber-400 underline underline-offset-4 hover:text-amber-300"
+                        >
+                          Patriot K9 community Discord
+                        </a>{" "}
+                        for direct feedback and kennel community support.
                       </p>
                     </div>
 
-                    <div className="flex w-full flex-col gap-2 md:w-auto md:items-end">
-                      <div className="rounded border border-neutral-700 bg-black/30 px-4 py-3 text-center text-sm text-neutral-300 md:text-left">
-                        AI assistant, not a live trainer
+                    <div className="mt-6">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-400">
+                        Suggested questions
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {coachPromptSuggestions.map((suggestion) => (
+                          <button
+                            key={suggestion}
+                            type="button"
+                            onClick={() => setInput(suggestion)}
+                            disabled={loading || isFreeChatLimitReached}
+                            className="min-h-10 rounded-full border border-neutral-700 bg-black/30 px-3 py-2 text-left text-sm text-neutral-200 hover:border-amber-500/50 hover:bg-amber-400/10 focus:outline-none focus:ring-2 focus:ring-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {suggestion}
+                          </button>
+                        ))}
                       </div>
-                      {isPremiumUser ? (
-                        <div className="rounded border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-center text-sm font-semibold text-emerald-200 md:text-left">
-                          Premium Active
-                        </div>
-                      ) : (
+                    </div>
+
+                    <div className="mt-6 overflow-hidden rounded-lg border border-neutral-800 bg-black p-3 sm:p-4">
+                      <div
+                        ref={chatContainerRef}
+                        className="max-h-[420px] space-y-4 overflow-x-hidden overflow-y-auto pr-1 sm:pr-2"
+                        aria-live="polite"
+                      >
+                        {messages.length === 0 && !loading && (
+                          <div className="rounded border border-neutral-800 bg-neutral-950/80 p-4 text-sm text-neutral-300">
+                            <p className="font-semibold text-white">Start with the training decision in front of you.</p>
+                            <p className="mt-2 leading-6 text-neutral-400">
+                              Ask about today&apos;s session, behavior changes, progression, rewards, corrections, or the next practical step.
+                            </p>
+                            <ul className="mt-3 grid gap-2 text-neutral-300 sm:grid-cols-2">
+                              <li>Today&apos;s training priority</li>
+                              <li>Whether to add distraction</li>
+                              <li>How to recover after a setback</li>
+                              <li>When to progress the plan</li>
+                            </ul>
+                          </div>
+                        )}
+
+                        {messages.map((message, index) => (
+                          <div
+                            key={`${message.role}-${index}`}
+                            className={`max-w-[96%] break-words whitespace-pre-wrap rounded-lg border px-4 py-3 text-sm leading-6 sm:max-w-[82%] ${
+                              message.role === "user"
+                                ? "ml-auto border-amber-500/30 bg-amber-400 text-black"
+                                : "mr-auto border-neutral-800 bg-neutral-900 text-neutral-100"
+                            }`}
+                          >
+                            <p
+                              className={`mb-1 text-xs font-semibold uppercase tracking-[0.14em] ${
+                                message.role === "user" ? "text-black/70" : "text-amber-300"
+                              }`}
+                            >
+                              {message.role === "user" ? "You" : "Patriot K9 Coach"}
+                            </p>
+                            {message.content}
+                          </div>
+                        ))}
+
+                        {loading && (
+                          <div
+                            className="mr-auto max-w-[96%] rounded-lg border border-neutral-800 bg-neutral-900 px-4 py-3 text-sm text-neutral-300 sm:max-w-[82%]"
+                            role="status"
+                          >
+                            Patriot K9 Coach is preparing guidance for {dogProfile.name || "your dog"}...
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {isFreeChatLimitReached ? (
+                      <div className="mt-6 rounded-lg border border-amber-500/30 bg-amber-400/10 p-5 sm:p-6" aria-live="polite">
+                        <p className="text-sm uppercase tracking-[0.2em] text-amber-300">
+                          Free coaching complete
+                        </p>
+                        <h3 className="mt-3 text-xl font-bold sm:text-2xl">
+                          Continue with Patriot K9 Coach
+                        </h3>
+                        <p className="mt-3 max-w-2xl text-neutral-200">
+                          You&apos;ve used the free coaching messages for this account. Upgrade to unlock unlimited coaching, ongoing sessions, session history, and progression support.
+                        </p>
+                        {upgradeCheckoutError && (
+                          <p className="mt-4 text-sm text-red-200" role="alert">{upgradeCheckoutError}</p>
+                        )}
                         <button
                           type="button"
                           onClick={handleUpgrade}
                           disabled={upgradeCheckoutLoading}
-                          className="w-full rounded bg-amber-400 px-4 py-3 text-sm font-semibold text-black hover:bg-amber-300 disabled:opacity-60"
+                          className="mt-5 min-h-11 w-full rounded bg-amber-400 px-5 py-3 font-semibold text-black hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-200 focus:ring-offset-2 focus:ring-offset-neutral-950 disabled:opacity-60 sm:w-auto"
                         >
-                          {upgradeCheckoutLoading
-                            ? "Starting checkout..."
-                            : "⭐ Upgrade to Premium"}
+                          {upgradeCheckoutLoading ? "Starting checkout..." : "Upgrade to Premium"}
                         </button>
-                      )}
-                    </div>
-                  </div>
+                      </div>
+                    ) : (
+                      <div className="sticky bottom-3 z-10 mt-6 rounded-lg border border-neutral-700 bg-neutral-950/95 p-3 shadow-[0_12px_32px_rgba(0,0,0,0.3)] backdrop-blur sm:p-4">
+                        <label htmlFor="patriot-k9-coach-input" className="sr-only">
+                          Ask Patriot K9 Coach about your dog&apos;s training
+                        </label>
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                          <textarea
+                            id="patriot-k9-coach-input"
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" && !event.shiftKey) {
+                                event.preventDefault();
+                                void handleSend();
+                              }
+                            }}
+                            placeholder="Ask Patriot K9 Coach about your dog&apos;s training..."
+                            disabled={loading || !hasActiveDog}
+                            className="min-h-[104px] w-full flex-1 resize-y rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-base leading-6 text-white outline-none placeholder:text-neutral-500 focus:border-amber-400 focus:ring-2 focus:ring-amber-400/30 disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-[88px]"
+                          />
 
-                  <div className="mt-5 rounded border border-amber-500/30 bg-amber-400/10 p-4">
-                    <p className="text-sm font-semibold text-amber-300">
-                      Need help from a real trainer?
-                    </p>
-                    <p className="mt-2 text-sm text-neutral-300">
-                      Join the{" "}
-                      <a
-                        href="https://discord.gg/Mmb4KSp9Y8"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="font-semibold text-amber-400 underline underline-offset-4 hover:text-amber-300"
-                      >
-                        Das Muller Discord Server
-                      </a>{" "}
-                      to ask questions, get direct feedback, and connect with the kennel community.
-                    </p>
-                  </div>
-
-                  <p className="mt-6 text-sm text-neutral-400">
-                    Ask follow-up questions about the active dog, current plan, or recent session history.
-                  </p>
-                  <p className="mt-2 text-sm text-amber-300/90">
-                    Free plan includes 3 AI messages. Upgrade for unlimited coaching.
-                  </p>
-
-                  <div className="mt-6 overflow-hidden rounded-lg border border-neutral-800 bg-black p-3 sm:p-4">
-                    <div
-                      ref={chatContainerRef}
-                      className="max-h-[420px] space-y-4 overflow-x-hidden overflow-y-auto pr-1 sm:pr-2"
-                    >
-                      {messages.length === 0 && (
-                        <p className="text-neutral-400">
-                          No chat history yet. Use the session generator first, or ask a dog-specific training question.
+                          <button
+                            type="button"
+                            onClick={handleSend}
+                            disabled={loading || !input.trim() || !hasActiveDog}
+                            className="min-h-11 w-full rounded bg-amber-400 px-6 py-3 font-semibold text-black hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-200 focus:ring-offset-2 focus:ring-offset-neutral-950 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                          >
+                            {loading ? "Preparing..." : "Send"}
+                          </button>
+                        </div>
+                        <p className="mt-3 text-xs text-neutral-500">
+                          Press Enter to send. Use Shift+Enter for a new line.
                         </p>
-                      )}
-
-                      {messages.map((message, index) => (
-                        <div
-                          key={`${message.role}-${index}`}
-                          className={`max-w-[92%] break-words whitespace-pre-wrap rounded px-3 py-3 text-sm sm:max-w-[85%] sm:px-4 sm:text-base ${
-                            message.role === "user"
-                              ? "ml-auto bg-amber-400 text-black"
-                              : "mr-auto bg-neutral-900 text-white"
-                          }`}
-                        >
-                          {message.content}
-                        </div>
-                      ))}
-
-                      {loading && (
-                        <div className="mr-auto max-w-[92%] rounded bg-neutral-900 px-3 py-3 text-sm text-neutral-300 sm:max-w-[85%] sm:px-4 sm:text-base">
-                          Thinking...
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {isFreeChatLimitReached ? (
-                    <div className="mt-6 rounded-lg border border-amber-500/30 bg-amber-400/10 p-5 sm:p-6">
-                      <p className="text-sm uppercase tracking-[0.2em] text-amber-300">
-                        Free coaching complete
-                      </p>
-                      <h3 className="mt-3 text-xl font-bold sm:text-2xl">
-                        Keep building your dog&apos;s training plan
-                      </h3>
-                      <p className="mt-3 max-w-2xl text-neutral-200">
-                        Premium unlocks unlimited AI coaching, ongoing training sessions,
-                        session history, and progression support for your active dog.
-                      </p>
-                      {upgradeCheckoutError && (
-                        <p className="mt-4 text-sm text-red-200">{upgradeCheckoutError}</p>
-                      )}
-                      <button
-                        type="button"
-                        onClick={handleUpgrade}
-                        disabled={upgradeCheckoutLoading}
-                        className="mt-5 w-full rounded bg-amber-400 px-5 py-3 font-semibold text-black hover:bg-amber-300 disabled:opacity-60 sm:w-auto"
-                      >
-                        {upgradeCheckoutLoading ? "Starting checkout..." : "Upgrade Now"}
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                      <textarea
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        placeholder="Ask about today's session... Example: Should I increase distractions? How do I stop forging? Is my dog ready for the next step?"
-                        disabled={loading || !hasActiveDog}
-                        className="min-h-[120px] w-full flex-1 rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-base text-white outline-none disabled:opacity-50 sm:min-h-[90px]"
-                      />
-
-                      <button
-                        type="button"
-                        onClick={handleSend}
-                        disabled={loading || !input.trim() || !hasActiveDog}
-                        className="w-full self-end rounded bg-amber-400 px-6 py-3 font-semibold text-black disabled:opacity-50 sm:w-auto"
-                      >
-                        Send
-                      </button>
-                    </div>
-                  )}
-                </section>
+                        {!isPremiumUser && (
+                          <p className="mt-1 text-xs text-amber-300/90">
+                            Free plan includes 3 AI messages. Upgrade for unlimited coaching.
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </section>
                 )}
 
                 {workflowState === "progressing" && (
