@@ -2851,7 +2851,7 @@ ${recentHistory}`;
   );
 
   const completedCaseFileManagement = (
-    <div className="space-y-5">
+    <div className="space-y-4 sm:space-y-5">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
         <div className="min-w-0 flex-1">
           <label className="mb-2 block text-sm text-white">Saved Dogs</label>
@@ -3605,7 +3605,7 @@ ${recentHistory}`;
                   Record what actually happened so the next session is built from real performance.
                 </p>
 
-                <div className="mt-6 space-y-5">
+                <div className="mt-5 space-y-4 sm:mt-6 sm:space-y-5">
                   <div>
                     <label className="mb-2 block text-sm text-white">Date</label>
                     <input
@@ -3618,7 +3618,7 @@ ${recentHistory}`;
                     />
                   </div>
 
-                  <div className="grid gap-5 md:grid-cols-2">
+                  <div className="grid gap-4 md:grid-cols-2 sm:gap-5">
                     <div>
                       <label className="mb-2 block text-sm text-white">Duration</label>
                       <select
@@ -3654,7 +3654,7 @@ ${recentHistory}`;
                     </div>
                   </div>
 
-                  <div className="grid gap-5 md:grid-cols-2">
+                  <div className="grid gap-4 md:grid-cols-2 sm:gap-5">
                     <div>
                       <label className="mb-2 block text-sm text-white">Result</label>
                       <select
@@ -4063,10 +4063,10 @@ ${recentHistory}`;
                       </div>
                     </div>
 
-                    <div className="mt-6 overflow-hidden rounded-lg border border-neutral-800 bg-black p-3 sm:p-4">
+                    <div className="mt-5 overflow-hidden rounded-lg border border-neutral-800 bg-black p-3 sm:mt-6 sm:p-4">
                       <div
                         ref={chatContainerRef}
-                        className="max-h-[420px] space-y-4 overflow-x-hidden overflow-y-auto pr-1 sm:pr-2"
+                        className="max-h-none space-y-4 overflow-x-hidden pr-1 md:max-h-[420px] md:overflow-y-auto sm:pr-2"
                         aria-live="polite"
                       >
                         {messages.length === 0 && !loading && (
@@ -4139,7 +4139,7 @@ ${recentHistory}`;
                         </button>
                       </div>
                     ) : (
-                      <div className="sticky bottom-3 z-10 mt-6 rounded-lg border border-neutral-700 bg-neutral-950/95 p-3 shadow-[0_12px_32px_rgba(0,0,0,0.3)] backdrop-blur sm:p-4">
+                      <div className="static z-10 mt-5 rounded-lg border border-neutral-700 bg-neutral-950/95 p-3 shadow-[0_12px_32px_rgba(0,0,0,0.3)] backdrop-blur md:sticky md:bottom-3 sm:mt-6 sm:p-4">
                         <label htmlFor="patriot-k9-coach-input" className="sr-only">
                           Ask Patriot K9 Coach about your dog&apos;s training
                         </label>

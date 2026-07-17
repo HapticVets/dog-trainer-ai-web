@@ -689,7 +689,12 @@ ${sessionSummary}`;
                   <p className="mt-1 text-sm text-neutral-400">Active case file and training record</p>
                 </div>
               </div>
-              <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <details className="group mt-4">
+                <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between rounded-lg border border-neutral-800 bg-black/30 px-4 py-3 text-sm font-semibold text-neutral-200 transition-colors hover:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-amber-300">
+                  View profile details
+                  <span className="text-amber-300 transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
+                </summary>
+                <dl className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {[
                 ["Dog Name", selectedDogProfile.name],
                 ["Breed", selectedDogProfile.breed || "Not set"],
@@ -711,7 +716,8 @@ ${sessionSummary}`;
                   <dd className="mt-2 break-words text-sm font-semibold leading-6 text-white">{value}</dd>
                 </div>
               ))}
-              </dl>
+                </dl>
+              </details>
             </>
           ) : (
             <p className="mt-5 text-sm leading-6 text-neutral-400">
@@ -792,9 +798,13 @@ ${sessionSummary}`;
           </div>
 
           {savedProgressReports.length > 0 && (
-            <div className="mt-6 space-y-3">
-              <h3 className="text-xl font-semibold">Saved Progress Reports</h3>
-              {savedProgressReports.map((report) => (
+            <details className="group mt-6">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between rounded-lg border border-neutral-800 bg-black/30 px-4 py-3 text-sm font-semibold text-neutral-200 transition-colors hover:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-amber-300">
+                Saved Progress Reports
+                <span className="text-amber-300 transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
+              </summary>
+              <div className="mt-3 space-y-3">
+                {savedProgressReports.map((report) => (
                 <button
                   key={report.id}
                   type="button"
@@ -803,8 +813,9 @@ ${sessionSummary}`;
                 >
                   {new Date(report.createdAt).toLocaleString()}
                 </button>
-              ))}
-            </div>
+                ))}
+              </div>
+            </details>
           )}
         </div>
 
@@ -813,7 +824,12 @@ ${sessionSummary}`;
           <h2 className="mt-3 text-3xl font-bold">Latest Training Plan</h2>
 
           {activeTrainingPlan ? (
-            <div className="mt-6 grid gap-4 md:grid-cols-4">
+            <details className="group mt-6">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between rounded-lg border border-neutral-800 bg-black/30 px-4 py-3 text-sm font-semibold text-neutral-200 transition-colors hover:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-amber-300">
+                View latest plan details
+                <span className="text-amber-300 transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
+              </summary>
+              <div className="mt-4 grid gap-4 md:grid-cols-4">
               <div>
                 <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">Current Objective</p>
                 <p className="mt-2 text-sm leading-6 text-neutral-200">{getPreview(activePlanObjective, 160)}</p>
@@ -830,7 +846,8 @@ ${sessionSummary}`;
                 <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">Last Generated</p>
                 <p className="mt-2 text-sm font-semibold text-white">{new Date(activeTrainingPlan.createdAt).toLocaleString()}</p>
               </div>
-            </div>
+              </div>
+            </details>
           ) : (
             <p className="mt-5 text-sm leading-6 text-neutral-400">No saved training plan yet. Start in the Trainer to generate your first mission.</p>
           )}
