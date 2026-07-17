@@ -83,6 +83,11 @@ type UpgradeModalState = {
   description: string;
 };
 
+type ToastState = {
+  message: string;
+  variant: "success" | "warning" | "error";
+};
+
 const rewardTypeOptions = ["Food", "Toy", "Ball", "Food and Toy", "Praise"];
 
 const skillLevelOptions = [
@@ -260,6 +265,8 @@ export default function TrainPage() {
   const [upgradeModal, setUpgradeModal] = useState<UpgradeModalState | null>(null);
   const [upgradeCheckoutLoading, setUpgradeCheckoutLoading] = useState(false);
   const [upgradeCheckoutError, setUpgradeCheckoutError] = useState("");
+  const [toast, setToast] = useState<ToastState | null>(null);
+  const toastTimeoutRef = useRef<number | null>(null);
 
   const hasActiveDog = Boolean(selectedDogId && dogProfile.name.trim());
   const hasSessions = sessionLogs.length > 0;
@@ -369,6 +376,12 @@ export default function TrainPage() {
     setSelectedDogId(dog.id);
     setDogProfile(dog);
     persistActiveDogId(dog.id);
+  };
+
+  const showToast = (message: string, variant: ToastState["variant"]) => {
+    if (toastTimeoutRef.current) window.clearTimeout(toastTimeoutRef.current);
+    setToast({ message, variant });
+    toastTimeoutRef.current = window.setTimeout(() => setToast(null), 5000);
   };
 
   const refreshTrainerAccess = async () => {
@@ -853,16 +866,19 @@ export default function TrainPage() {
 
   const handleSaveDogProfile = async () => {
     if (!user) {
-      alert("You must be signed in to save the dog profile.");
+      showToast("You must be signed in to save the dog profile.", "warning");
       return;
     }
 
     if (!dogProfile.name.trim()) {
-      alert("Dog name is required.");
+      showToast("Dog name is required.", "warning");
       return;
     }
 
     setProfileSaving(true);
+    const hadPendingPhotoChange = Boolean(
+      pendingProfileImage || pendingProfileImageRemoval
+    );
 
     try {
       const res = await fetch("/api/dog-profile", {
@@ -887,7 +903,7 @@ export default function TrainPage() {
         }
 
         console.error("Failed to save dog profile:", data.error);
-        alert("Failed to save dog profile.");
+        showToast("Unable to save the case file.", "error");
         return;
       }
 
@@ -907,7 +923,7 @@ export default function TrainPage() {
         imageUpdateFailed = true;
         const message = imageError instanceof Error ? imageError.message : "Unable to save dog photo.";
         setProfileImageError(message);
-        alert(`Case file saved, but the dog photo could not be updated. ${message}`);
+        showToast(`Case file saved, but the dog photo could not be updated. ${message}`, "warning");
       }
 
       setDogProfiles((prev) => {
@@ -927,10 +943,19 @@ export default function TrainPage() {
       if (!imageUpdateFailed) resetPendingProfileImage();
       setUpgradeModal(null);
       setUpgradeCheckoutError("");
-      alert("Dog profile saved.");
+      if (!imageUpdateFailed) {
+        showToast(
+          hadPendingPhotoChange
+            ? "Dog photo updated and case file saved."
+            : selectedDogId
+            ? "Case file updated."
+            : "Case file saved.",
+          "success"
+        );
+      }
     } catch (error) {
       console.error("Failed to save dog profile:", error);
-      alert("Failed to save dog profile.");
+      showToast("Unable to save the case file.", "error");
     } finally {
       setProfileSaving(false);
     }
@@ -938,7 +963,7 @@ export default function TrainPage() {
 
   const handleDeleteDogProfile = async () => {
     if (!selectedDogId) {
-      alert("Select a saved dog first.");
+      showToast("Select a saved dog first.", "warning");
       return;
     }
 
@@ -957,7 +982,7 @@ export default function TrainPage() {
 
       if (!res.ok) {
         console.error("Failed to delete dog profile:", data.error);
-        alert("Failed to delete dog profile.");
+        showToast("Unable to delete the dog profile.", "error");
         return;
       }
 
@@ -980,13 +1005,13 @@ export default function TrainPage() {
       setSavedOutputs([]);
     } catch (error) {
       console.error("Failed to delete dog profile:", error);
-      alert("Failed to delete dog profile.");
+      showToast("Unable to delete the dog profile.", "error");
     }
   };
 
   const handleSend = async () => {
     if (!selectedDogId) {
-      alert("Save a dog profile first.");
+      showToast("Save a dog profile first.", "warning");
       return;
     }
 
@@ -1075,12 +1100,12 @@ export default function TrainPage() {
 
   const handleSaveSession = async () => {
     if (!dogProfile.name.trim()) {
-      alert("Save a dog profile first.");
+      showToast("Save a dog profile first.", "warning");
       return;
     }
 
     if (!sessionForm.date.trim() || !sessionForm.wins.trim()) {
-      alert("Fill out the session log before saving.");
+      showToast("Fill out the session log before saving.", "warning");
       return;
     }
 
@@ -1134,7 +1159,7 @@ export default function TrainPage() {
         }
 
         console.error("Failed to save session log:", data.error);
-        alert("Failed to save session log.");
+        showToast("Unable to save the session log.", "error");
         return;
       }
 
@@ -1165,7 +1190,7 @@ export default function TrainPage() {
       await refreshTrainerAccess();
     } catch (error) {
       console.error("Failed to save session log:", error);
-      alert("Failed to save session log.");
+      showToast("Unable to save the session log.", "error");
     }
   };
 
@@ -1179,20 +1204,20 @@ export default function TrainPage() {
 
       if (!res.ok) {
         console.error("Failed to delete session log:", data.error);
-        alert("Failed to delete session log.");
+        showToast("Unable to delete the session log.", "error");
         return;
       }
 
       setSessionLogs((prev) => prev.filter((log) => log.id !== id));
     } catch (error) {
       console.error("Failed to delete session log:", error);
-      alert("Failed to delete session log.");
+      showToast("Unable to delete the session log.", "error");
     }
   };
 
   const handleGenerateFirstSession = async () => {
     if (!selectedDogId) {
-      alert("Save a dog profile first.");
+      showToast("Save a dog profile first.", "warning");
       return;
     }
 
@@ -1288,14 +1313,14 @@ ${buildDogCaseFileContext(dogProfile)}`;
 
   const handleGenerateNextSessionPlan = async () => {
     if (!selectedDogId) {
-      alert("Save a dog profile first.");
+      showToast("Save a dog profile first.", "warning");
       return;
     }
 
     if (planLoading) return;
 
     if (sessionLogs.length === 0) {
-      alert("Log at least one session before generating the next session.");
+      showToast("Log at least one session before generating the next session.", "warning");
       return;
     }
 
@@ -1478,6 +1503,7 @@ ${recentHistory}`;
           <DogProfilePhotoPicker
             key="new-dog-evaluation-photo"
             dogName={dogProfile.name}
+            statusLabel="New Case"
             imageUrl={dogProfile.profileImageUrl}
             pendingImage={pendingProfileImage}
             pendingRemoval={pendingProfileImageRemoval}
@@ -1958,6 +1984,7 @@ ${recentHistory}`;
       <DogProfilePhotoPicker
         key={selectedDogId || "new-dog-photo"}
         dogName={dogProfile.name}
+        statusLabel={hasActiveDog ? "Active Case" : "New Case"}
         imageUrl={dogProfile.profileImageUrl}
         pendingImage={pendingProfileImage}
         pendingRemoval={pendingProfileImageRemoval}
@@ -1980,29 +2007,43 @@ ${recentHistory}`;
       )}
 
       {!evaluationMode && hasActiveDog && (
-        <div className="rounded border border-amber-500/40 bg-amber-400/15 p-5 shadow-[0_0_0_1px_rgba(251,191,36,0.08)]">
-          <p className="text-xs uppercase tracking-[0.2em] text-amber-300">
-            Active Case File
-          </p>
-          <p className="mt-3 text-3xl font-bold">{dogProfile.name}</p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <p className="rounded border border-white/10 bg-black/20 px-3 py-2 text-sm text-neutral-200">
-              <span className="font-semibold text-white">Primary priority:</span>{" "}
-              {dogProfile.mainGoal || "Not set"}
+        <div className="rounded-lg border border-amber-500/25 bg-black/30 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">
+              Active case details
             </p>
-            <p className="rounded border border-white/10 bg-black/20 px-3 py-2 text-sm text-neutral-200">
-              <span className="font-semibold text-white">Severity:</span>{" "}
-              {dogProfile.severity || "Not set"}
-            </p>
-            <p className="rounded border border-white/10 bg-black/20 px-3 py-2 text-sm text-neutral-200 sm:col-span-2">
-              <span className="font-semibold text-white">Where it happens:</span>{" "}
-              {dogProfile.whereItHappens.join(", ") || "Not set"}
-            </p>
-            <p className="rounded border border-white/10 bg-black/20 px-3 py-2 text-sm text-neutral-200 sm:col-span-2">
-              <span className="font-semibold text-white">Goals selected:</span>{" "}
-              {dogProfile.selectedGoals.join(", ") || "Not set"}
-            </p>
+            <span className="rounded-full border border-neutral-700 px-2.5 py-1 text-xs font-medium text-neutral-300">
+              {dogProfile.goalType}
+            </span>
           </div>
+          <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="min-w-0 rounded border border-neutral-800 bg-neutral-950/70 px-3 py-2.5">
+              <dt className="text-xs uppercase tracking-[0.14em] text-neutral-500">Primary priority</dt>
+              <dd className="mt-1 break-words text-sm font-medium text-white">
+                {dogProfile.mainGoal || "Not set"}
+              </dd>
+            </div>
+            <div className="min-w-0 rounded border border-neutral-800 bg-neutral-950/70 px-3 py-2.5">
+              <dt className="text-xs uppercase tracking-[0.14em] text-neutral-500">Severity</dt>
+              <dd className="mt-1">
+                <span className="inline-flex rounded-full border border-amber-500/25 bg-amber-400/10 px-2.5 py-1 text-xs font-semibold text-amber-200">
+                  {dogProfile.severity || "Not set"}
+                </span>
+              </dd>
+            </div>
+            <div className="min-w-0 rounded border border-neutral-800 bg-neutral-950/70 px-3 py-2.5">
+              <dt className="text-xs uppercase tracking-[0.14em] text-neutral-500">Where it happens</dt>
+              <dd className="mt-1 break-words text-sm text-neutral-200">
+                {dogProfile.whereItHappens.join(", ") || "Not set"}
+              </dd>
+            </div>
+            <div className="min-w-0 rounded border border-neutral-800 bg-neutral-950/70 px-3 py-2.5">
+              <dt className="text-xs uppercase tracking-[0.14em] text-neutral-500">Goals selected</dt>
+              <dd className="mt-1 break-words text-sm text-neutral-200">
+                {dogProfile.selectedGoals.join(", ") || "Not set"}
+              </dd>
+            </div>
+          </dl>
         </div>
       )}
 
@@ -2407,6 +2448,36 @@ ${recentHistory}`;
         userCreatedAt={user?.createdAt?.getTime()}
         userId={user?.id}
       />
+      {toast && (
+        <div
+          className="pointer-events-none fixed inset-x-4 top-4 z-[80] mx-auto w-auto max-w-md sm:left-auto sm:right-6 sm:mx-0"
+          aria-live={toast.variant === "error" ? "assertive" : "polite"}
+          role={toast.variant === "error" ? "alert" : "status"}
+        >
+          <div
+            className={`pointer-events-auto flex items-start gap-3 rounded-lg border px-4 py-3 shadow-[0_18px_40px_rgba(0,0,0,0.45)] ${
+              toast.variant === "success"
+                ? "border-emerald-500/35 bg-emerald-950 text-emerald-100"
+                : toast.variant === "warning"
+                ? "border-amber-500/35 bg-neutral-950 text-amber-100"
+                : "border-red-500/35 bg-red-950 text-red-100"
+            }`}
+          >
+            <p className="min-w-0 flex-1 text-sm leading-6">{toast.message}</p>
+            <button
+              type="button"
+              onClick={() => {
+                if (toastTimeoutRef.current) window.clearTimeout(toastTimeoutRef.current);
+                setToast(null);
+              }}
+              className="rounded px-1 text-lg leading-none text-current opacity-80 hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-amber-300"
+              aria-label="Dismiss notification"
+            >
+              x
+            </button>
+          </div>
+        </div>
+      )}
       <section className="border-b border-neutral-800">
         <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
@@ -2610,12 +2681,12 @@ ${recentHistory}`;
                   </p>
                 </div>
 
-                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                <div className="flex w-full flex-col gap-2 lg:w-auto lg:flex-row">
                   {hasActiveDog && (
                     <button
                       type="button"
                       onClick={() => setProfileCollapsed((prev) => !prev)}
-                      className="w-full rounded border border-neutral-600 px-4 py-3 font-semibold hover:bg-neutral-900 sm:w-auto"
+                      className="min-h-11 w-full rounded border border-neutral-600 px-4 py-3 font-semibold hover:bg-neutral-900 lg:w-auto"
                     >
                       {profileCollapsed ? "View / Edit Case File" : "Hide Case File"}
                     </button>
@@ -2624,7 +2695,7 @@ ${recentHistory}`;
                   <button
                     type="button"
                     onClick={handleAddDog}
-                    className="w-full rounded border border-neutral-600 px-4 py-3 font-semibold hover:bg-neutral-900 sm:w-auto"
+                    className="min-h-11 w-full rounded border border-neutral-600 px-4 py-3 font-semibold hover:bg-neutral-900 lg:w-auto"
                   >
                     Start New Dog Evaluation
                   </button>
@@ -2633,10 +2704,10 @@ ${recentHistory}`;
                     type="button"
                     onClick={handleSaveDogProfile}
                     disabled={profileSaving}
-                    className="w-full rounded bg-amber-400 px-4 py-3 font-semibold text-black disabled:opacity-50 sm:w-auto"
+                    className="min-h-11 w-full rounded bg-amber-400 px-4 py-3 font-semibold text-black disabled:opacity-50 lg:w-auto"
                   >
                     {profileSaving
-                      ? "Saving..."
+                      ? "Saving case file..."
                       : selectedDogId
                       ? "Update Case File"
                       : "Save Case File"}

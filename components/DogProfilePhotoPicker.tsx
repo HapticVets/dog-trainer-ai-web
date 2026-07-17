@@ -8,6 +8,7 @@ const acceptedMimeTypes = ["image/jpeg", "image/png", "image/webp"];
 
 type DogProfilePhotoPickerProps = {
   dogName: string;
+  statusLabel?: string;
   imageUrl?: string | null;
   pendingImage: File | null;
   pendingRemoval: boolean;
@@ -54,6 +55,7 @@ const createPreviewUrl = (file: File) =>
 
 export default function DogProfilePhotoPicker({
   dogName,
+  statusLabel,
   imageUrl,
   pendingImage,
   pendingRemoval,
@@ -96,7 +98,7 @@ export default function DogProfilePhotoPicker({
   };
 
   return (
-    <div className="rounded-lg border border-neutral-800 bg-black/30 p-4 sm:p-5">
+    <div className="border-b border-neutral-800 pb-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-amber-500/30 bg-neutral-900 sm:h-28 sm:w-28">
           {visibleImageUrl ? (
@@ -115,9 +117,16 @@ export default function DogProfilePhotoPicker({
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className="font-semibold text-white">Dog profile photo</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-xl font-bold text-white">{dogName || "New Dog"}</p>
+            {statusLabel && (
+              <span className="rounded-full border border-amber-500/30 bg-amber-400/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-amber-200">
+                {statusLabel}
+              </span>
+            )}
+          </div>
           <p className="mt-1 text-sm leading-6 text-neutral-400">
-            Optional. JPEG, PNG, or WebP up to 5 MB. Large photos are resized in your browser before upload.
+            Optional profile photo. JPEG, PNG, or WebP up to 5 MB.
           </p>
           {error && <p className="mt-2 text-sm text-red-300" role="alert">{error}</p>}
           {isPendingChange && (
@@ -137,7 +146,7 @@ export default function DogProfilePhotoPicker({
               type="button"
               onClick={() => inputRef.current?.click()}
               disabled={disabled}
-              className="rounded border border-neutral-600 px-4 py-2 text-sm font-semibold hover:bg-neutral-900 disabled:opacity-50"
+              className="rounded border border-neutral-700 px-3 py-2 text-sm font-semibold text-neutral-200 hover:bg-neutral-900 disabled:opacity-50"
             >
               {visibleImageUrl ? "Replace photo" : "Choose photo"}
             </button>
@@ -146,7 +155,7 @@ export default function DogProfilePhotoPicker({
                 type="button"
                 onClick={onRemove}
                 disabled={disabled}
-                className="rounded border border-red-500/40 px-4 py-2 text-sm font-semibold text-red-200 hover:bg-red-500/10 disabled:opacity-50"
+                className="rounded border border-red-500/30 px-3 py-2 text-sm font-semibold text-red-200 hover:bg-red-500/10 disabled:opacity-50"
               >
                 Remove photo
               </button>
@@ -160,7 +169,7 @@ export default function DogProfilePhotoPicker({
                   onReset();
                 }}
                 disabled={disabled}
-                className="rounded border border-neutral-600 px-4 py-2 text-sm font-semibold hover:bg-neutral-900 disabled:opacity-50"
+                className="rounded border border-neutral-700 px-3 py-2 text-sm font-semibold text-neutral-200 hover:bg-neutral-900 disabled:opacity-50"
               >
                 Cancel photo change
               </button>
