@@ -1170,6 +1170,30 @@ export default function TrainPage() {
     };
   };
 
+  const loadPersistedDogProfile = async (dogProfileId: string) => {
+    try {
+      const response = await fetch("/api/dog-profile", {
+        method: "GET",
+        cache: "no-store",
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error("Unable to refresh saved dog profile:", data.error);
+        return null;
+      }
+
+      const profile = (data.profiles ?? []).find(
+        (candidate: { id?: string }) => candidate.id === dogProfileId
+      );
+
+      return profile ? hydrateDogCaseFile(profile) : null;
+    } catch (error) {
+      console.error("Unable to refresh saved dog profile:", error);
+      return null;
+    }
+  };
+
   const removeProfileImage = async (dogProfileId: string) => {
     const response = await fetch(
       `/api/dog-profile/photo?dogProfileId=${encodeURIComponent(dogProfileId)}`,
@@ -1232,7 +1256,10 @@ export default function TrainPage() {
 
       try {
         if (pendingProfileImage && saved.id) {
-          saved = { ...saved, ...(await uploadProfileImage(saved.id, pendingProfileImage)) };
+          const dogProfileId = saved.id;
+          saved = { ...saved, ...(await uploadProfileImage(dogProfileId, pendingProfileImage)) };
+          const persistedProfile = await loadPersistedDogProfile(dogProfileId);
+          if (persistedProfile) saved = persistedProfile;
         } else if (pendingProfileImageRemoval && saved.id && saved.profileImagePath) {
           await removeProfileImage(saved.id);
           saved = { ...saved, profileImagePath: null, profileImageUrl: null };
@@ -2957,7 +2984,7 @@ ${recentHistory}`;
           </section>
         </section>
       ) : evaluationMode ? (
-        <section className="mx-auto max-w-4xl px-4 pb-12 pt-8 sm:px-6 sm:pb-16 sm:pt-10">
+        <section className="mx-auto max-w-7xl px-4 pb-12 pt-8 sm:px-6 sm:pb-16 sm:pt-10">
           <section className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
             {evaluationWizardContent}
           </section>
