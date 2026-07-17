@@ -298,7 +298,7 @@ export default function TrainPage() {
   ]);
   const [onboardingStep, setOnboardingStep] = useState<OnboardingStep>("create");
   const [profileCollapsed, setProfileCollapsed] = useState(false);
-  const [historyCollapsed, setHistoryCollapsed] = useState(false);
+  const [showOlderMissionReports, setShowOlderMissionReports] = useState(false);
   const [evaluationMode, setEvaluationMode] = useState(false);
   const [evaluationStep, setEvaluationStep] = useState<EvaluationStep>(1);
   const [previousActiveDogId, setPreviousActiveDogId] = useState<string>("");
@@ -330,6 +330,10 @@ export default function TrainPage() {
   const isFreeChatLimitReached =
     !isPremiumUser && trainerAccess?.canUseAiChat === false;
   const latestSession = sessionLogs[0];
+  const visibleMissionReports = showOlderMissionReports
+    ? sessionLogs
+    : sessionLogs.slice(0, 3);
+  const olderMissionReportsCount = Math.max(sessionLogs.length - 3, 0);
   const selectedGoals = dogProfile.selectedGoals;
   const categoryGoalOptions = useMemo(
     () => getAvailableMainGoals(dogProfile.goalType, dogProfile.mainGoal),
@@ -774,6 +778,10 @@ export default function TrainPage() {
       });
     }
   }, [messages]);
+
+  useEffect(() => {
+    setShowOlderMissionReports(false);
+  }, [selectedDogId]);
 
   useEffect(() => {
     setProfileCollapsed(hasActiveDog);
@@ -3525,130 +3533,184 @@ ${recentHistory}`;
                   </section>
                 )}
 
-                {workflowState === "progressing" && (
-                <section className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <h2 className="text-2xl font-bold sm:text-3xl">Session History</h2>
-                      <p className="mt-3 text-neutral-400">
-                        Review saved sessions to spot wins, recurring issues, and when the dog is ready to progress.
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setHistoryCollapsed((prev) => !prev)}
-                      className="w-full rounded border border-neutral-600 px-4 py-3 font-semibold hover:bg-neutral-900 sm:w-auto"
-                    >
-                      {historyCollapsed ? "Show History" : "Hide History"}
-                    </button>
-                  </div>
-
-                  {!historyCollapsed && (
-                    <div className="mt-6 space-y-4">
-                      {sessionLogs.length === 0 && (
-                        <p className="text-neutral-400">No sessions logged yet for this dog.</p>
+                {(workflowState === "plan_ready_to_log" || workflowState === "progressing") && (
+                  <section className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-400">
+                          Training Journal
+                        </p>
+                        <h2 className="mt-2 text-2xl font-bold sm:text-3xl">Mission Reports</h2>
+                        <p className="mt-3 text-neutral-400">
+                          Review previous training sessions, progress, and coaching decisions.
+                        </p>
+                      </div>
+                      {isPremiumUser && (
+                        <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm font-semibold text-emerald-200">
+                          Premium Active
+                        </span>
                       )}
-
-                      {sessionLogs.map((log, index) => {
-                        const outcome = getSessionOutcome(log.wins);
-
-                        return (
-                          <div
-                            key={log.id}
-                            className={`rounded-lg border p-4 ${
-                              index === 0
-                                ? "border-amber-500/30 bg-amber-400/10"
-                                : "border-neutral-800 bg-black"
-                            }`}
-                          >
-                            <div className="flex flex-col gap-4">
-                              <div className="flex flex-col items-start justify-between gap-4 sm:flex-row">
-                                <div>
-                                  {index === 0 && (
-                                    <p className="mb-2 text-xs uppercase tracking-[0.2em] text-amber-300">
-                                      Latest Session
-                                    </p>
-                                  )}
-
-                                  <h3 className="text-xl font-semibold">
-                                    {log.date || "No date saved"}
-                                  </h3>
-                                </div>
-
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteSession(log.id)}
-                                  className="w-full rounded border border-neutral-700 px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-900 sm:w-auto"
-                                >
-                                  Delete
-                                </button>
-                              </div>
-
-                              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                                <div className="rounded border border-neutral-800 bg-neutral-950/80 p-3">
-                                  <p className="text-xs uppercase tracking-[0.2em] text-neutral-500">
-                                    Date
-                                  </p>
-                                  <p className="mt-2 text-sm font-semibold text-white">
-                                    {log.date || "Not set"}
-                                  </p>
-                                </div>
-
-                                <div className="rounded border border-neutral-800 bg-neutral-950/80 p-3">
-                                  <p className="text-xs uppercase tracking-[0.2em] text-neutral-500">
-                                    Duration
-                                  </p>
-                                  <p className="mt-2 text-sm font-semibold text-white">
-                                    {log.duration || "Not set"}
-                                  </p>
-                                </div>
-
-                                <div className="rounded border border-neutral-800 bg-neutral-950/80 p-3">
-                                  <p className="text-xs uppercase tracking-[0.2em] text-neutral-500">
-                                    Focus
-                                  </p>
-                                  <p className="mt-2 text-sm font-semibold text-white">
-                                    {log.focus || "Not set"}
-                                  </p>
-                                </div>
-
-                                <div className="rounded border border-neutral-800 bg-neutral-950/80 p-3">
-                                  <p className="text-xs uppercase tracking-[0.2em] text-neutral-500">
-                                    Result
-                                  </p>
-                                  <p className="mt-2 text-sm font-semibold text-white">
-                                    {outcome.result}
-                                  </p>
-                                </div>
-                              </div>
-
-                              <div className="grid gap-3 lg:grid-cols-2">
-                                <div className="rounded border border-neutral-800 bg-neutral-950/80 p-4">
-                                  <p className="text-xs uppercase tracking-[0.2em] text-amber-400">
-                                    Wins Summary
-                                  </p>
-                                  <p className="mt-3 text-sm leading-7 text-neutral-200">
-                                    {outcome.winsSummary}
-                                  </p>
-                                </div>
-
-                                <div className="rounded border border-neutral-800 bg-neutral-950/80 p-4">
-                                  <p className="text-xs uppercase tracking-[0.2em] text-amber-400">
-                                    Issues Summary
-                                  </p>
-                                  <p className="mt-3 text-sm leading-7 text-neutral-200">
-                                    {log.issues || "No issue summary saved."}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
                     </div>
-                  )}
-                </section>
+
+                    <div className="mt-6 grid gap-3 rounded-lg border border-neutral-800 bg-black p-4 sm:grid-cols-2 xl:grid-cols-5">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">Completed sessions</p>
+                        <p className="mt-1 text-lg font-semibold text-white">{sessionLogs.length}</p>
+                      </div>
+                      {dogProfile.name && (
+                        <div className="min-w-0">
+                          <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">Active dog</p>
+                          <p className="mt-1 truncate text-sm font-semibold text-white">{dogProfile.name}</p>
+                        </div>
+                      )}
+                      {hasCurrentPlan && (
+                        <div className="min-w-0">
+                          <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">Current phase</p>
+                          <p className="mt-1 break-words text-sm font-semibold text-white">{currentPlanPhase}</p>
+                        </div>
+                      )}
+                      {latestSession?.date && (
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">Last completed</p>
+                          <p className="mt-1 text-sm font-semibold text-white">{latestSession.date}</p>
+                        </div>
+                      )}
+                      {dogProfile.mainGoal && (
+                        <div className="min-w-0">
+                          <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">Training goal</p>
+                          <p className="mt-1 break-words text-sm font-semibold text-white">{dogProfile.mainGoal}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {sessionLogs.length === 0 ? (
+                      <div className="mt-6 rounded-lg border border-neutral-800 bg-black p-5 text-center sm:p-6">
+                        <h3 className="text-xl font-semibold text-white">No Mission Reports Yet</h3>
+                        <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-neutral-400">
+                          Complete your first training session to begin tracking your dog&apos;s progress.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            document.getElementById("session-log-section")?.scrollIntoView({
+                              behavior: "smooth",
+                              block: "start",
+                            })
+                          }
+                          className="mt-5 min-h-11 w-full rounded bg-amber-400 px-5 py-3 font-semibold text-black hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-200 focus:ring-offset-2 focus:ring-offset-neutral-950 sm:w-auto"
+                        >
+                          Log Today&apos;s Session
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="relative mt-6 space-y-4 before:absolute before:bottom-5 before:left-[11px] before:top-5 before:w-px before:bg-neutral-800 sm:before:left-[15px]">
+                        {visibleMissionReports.map((log, index) => {
+                          const outcome = getSessionOutcome(log.wins);
+                          const reportNumber = sessionLogs.length - index;
+                          const isLatestReport = index === 0;
+
+                          return (
+                            <article key={log.id} className="relative pl-8 sm:pl-10">
+                              <span
+                                className={`absolute left-0 top-5 flex h-[23px] w-[23px] items-center justify-center rounded-full border text-xs font-bold sm:h-[31px] sm:w-[31px] ${
+                                  isLatestReport
+                                    ? "border-amber-500/50 bg-amber-400/15 text-amber-200"
+                                    : "border-neutral-700 bg-neutral-950 text-neutral-400"
+                                }`}
+                                aria-hidden="true"
+                              >
+                                {reportNumber}
+                              </span>
+                              <div
+                                className={`rounded-lg border p-4 sm:p-5 ${
+                                  isLatestReport
+                                    ? "border-amber-500/30 bg-amber-400/5"
+                                    : "border-neutral-800 bg-black"
+                                }`}
+                              >
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                  <div className="min-w-0">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <h3 className="text-lg font-semibold text-white sm:text-xl">
+                                        Mission #{reportNumber}
+                                      </h3>
+                                      {isLatestReport && (
+                                        <span className="rounded-full border border-amber-500/30 bg-amber-400/10 px-2 py-0.5 text-xs font-semibold text-amber-200">
+                                          Latest report
+                                        </span>
+                                      )}
+                                      <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-200">
+                                        Completed
+                                      </span>
+                                    </div>
+                                    {log.date && <p className="mt-2 text-sm text-neutral-400">{log.date}</p>}
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteSession(log.id)}
+                                    className="min-h-10 w-full rounded border border-neutral-700 px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-amber-300 sm:w-auto"
+                                    aria-label={`Delete Mission ${reportNumber}`}
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+
+                                {log.focus && (
+                                  <div className="mt-4 rounded border border-neutral-800 bg-neutral-950/80 px-3 py-3">
+                                    <p className="text-xs uppercase tracking-[0.16em] text-amber-400">Training focus</p>
+                                    <p className="mt-1 text-sm font-semibold text-white">{log.focus}</p>
+                                  </div>
+                                )}
+
+                                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                                  {log.duration && (
+                                    <div className="rounded border border-neutral-800 bg-neutral-950/80 p-3">
+                                      <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">Duration</p>
+                                      <p className="mt-1 text-sm font-semibold text-white">{log.duration}</p>
+                                    </div>
+                                  )}
+                                  {outcome.result !== "Not set" && (
+                                    <div className="rounded border border-neutral-800 bg-neutral-950/80 p-3">
+                                      <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">Outcome</p>
+                                      <p className="mt-1 text-sm font-semibold text-white">{outcome.result}</p>
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                                  {outcome.winsSummary !== "Not set" && (
+                                    <div className="rounded border border-neutral-800 bg-neutral-950/80 p-3">
+                                      <p className="text-xs uppercase tracking-[0.16em] text-amber-400">Wins</p>
+                                      <p className="mt-2 text-sm leading-6 text-neutral-200">{outcome.winsSummary}</p>
+                                    </div>
+                                  )}
+                                  {log.issues && (
+                                    <div className="rounded border border-neutral-800 bg-neutral-950/80 p-3">
+                                      <p className="text-xs uppercase tracking-[0.16em] text-amber-400">Challenges</p>
+                                      <p className="mt-2 text-sm leading-6 text-neutral-200">{log.issues}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </article>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {olderMissionReportsCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowOlderMissionReports((showOlder) => !showOlder)}
+                        aria-expanded={showOlderMissionReports}
+                        className="mt-5 min-h-11 w-full rounded border border-neutral-700 px-4 py-3 text-sm font-semibold text-neutral-200 hover:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-amber-300 sm:w-auto"
+                      >
+                        {showOlderMissionReports
+                          ? "Show Recent Mission Reports"
+                          : `View ${olderMissionReportsCount} Older Mission Report${olderMissionReportsCount === 1 ? "" : "s"}`}
+                      </button>
+                    )}
+                  </section>
                 )}
               </>
             )}
