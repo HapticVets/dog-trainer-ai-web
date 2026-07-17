@@ -54,10 +54,28 @@ type SessionLog = {
 
 type SavedOutput = {
   id: string;
-  outputType: "progress_report" | "next_session_plan";
+  outputType: "initial_session_plan" | "progress_report" | "next_session_plan";
   content: string;
   createdAt: string;
 };
+
+const getPlanSection = (plan: string, heading: string) => {
+  const lines = plan.split(/\r?\n/);
+  const startIndex = lines.findIndex((line) => line.trim() === heading.toUpperCase());
+
+  if (startIndex === -1) return "";
+
+  const content: string[] = [];
+  for (const line of lines.slice(startIndex + 1)) {
+    if (/^[A-Z][A-Z ]+$/.test(line.trim())) break;
+    content.push(line);
+  }
+
+  return content.join("\n").trim();
+};
+
+const getPlanDuration = (setup: string) =>
+  setup.match(/\b(\d{1,2}\s*(?:minutes?|mins?))\b/i)?.[1] ?? "Not specified";
 
 export default function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
@@ -78,6 +96,28 @@ export default function DashboardPage() {
     () => dogProfiles.find((dog) => dog.id === selectedDogId) || null,
     [dogProfiles, selectedDogId]
   );
+
+  const activeTrainingPlan = useMemo(
+    () =>
+      savedOutputs.find(
+        (output) =>
+          output.outputType === "initial_session_plan" ||
+          output.outputType === "next_session_plan"
+      ) ?? null,
+    [savedOutputs]
+  );
+  const activeTrainingPhase = activeTrainingPlan
+    ? getPlanSection(activeTrainingPlan.content, "CURRENT PHASE") || "Current plan active"
+    : "Case file stage";
+  const activePlanObjective = activeTrainingPlan
+    ? getPlanSection(activeTrainingPlan.content, "SESSION OBJECTIVE") || "Objective not specified"
+    : "Your next mission is ready to begin.";
+  const activePlanSessionType = activeTrainingPlan
+    ? getPlanSection(activeTrainingPlan.content, "SESSION TYPE") || "Not specified"
+    : "Not specified";
+  const activePlanDuration = activeTrainingPlan
+    ? getPlanDuration(getPlanSection(activeTrainingPlan.content, "SETUP"))
+    : "Not specified";
 
   useEffect(() => {
     const loadSummary = async () => {
@@ -385,13 +425,13 @@ ${sessionSummary}`;
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
               <p className="text-sm uppercase tracking-[0.25em] text-amber-400">
-                Dashboard
+                Patriot K9 Command
               </p>
               <h1 className="mt-4 text-4xl font-bold md:text-6xl leading-tight">
-                Training Overview
+                Patriot K9 Command Center
               </h1>
               <p className="mt-6 max-w-2xl text-lg text-neutral-300">
-                Quick summary of saved dogs, logged sessions, progress reports, and next-session outputs.
+                Monitor your dog&apos;s training progress, active objectives, completed missions, and next steps.
               </p>
             </div>
 
@@ -428,19 +468,19 @@ ${sessionSummary}`;
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-6 py-16">
+      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14">
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-6">
-            <p className="text-sm text-neutral-400">Total Dogs</p>
-            <p className="mt-4 text-5xl font-bold">{summary?.totalDogs ?? 0}</p>
+          <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Active Dog</p>
+            <p className="mt-3 text-2xl font-bold text-white">{selectedDogName || "Not set"}</p>
           </div>
 
-          <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-6">
-            <p className="text-sm text-neutral-400">Total Sessions</p>
-            <p className="mt-4 text-5xl font-bold">{summary?.totalSessions ?? 0}</p>
+          <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Training Phase</p>
+            <p className="mt-3 text-lg font-bold text-white">{hasActiveDog ? activeTrainingPhase : "Not set"}</p>
           </div>
 
-          <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-6">
+          <div className="hidden">
             <p className="text-sm text-neutral-400">Latest Dog</p>
             <p className="mt-4 text-3xl font-bold">
               {summary?.latestDog?.name || "None yet"}
@@ -452,7 +492,7 @@ ${sessionSummary}`;
             )}
           </div>
 
-          <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-6">
+          <div className="hidden">
             <p className="text-sm text-neutral-400">Latest Session Dog</p>
             <p className="mt-4 text-3xl font-bold">
               {summary?.latestSession?.dog_name || "None yet"}
@@ -462,6 +502,16 @@ ${sessionSummary}`;
                 {summary.latestSession.session_date || "No date"}
               </p>
             )}
+          </div>
+
+          <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Sessions Completed</p>
+            <p className="mt-3 text-3xl font-bold text-white">{sessionLogs.length}</p>
+          </div>
+
+          <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Current Focus</p>
+            <p className="mt-3 text-lg font-bold text-white">{selectedDogProfile?.mainGoal || "Not set"}</p>
           </div>
         </div>
 
@@ -497,35 +547,74 @@ ${sessionSummary}`;
             )}
           </div>
 
-          <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-6">
-            <h2 className="text-3xl font-bold">Latest Dog Profile</h2>
+          <div className="rounded-xl border border-amber-500/25 bg-gradient-to-br from-amber-400/10 via-neutral-950 to-neutral-950 p-5 sm:p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">Next Mission</p>
+            <h2 className="mt-3 text-3xl font-bold">{hasActiveDog ? activeTrainingPhase : "Training starts here"}</h2>
 
-            {!summary?.latestDog && (
-              <p className="mt-4 text-neutral-400">No saved dogs yet.</p>
+            {hasActiveDog && activeTrainingPlan ? (
+              <dl className="mt-6 grid gap-4 sm:grid-cols-2">
+                <div>
+                  <dt className="text-xs uppercase tracking-[0.16em] text-neutral-500">Objective</dt>
+                  <dd className="mt-2 text-sm leading-6 text-neutral-200">{activePlanObjective}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs uppercase tracking-[0.16em] text-neutral-500">Session Type</dt>
+                  <dd className="mt-2 text-sm font-semibold text-white">{activePlanSessionType}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs uppercase tracking-[0.16em] text-neutral-500">Estimated Duration</dt>
+                  <dd className="mt-2 text-sm font-semibold text-white">{activePlanDuration}</dd>
+                </div>
+              </dl>
+            ) : (
+              <p className="mt-5 max-w-xl text-sm leading-6 text-neutral-300">
+                Your next mission is ready to begin.
+              </p>
             )}
 
-            {summary?.latestDog && (
-              <div className="mt-6 space-y-4">
-                <p className="text-2xl font-semibold">{summary.latestDog.name}</p>
-                <p className="text-neutral-300">
-                  <strong>Goal Type:</strong> {summary.latestDog.goal_type || "None"}
-                </p>
-                <p className="text-neutral-300">
-                  <strong>Main Goal:</strong> {summary.latestDog.main_goal || "None"}
-                </p>
-                <p className="text-neutral-300">
-                  <strong>Reward Type:</strong> {summary.latestDog.reward_type || "None"}
-                </p>
-                <p className="text-neutral-300">
-                  <strong>Skill Level:</strong> {summary.latestDog.skill_level || "None"}
-                </p>
-                <p className="text-neutral-300">
-                  <strong>Notes:</strong> {summary.latestDog.custom_notes || "None"}
-                </p>
-              </div>
-            )}
+            <Link
+              href="/train"
+              className="mt-6 inline-flex w-full justify-center rounded bg-amber-400 px-5 py-3 text-sm font-semibold text-black hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-200 focus:ring-offset-2 focus:ring-offset-neutral-950 sm:w-auto"
+            >
+              {activeTrainingPlan ? "Open Trainer" : "Start Training"}
+            </Link>
           </div>
         </div>
+
+        <section className="mt-8 rounded-xl border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">Dog Training Record</p>
+          <h2 className="mt-3 text-3xl font-bold">Active Dog Profile</h2>
+
+          {selectedDogProfile ? (
+            <dl className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                ["Dog Name", selectedDogProfile.name],
+                ["Breed", selectedDogProfile.breed || "Not set"],
+                ["Age", selectedDogProfile.age || "Not set"],
+                ["Sex", selectedDogProfile.sex || "Not set"],
+                ["Training Goal", selectedDogProfile.mainGoal || "Not set"],
+                ["Selected Goals", selectedDogProfile.selectedGoals.join(", ") || "Not set"],
+                ["Skill Level", selectedDogProfile.skillLevel || "Not set"],
+                [
+                  "Environment",
+                  selectedDogProfile.whereItHappens.join(", ") ||
+                    selectedDogProfile.homeEnvironment ||
+                    "Not set",
+                ],
+                ["Equipment Used", selectedDogProfile.equipmentUsed.join(", ") || "Not set"],
+              ].map(([label, value]) => (
+                <div key={label} className="min-w-0 rounded-lg border border-neutral-800 bg-black/30 p-4">
+                  <dt className="text-xs uppercase tracking-[0.16em] text-neutral-500">{label}</dt>
+                  <dd className="mt-2 break-words text-sm font-semibold leading-6 text-white">{value}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : (
+            <p className="mt-5 text-sm leading-6 text-neutral-400">
+              Select a dog to review its professional training record.
+            </p>
+          )}
+        </section>
 
         <div className="mt-8 rounded-lg border border-neutral-800 bg-neutral-950 p-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -579,9 +668,9 @@ ${sessionSummary}`;
           )}
 
           {sessionLogs.length === 0 && selectedDogId && (
-            <p className="mt-4 text-sm text-amber-300">
-              No sessions logged for this dog yet. Log a training session first to unlock progress reports.
-            </p>
+            <div className="mt-5 rounded-lg border border-amber-500/25 bg-amber-400/10 p-4 text-sm leading-6 text-amber-100">
+              Training reports unlock after your first completed mission. Log training sessions to build your dog&apos;s progress history.
+            </div>
           )}
 
           <div className="mt-6 rounded-lg border border-neutral-800 bg-black p-4">
@@ -589,7 +678,7 @@ ${sessionSummary}`;
               <div className="whitespace-pre-wrap text-white">{progressReport}</div>
             ) : (
               <p className="text-neutral-400">
-                No report selected yet. Choose a dog and generate a report when needed.
+                Select a dog and generate a report when you are ready to review progress.
               </p>
             )}
           </div>
