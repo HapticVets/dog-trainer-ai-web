@@ -61,6 +61,8 @@ export const homeEnvironmentOptions = [
 
 export type DogCaseFile = {
   id?: string;
+  profileImagePath?: string | null;
+  profileImageUrl?: string | null;
   name: string;
   breed: string;
   age: string;
@@ -248,6 +250,8 @@ const parseStoredCaseFile = (rawNotes?: string | null): StoredCaseFilePayload | 
 
 export const hydrateDogCaseFile = (profile: {
   id?: string;
+  profile_image_path?: string | null;
+  profile_image_url?: string | null;
   name?: string | null;
   goal_type?: string | null;
   main_goal?: string | null;
@@ -269,6 +273,8 @@ export const hydrateDogCaseFile = (profile: {
   return {
     ...emptyDogCaseFile,
     id: profile.id,
+    profileImagePath: profile.profile_image_path ?? null,
+    profileImageUrl: profile.profile_image_url ?? null,
     name: profile.name ?? "",
     goalType: resolvedGoalType,
     mainGoal: selectedGoals.includes(resolvedMainGoal)
@@ -395,4 +401,3 @@ What Success Looks Like: ${profile.successLooksLike || "none"}
 Additional Notes: ${profile.additionalNotes || "none"}
 Likely Protocol Mapping: ${protocols.join(", ") || "none identified"}`;
 };
-

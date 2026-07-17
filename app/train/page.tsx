@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useUser } from "@clerk/nextjs";
+import DogProfilePhotoPicker from "@/components/DogProfilePhotoPicker";
 import GoogleAdsSignUpConversion from "@/components/GoogleAdsSignUpConversion";
 import {
   getAvailableMainGoals,
@@ -228,6 +229,9 @@ export default function TrainPage() {
   const [selectedDogId, setSelectedDogId] = useState<string>("");
   const [dogProfile, setDogProfile] = useState<DogCaseFile>(emptyDogCaseFile);
   const [profileSaving, setProfileSaving] = useState(false);
+  const [pendingProfileImage, setPendingProfileImage] = useState<File | null>(null);
+  const [pendingProfileImageRemoval, setPendingProfileImageRemoval] = useState(false);
+  const [profileImageError, setProfileImageError] = useState("");
 
   const [sessionLogs, setSessionLogs] = useState<SessionLog[]>([]);
   const [sessionForm, setSessionForm] = useState({
@@ -709,6 +713,9 @@ export default function TrainPage() {
     const found = dogProfiles.find((dog) => dog.id === id);
 
     if (found) {
+      setPendingProfileImage(null);
+      setPendingProfileImageRemoval(false);
+      setProfileImageError("");
       activateDog(found);
       setCurrentPlan("");
       setMessages([]);
@@ -732,6 +739,9 @@ export default function TrainPage() {
     setEvaluationMode(true);
     setEvaluationStep(1);
     setProfileCollapsed(false);
+    setPendingProfileImage(null);
+    setPendingProfileImageRemoval(false);
+    setProfileImageError("");
     setSelectedDogId("");
     setDogProfile(emptyDogCaseFile);
     setSessionLogs([]);
@@ -754,6 +764,9 @@ export default function TrainPage() {
     setUpgradeCheckoutError("");
     setEvaluationMode(false);
     setEvaluationStep(1);
+    setPendingProfileImage(null);
+    setPendingProfileImageRemoval(false);
+    setProfileImageError("");
 
     if (previousActiveDogId && previousActiveDogProfile) {
       activateDog(previousActiveDogProfile);
@@ -799,6 +812,45 @@ export default function TrainPage() {
     }));
   };
 
+  const resetPendingProfileImage = () => {
+    setPendingProfileImage(null);
+    setPendingProfileImageRemoval(false);
+    setProfileImageError("");
+  };
+
+  const uploadProfileImage = async (dogProfileId: string, image: File) => {
+    const formData = new FormData();
+    formData.set("dogProfileId", dogProfileId);
+    formData.set("image", image);
+
+    const response = await fetch("/api/dog-profile/photo", {
+      method: "POST",
+      body: formData,
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Unable to upload dog photo.");
+    }
+
+    return {
+      profileImagePath: data.profileImagePath as string,
+      profileImageUrl: data.profileImageUrl as string,
+    };
+  };
+
+  const removeProfileImage = async (dogProfileId: string) => {
+    const response = await fetch(
+      `/api/dog-profile/photo?dogProfileId=${encodeURIComponent(dogProfileId)}`,
+      { method: "DELETE" }
+    );
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Unable to remove dog photo.");
+    }
+  };
+
   const handleSaveDogProfile = async () => {
     if (!user) {
       alert("You must be signed in to save the dog profile.");
@@ -839,9 +891,24 @@ export default function TrainPage() {
         return;
       }
 
-      const saved: DogCaseFile = {
+      let saved: DogCaseFile = {
         ...hydrateDogCaseFile(data.profile),
       };
+      let imageUpdateFailed = false;
+
+      try {
+        if (pendingProfileImage && saved.id) {
+          saved = { ...saved, ...(await uploadProfileImage(saved.id, pendingProfileImage)) };
+        } else if (pendingProfileImageRemoval && saved.id && saved.profileImagePath) {
+          await removeProfileImage(saved.id);
+          saved = { ...saved, profileImagePath: null, profileImageUrl: null };
+        }
+      } catch (imageError) {
+        imageUpdateFailed = true;
+        const message = imageError instanceof Error ? imageError.message : "Unable to save dog photo.";
+        setProfileImageError(message);
+        alert(`Case file saved, but the dog photo could not be updated. ${message}`);
+      }
 
       setDogProfiles((prev) => {
         const exists = prev.some((dog) => dog.id === saved.id);
@@ -857,6 +924,7 @@ export default function TrainPage() {
       setPreviousActiveDogId("");
       setPreviousActiveDogProfile(null);
       setProfileCollapsed(true);
+      if (!imageUpdateFailed) resetPendingProfileImage();
       setUpgradeModal(null);
       setUpgradeCheckoutError("");
       alert("Dog profile saved.");
@@ -1407,6 +1475,28 @@ ${recentHistory}`;
 
       {evaluationStep === 1 && (
         <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
+          <DogProfilePhotoPicker
+            key="new-dog-evaluation-photo"
+            dogName={dogProfile.name}
+            imageUrl={dogProfile.profileImageUrl}
+            pendingImage={pendingProfileImage}
+            pendingRemoval={pendingProfileImageRemoval}
+            disabled={profileSaving}
+            onChange={(image) => {
+              setPendingProfileImage(image);
+              setPendingProfileImageRemoval(false);
+              setProfileImageError("");
+            }}
+            onRemove={() => {
+              setPendingProfileImage(null);
+              setPendingProfileImageRemoval(true);
+              setProfileImageError("");
+            }}
+            onReset={resetPendingProfileImage}
+          />
+          {profileImageError && (
+            <p className="mt-4 text-sm text-red-300" role="alert">{profileImageError}</p>
+          )}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <label className="mb-2 block text-sm text-white">Dog Name</label>
@@ -1839,11 +1929,11 @@ ${recentHistory}`;
       {!evaluationMode && (
         <div>
           <label className="mb-2 block text-sm text-white">Saved Dogs</label>
-          <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="flex flex-col gap-2 lg:flex-row">
             <select
               value={selectedDogId}
               onChange={(e) => handleSelectDog(e.target.value)}
-              className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
+              className="min-w-0 flex-1 rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
             >
               <option value="">Select a saved dog</option>
               {dogProfiles.map((dog) => (
@@ -1857,12 +1947,36 @@ ${recentHistory}`;
               type="button"
               onClick={handleDeleteDogProfile}
               disabled={!selectedDogId}
-              className="rounded border border-neutral-600 px-4 py-3 font-semibold hover:bg-neutral-900 disabled:opacity-50"
+              className="w-full rounded border border-red-500/40 px-4 py-3 font-semibold text-red-200 hover:bg-red-500/10 disabled:opacity-50 lg:w-auto"
             >
               Delete
             </button>
           </div>
         </div>
+      )}
+
+      <DogProfilePhotoPicker
+        key={selectedDogId || "new-dog-photo"}
+        dogName={dogProfile.name}
+        imageUrl={dogProfile.profileImageUrl}
+        pendingImage={pendingProfileImage}
+        pendingRemoval={pendingProfileImageRemoval}
+        disabled={profileSaving}
+        onChange={(image) => {
+          setPendingProfileImage(image);
+          setPendingProfileImageRemoval(false);
+          setProfileImageError("");
+        }}
+        onRemove={() => {
+          setPendingProfileImage(null);
+          setPendingProfileImageRemoval(true);
+          setProfileImageError("");
+        }}
+        onReset={resetPendingProfileImage}
+      />
+
+      {profileImageError && (
+        <p className="text-sm text-red-300" role="alert">{profileImageError}</p>
       )}
 
       {!evaluationMode && hasActiveDog && (
@@ -2485,7 +2599,7 @@ ${recentHistory}`;
       </section>
 
       <section className="mx-auto max-w-7xl px-4 pb-12 pt-6 sm:px-6 sm:pb-16 sm:pt-8">
-        <div className="grid gap-6 xl:grid-cols-[380px_1fr] xl:gap-8">
+        <div className="grid gap-6 xl:grid-cols-[minmax(420px,0.38fr)_minmax(0,0.62fr)] xl:gap-8">
           <div className="space-y-8">
             <section className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
               <div className="flex flex-col items-start justify-between gap-3 sm:flex-row">

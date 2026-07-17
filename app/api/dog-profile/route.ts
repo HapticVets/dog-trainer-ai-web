@@ -4,6 +4,8 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getDefaultMainGoal, normalizeGoalType } from '@/lib/dogGoals'
 import { getTrainerAccess } from '@/app/lib/trainer-access'
 
+const DOG_PROFILE_IMAGES_BUCKET = 'dog-profile-images'
+
 export async function GET() {
   try {
     const { userId } = await auth()
@@ -23,7 +25,26 @@ export async function GET() {
       return NextResponse.json({ error: error.message, details: error }, { status: 500 })
     }
 
-    return NextResponse.json({ profiles: data ?? [] })
+    const profiles = await Promise.all(
+      (data ?? []).map(async (profile) => {
+        if (!profile.profile_image_path) {
+          return { ...profile, profile_image_url: null }
+        }
+
+        const { data: signedUrlData, error: signedUrlError } = await supabaseAdmin.storage
+          .from(DOG_PROFILE_IMAGES_BUCKET)
+          .createSignedUrl(profile.profile_image_path, 60 * 60)
+
+        if (signedUrlError) {
+          console.error('Supabase dog profile image signing error:', signedUrlError)
+          return { ...profile, profile_image_url: null }
+        }
+
+        return { ...profile, profile_image_url: signedUrlData.signedUrl }
+      })
+    )
+
+    return NextResponse.json({ profiles })
   } catch (error) {
     console.error('GET /api/dog-profile crashed:', error)
     return NextResponse.json({ error: 'Server crashed loading dog profiles' }, { status: 500 })
@@ -118,6 +139,22 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Missing id' }, { status: 400 })
     }
 
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('dog_profiles')
+      .select('profile_image_path')
+      .eq('id', id)
+      .eq('clerk_user_id', userId)
+      .maybeSingle()
+
+    if (profileError) {
+      console.error('Supabase SELECT dog_profiles error:', profileError)
+      return NextResponse.json({ error: profileError.message }, { status: 500 })
+    }
+
+    if (!profile) {
+      return NextResponse.json({ error: 'Dog profile not found' }, { status: 404 })
+    }
+
     const { error } = await supabaseAdmin
       .from('dog_profiles')
       .delete()
@@ -127,6 +164,16 @@ export async function DELETE(request: NextRequest) {
     if (error) {
       console.error('Supabase DELETE dog_profiles error:', error)
       return NextResponse.json({ error: error.message, details: error }, { status: 500 })
+    }
+
+    if (profile.profile_image_path) {
+      const { error: storageError } = await supabaseAdmin.storage
+        .from(DOG_PROFILE_IMAGES_BUCKET)
+        .remove([profile.profile_image_path])
+
+      if (storageError) {
+        console.error('Supabase DELETE dog profile image error:', storageError)
+      }
     }
 
     return NextResponse.json({ success: true })
