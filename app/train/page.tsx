@@ -386,6 +386,7 @@ export default function TrainPage() {
   const toastTimeoutRef = useRef<number | null>(null);
 
   const hasActiveDog = Boolean(selectedDogId && dogProfile.name.trim());
+  const hasNoDogProfiles = dogProfilesLoaded && dogProfiles.length === 0;
   const hasSessions = sessionLogs.length > 0;
   const hasCurrentPlan = Boolean(currentPlan.trim());
   const isInitializingTrainer = !dogProfilesLoaded && !evaluationMode;
@@ -1352,6 +1353,15 @@ export default function TrainPage() {
         activateDog(persistedDog ?? fallbackDog);
       } else {
         activateDog(null);
+        clearPersistedEvaluationDraft(user?.id);
+        setEvaluationMode(true);
+        setEvaluationStep(1);
+        setProfileCollapsed(false);
+        setPreviousActiveDogId("");
+        setPreviousActiveDogProfile(null);
+        setPendingProfileImage(null);
+        setPendingProfileImageRemoval(false);
+        setProfileImageError("");
       }
 
       setSessionLogs([]);
@@ -1847,6 +1857,14 @@ ${recentHistory}`;
 
   const evaluationWizardContent = (
     <div className="mt-6 space-y-6">
+      {hasNoDogProfiles && (
+        <div
+          className="rounded-lg border border-amber-500/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100"
+          role="status"
+        >
+          No dog profiles found. Create your first training profile to begin.
+        </div>
+      )}
       <div className="rounded-lg border border-neutral-800 bg-black/30 p-4 sm:p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
