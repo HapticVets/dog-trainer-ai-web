@@ -16,15 +16,15 @@ import {
   ensurePrimaryPriority,
   equipmentOptions,
   getDurationOptionsForValue,
+  getSeverityOptionsForValue,
+  getWhereItHappensOptionsForValues,
   homeEnvironmentOptions,
   hydrateDogCaseFile,
   previousTrainingOptions,
   serializeDogCaseFile,
-  severityOptions,
   sexOptions,
   toggleMultiValue,
   type DogCaseFile,
-  whereItHappensOptions,
 } from "@/lib/dogCaseFile";
 
 type ChatMessage = {
@@ -195,7 +195,7 @@ const planSectionDefinitions = [
 const evaluationStepTitles: Record<EvaluationStep, string> = {
   1: "Dog Basics",
   2: "Training Goals",
-  3: "Problem Details",
+  3: "Training Goals & Challenges",
   4: "Home & Training History",
   5: "Equipment & Notes",
   6: "Review Case File",
@@ -414,6 +414,10 @@ export default function TrainPage() {
   );
   const durationOptionsForProfile = getDurationOptionsForValue(dogProfile.issueDuration);
   const skillLevelOptionsForProfile = getSkillLevelOptionsForValue(dogProfile.skillLevel);
+  const severityOptionsForProfile = getSeverityOptionsForValue(dogProfile.severity);
+  const whereItHappensOptionsForProfile = getWhereItHappensOptionsForValues(
+    dogProfile.whereItHappens
+  );
   const parsedCurrentPlan = useMemo(() => parsePlanSections(currentPlan), [currentPlan]);
   const savedPlans = useMemo(
     () =>
@@ -1970,14 +1974,14 @@ ${recentHistory}`;
           <div className="grid gap-5 md:grid-cols-2">
             <div>
               <label className="mb-2 block text-sm text-white">
-                How challenging is this training priority right now?
+                What best describes your dog&apos;s current training level and support needed?
               </label>
               <select
                 value={dogProfile.severity}
                 onChange={(e) => setDogProfile({ ...dogProfile, severity: e.target.value })}
                 className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
               >
-                {severityOptions.map((option) => (
+                {severityOptionsForProfile.map((option) => (
                   <option key={option} value={option}>
                     {option}
                   </option>
@@ -1986,7 +1990,7 @@ ${recentHistory}`;
             </div>
             <div>
               <label className="mb-2 block text-sm text-white">
-                How long have you been actively training this skill?
+                How long have you been working toward this goal?
               </label>
               <select
                 value={dogProfile.issueDuration}
@@ -2008,9 +2012,9 @@ ${recentHistory}`;
           </div>
 
           <div>
-            <label className="mb-2 block text-sm text-white">Where does this happen most?</label>
+            <label className="mb-2 block text-sm text-white">Where do you want this training to work?</label>
             <div className="grid gap-3 sm:grid-cols-2">
-              {whereItHappensOptions.map((option) => (
+              {whereItHappensOptionsForProfile.map((option) => (
                 <button
                   key={option}
                   type="button"
@@ -2516,13 +2520,15 @@ ${recentHistory}`;
 
           <div className="grid gap-5 md:grid-cols-2">
             <div className="rounded-lg border border-neutral-800 bg-black/30 p-4">
-              <label className="mb-2 block text-sm text-white">Severity</label>
+              <label className="mb-2 block text-sm text-white">
+                Training level / support needed
+              </label>
               <select
                 value={dogProfile.severity}
                 onChange={(e) => setDogProfile({ ...dogProfile, severity: e.target.value })}
                 className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
               >
-                {severityOptions.map((option) => (
+                {severityOptionsForProfile.map((option) => (
                   <option key={option} value={option}>
                     {option}
                   </option>
@@ -2552,9 +2558,11 @@ ${recentHistory}`;
           </div>
 
           <div className="rounded-lg border border-neutral-800 bg-black/30 p-4">
-            <label className="mb-2 block text-sm text-white">Where does it happen?</label>
+            <label className="mb-2 block text-sm text-white">
+              Where do you want this training to work?
+            </label>
             <div className="grid gap-3 sm:grid-cols-2">
-              {whereItHappensOptions.map((option) => (
+              {whereItHappensOptionsForProfile.map((option) => (
                 <button
                   key={option}
                   type="button"

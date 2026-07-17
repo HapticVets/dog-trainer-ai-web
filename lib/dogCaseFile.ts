@@ -5,7 +5,18 @@ import {
   normalizeMainGoal,
 } from "@/lib/dogGoals";
 
-export const severityOptions = ["Mild", "Moderate", "Serious", "Urgent"] as const;
+export const severityOptions = [
+  "Just starting",
+  "Knows basic commands",
+  "Needs more reliability and consistency",
+  "Already trained and looking to advance",
+  "Advanced working goals",
+] as const;
+
+export const getSeverityOptionsForValue = (currentValue: string) =>
+  severityOptions.includes(currentValue as (typeof severityOptions)[number])
+    ? severityOptions
+    : [...severityOptions, currentValue];
 
 export const durationOptions = [
   "Just starting",
@@ -13,7 +24,6 @@ export const durationOptions = [
   "3–6 months",
   "6–12 months",
   "Over 1 year",
-  "My dog is already trained and I want to advance further",
 ] as const;
 
 export const getDurationOptionsForValue = (currentValue: string) =>
@@ -23,15 +33,21 @@ export const getDurationOptionsForValue = (currentValue: string) =>
 
 export const whereItHappensOptions = [
   "Home",
-  "Walks",
+  "Neighborhood walks",
   "Public places",
   "Around dogs",
   "Around people",
-  "Visitors at the door",
-  "In the crate",
-  "When left alone",
-  "Multiple situations",
+  "Outdoor adventures",
+  "Travel",
+  "Everywhere",
 ] as const;
+
+export const getWhereItHappensOptionsForValues = (currentValues: string[]) => [
+  ...whereItHappensOptions,
+  ...currentValues.filter(
+    (value) => !whereItHappensOptions.includes(value as (typeof whereItHappensOptions)[number])
+  ),
+];
 
 export const previousTrainingOptions = [
   "No formal training",
@@ -128,7 +144,7 @@ export const emptyDogCaseFile: DogCaseFile = {
   goalType: "Behavior Problems",
   mainGoal: "Pulling on leash",
   selectedGoals: ["Pulling on leash"],
-  severity: "Moderate",
+  severity: "Just starting",
   issueDuration: "Just starting",
   whereItHappens: [],
   childrenInHome: false,
@@ -293,7 +309,7 @@ export const hydrateDogCaseFile = (profile: {
     age: parsed?.age ?? "",
     sex: parsed?.sex ?? "Not set",
     weight: parsed?.weight ?? "",
-    severity: parsed?.severity ?? "Moderate",
+    severity: parsed?.severity ?? "Just starting",
     issueDuration: parsed?.issueDuration ?? "Just starting",
     whereItHappens: parsed?.whereItHappens ?? [],
     childrenInHome: parsed?.childrenInHome ?? false,
@@ -394,9 +410,9 @@ Weight: ${profile.weight || "unknown"}
 Goal Category: ${normalizeGoalType(profile.goalType)}
 Selected Training Goals/Concerns: ${profile.selectedGoals.join(", ") || "none"}
 Primary Priority: ${profile.mainGoal || "unknown"}
-Current Difficulty/Severity: ${profile.severity || "unknown"}
-Training Experience / Concern Duration: ${profile.issueDuration || "unknown"}
-Where It Happens: ${profile.whereItHappens.join(", ") || "not provided"}
+Current Training Level / Support Needed: ${profile.severity || "unknown"}
+Goal Training History: ${profile.issueDuration || "unknown"}
+Desired Training Environments: ${profile.whereItHappens.join(", ") || "not provided"}
 Household Context: ${householdContext.join(", ") || "not provided"}
 Previous Training: ${profile.previousTraining || "unknown"}
 Equipment Used: ${profile.equipmentUsed.join(", ") || "not provided"}
