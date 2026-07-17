@@ -2985,7 +2985,7 @@ ${recentHistory}`;
                 </div>
                 <h2 className="mt-3 text-2xl font-bold text-white">Patriot K9 Free</h2>
                 <p className="mt-2 text-sm leading-6 text-neutral-300">
-                  Your free plan is active. Experience the first training steps, then upgrade when you are ready for ongoing coaching.
+                  Start building your dog&apos;s training foundation. Upgrade to unlock ongoing coaching, progress memory, and advanced training guidance.
                 </p>
                 <div className="mt-4 rounded-lg border border-neutral-800 bg-black/30 p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">
@@ -3020,17 +3020,104 @@ ${recentHistory}`;
                     type="button"
                     onClick={handleUpgrade}
                     disabled={upgradeCheckoutLoading}
-                    className="w-full rounded bg-amber-400 px-4 py-3 text-sm font-semibold text-black hover:bg-amber-300 disabled:opacity-60 sm:w-auto"
+                    className="hidden w-full rounded bg-amber-400 px-4 py-3 text-sm font-semibold text-black hover:bg-amber-300 disabled:opacity-60 sm:w-auto"
                   >
                     {upgradeCheckoutLoading
                       ? "Starting checkout..."
                       : "⭐ Upgrade to Premium"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleUpgrade}
+                    disabled={upgradeCheckoutLoading}
+                    className="w-full rounded bg-amber-400 px-4 py-3 text-sm font-semibold text-black hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-200 focus:ring-offset-2 focus:ring-offset-neutral-950 disabled:opacity-60 sm:w-auto"
+                  >
+                    {upgradeCheckoutLoading ? "Starting checkout..." : "Unlock Premium Training"}
                   </button>
                 </div>
               </div>
               </div>
             </div>
           )}
+        </section>
+      )}
+
+      {!isInitializingTrainer && trainerAccess && !evaluationMode && !isPremiumUser && (
+        <section className="mx-auto max-w-7xl space-y-5 px-4 pt-5 sm:px-6">
+          <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">
+              Training Journey
+            </p>
+            <h2 className="mt-3 text-2xl font-bold text-white">Your Training Profile</h2>
+            {hasActiveDog ? (
+              <dl className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-lg border border-neutral-800 bg-black/30 p-4">
+                  <dt className="text-xs uppercase tracking-[0.16em] text-neutral-500">Dog</dt>
+                  <dd className="mt-2 text-sm font-semibold text-white">{dogProfile.name}</dd>
+                </div>
+                <div className="rounded-lg border border-neutral-800 bg-black/30 p-4">
+                  <dt className="text-xs uppercase tracking-[0.16em] text-neutral-500">Training Goal</dt>
+                  <dd className="mt-2 text-sm font-semibold text-white">{dogProfile.mainGoal || "Not set"}</dd>
+                </div>
+                <div className="rounded-lg border border-neutral-800 bg-black/30 p-4">
+                  <dt className="text-xs uppercase tracking-[0.16em] text-neutral-500">Current Phase</dt>
+                  <dd className="mt-2 text-sm font-semibold text-white">{currentPlanPhase}</dd>
+                </div>
+                <div className="rounded-lg border border-amber-500/25 bg-amber-400/10 p-4">
+                  <dt className="text-xs uppercase tracking-[0.16em] text-amber-200/80">Next Step</dt>
+                  <dd className="mt-2 text-sm font-semibold text-white">Complete your first training session</dd>
+                </div>
+              </dl>
+            ) : (
+              <p className="mt-4 text-sm leading-6 text-neutral-300">
+                Create your first dog profile to begin your training plan.
+              </p>
+            )}
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">
+              Premium Preview
+            </p>
+            <h2 className="mt-3 text-2xl font-bold text-white">Premium Training System</h2>
+            <div className="mt-5 grid gap-4 lg:grid-cols-3">
+              {[
+                {
+                  title: "Progress Tracking",
+                  description: "Track milestones, completed sessions, and long-term improvement.",
+                },
+                {
+                  title: "Mission Reports",
+                  description: "Review training history and identify patterns.",
+                },
+                {
+                  title: "Advanced K9 Guidance",
+                  description: "Access advanced training protocols and progression guidance.",
+                },
+              ].map((feature) => (
+                <article
+                  key={feature.title}
+                  className="flex min-h-56 flex-col rounded-xl border border-neutral-800 bg-neutral-950 p-5 shadow-[0_16px_44px_rgba(0,0,0,0.18)]"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-lg font-bold text-white">{feature.title}</h3>
+                    <span className="rounded-full border border-amber-500/30 bg-amber-400/10 px-2.5 py-1 text-xs font-semibold text-amber-200">
+                      Locked
+                    </span>
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-neutral-400">{feature.description}</p>
+                  <button
+                    type="button"
+                    onClick={handleUpgrade}
+                    disabled={upgradeCheckoutLoading}
+                    className="mt-auto w-full rounded border border-amber-500/40 px-4 py-3 text-sm font-semibold text-amber-200 hover:bg-amber-400/10 focus:outline-none focus:ring-2 focus:ring-amber-200 focus:ring-offset-2 focus:ring-offset-neutral-950 disabled:opacity-60"
+                  >
+                    Unlock Premium Training
+                  </button>
+                </article>
+              ))}
+            </div>
+          </div>
         </section>
       )}
 
