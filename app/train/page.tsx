@@ -28,8 +28,16 @@ import {
 } from "@/lib/dogCaseFile";
 
 type ChatMessage = {
+  id?: string;
   role: "user" | "assistant";
   content: string;
+  createdAt?: string;
+};
+
+type CoachHistoryGroup = {
+  dateKey: string;
+  dateLabel: string;
+  messages: ChatMessage[];
 };
 
 type SessionLog = {
@@ -142,6 +150,28 @@ const coachPromptSuggestions = [
   "How do I increase difficulty?",
   "What should I do next?",
 ];
+
+const getCoachConversationDateKey = (createdAt?: string) => {
+  if (!createdAt) return "current";
+
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) return "current";
+
+  return date.toISOString().slice(0, 10);
+};
+
+const getCoachConversationDateLabel = (dateKey: string) => {
+  if (dateKey === "current") return "Current conversation";
+
+  const date = new Date(`${dateKey}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return "Previous conversation";
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(date);
+};
 
 const sessionFocusOptions = [
   "Heel",
@@ -374,6 +404,8 @@ export default function TrainPage() {
   const [onboardingStep, setOnboardingStep] = useState<OnboardingStep>("create");
   const [profileCollapsed, setProfileCollapsed] = useState(false);
   const [showOlderMissionReports, setShowOlderMissionReports] = useState(false);
+  const [coachHistoryOpen, setCoachHistoryOpen] = useState(false);
+  const [expandedCoachHistoryGroups, setExpandedCoachHistoryGroups] = useState<string[]>([]);
   const [evaluationMode, setEvaluationMode] = useState(false);
   const [evaluationStep, setEvaluationStep] = useState<EvaluationStep>(1);
   const [previousActiveDogId, setPreviousActiveDogId] = useState<string>("");
@@ -410,6 +442,44 @@ export default function TrainPage() {
     ? sessionLogs
     : sessionLogs.slice(0, 3);
   const olderMissionReportsCount = Math.max(sessionLogs.length - 3, 0);
+  const mostRecentCoachConversationDateKey = useMemo(() => {
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      const dateKey = getCoachConversationDateKey(messages[index].createdAt);
+      if (dateKey !== "current") return dateKey;
+    }
+
+    return "current";
+  }, [messages]);
+  const currentCoachMessages = useMemo(
+    () =>
+      messages.filter(
+        (message) =>
+          !message.createdAt ||
+          getCoachConversationDateKey(message.createdAt) ===
+            mostRecentCoachConversationDateKey
+      ),
+    [messages, mostRecentCoachConversationDateKey]
+  );
+  const coachHistoryGroups = useMemo(() => {
+    const groupedMessages = new Map<string, ChatMessage[]>();
+
+    messages.forEach((message) => {
+      const dateKey = getCoachConversationDateKey(message.createdAt);
+      if (dateKey === "current" || dateKey === mostRecentCoachConversationDateKey) {
+        return;
+      }
+
+      groupedMessages.set(dateKey, [...(groupedMessages.get(dateKey) ?? []), message]);
+    });
+
+    return Array.from(groupedMessages.entries())
+      .map(([dateKey, grouped]) => ({
+        dateKey,
+        dateLabel: getCoachConversationDateLabel(dateKey),
+        messages: grouped,
+      }))
+      .reverse() satisfies CoachHistoryGroup[];
+  }, [messages, mostRecentCoachConversationDateKey]);
   const selectedGoals = dogProfile.selectedGoals;
   const categoryGoalOptions = useMemo(
     () => getAvailableMainGoals(dogProfile.goalType, dogProfile.mainGoal),
@@ -893,8 +963,10 @@ export default function TrainPage() {
         }
 
         const mappedMessages: ChatMessage[] = (data.chats || []).map((chat: any) => ({
+          id: chat.id,
           role: chat.role,
           content: chat.content,
+          createdAt: chat.created_at,
         }));
 
         setMessages(mappedMessages);
@@ -976,6 +1048,8 @@ export default function TrainPage() {
 
   useEffect(() => {
     setShowOlderMissionReports(false);
+    setCoachHistoryOpen(false);
+    setExpandedCoachHistoryGroups([]);
   }, [selectedDogId]);
 
   useEffect(() => {
@@ -4069,24 +4143,24 @@ ${recentHistory}`;
                         className="max-h-none space-y-4 overflow-x-hidden pr-1 md:max-h-[420px] md:overflow-y-auto sm:pr-2"
                         aria-live="polite"
                       >
-                        {messages.length === 0 && !loading && (
+                        {currentCoachMessages.length === 0 && !loading && (
                           <div className="rounded-xl border border-amber-500/20 bg-neutral-950/80 p-5 text-sm text-neutral-300">
                             <p className="font-semibold text-white">Your coach is ready.</p>
                             <p className="mt-2 leading-6 text-neutral-400">
-                              Ask about today&apos;s mission, progression, rewards, behavior changes, or what to do next.
+                              Ask about today&apos;s mission, rewards, what to watch for, or when to progress.
                             </p>
                             <ul className="mt-3 grid gap-2 text-neutral-300 sm:grid-cols-2">
-                              <li>Today&apos;s mission</li>
-                              <li>Reward timing</li>
-                              <li>Difficulty changes</li>
-                              <li>When to progress</li>
+                              <li>Explain today&apos;s mission</li>
+                              <li>How should I reward this?</li>
+                              <li>What should I watch for?</li>
+                              <li>When should I progress?</li>
                             </ul>
                           </div>
                         )}
 
-                        {messages.map((message, index) => (
+                        {currentCoachMessages.map((message, index) => (
                           <div
-                            key={`${message.role}-${index}`}
+                            key={message.id ?? `${message.role}-${index}`}
                             className={`max-w-[96%] break-words whitespace-pre-wrap rounded-xl border px-4 py-3 text-sm leading-6 shadow-[0_8px_20px_rgba(0,0,0,0.16)] sm:max-w-[82%] ${
                               message.role === "user"
                                 ? "ml-auto border-amber-500/30 bg-amber-400 text-black"
@@ -4114,6 +4188,86 @@ ${recentHistory}`;
                         )}
                       </div>
                     </div>
+
+                    {coachHistoryGroups.length > 0 && (
+                      <section className="mt-5 rounded-lg border border-neutral-800 bg-neutral-950/70 sm:mt-6">
+                        <button
+                          type="button"
+                          onClick={() => setCoachHistoryOpen((isOpen) => !isOpen)}
+                          aria-expanded={coachHistoryOpen}
+                          aria-controls="patriot-k9-coach-history"
+                          className="flex min-h-12 w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold text-neutral-100 hover:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-amber-300"
+                        >
+                          <span>View Coaching History ({coachHistoryGroups.length})</span>
+                          <span aria-hidden="true" className="text-amber-300">
+                            {coachHistoryOpen ? "−" : "+"}
+                          </span>
+                        </button>
+
+                        {coachHistoryOpen && (
+                          <div id="patriot-k9-coach-history" className="space-y-3 border-t border-neutral-800 p-3 sm:p-4">
+                            {coachHistoryGroups.map((group) => {
+                              const isExpanded = expandedCoachHistoryGroups.includes(group.dateKey);
+                              const coachMessageCount = group.messages.filter(
+                                (message) => message.role === "assistant"
+                              ).length;
+
+                              return (
+                                <article key={group.dateKey} className="rounded-lg border border-neutral-800 bg-black/60">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setExpandedCoachHistoryGroups((expandedGroups) =>
+                                        isExpanded
+                                          ? expandedGroups.filter((key) => key !== group.dateKey)
+                                          : [...expandedGroups, group.dateKey]
+                                      )
+                                    }
+                                    aria-expanded={isExpanded}
+                                    aria-controls={`coach-history-${group.dateKey}`}
+                                    className="flex min-h-12 w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-amber-300"
+                                  >
+                                    <span className="min-w-0">
+                                      <span className="block text-sm font-semibold text-white">Conversation</span>
+                                      <span className="mt-1 block text-xs text-neutral-400">
+                                        {group.dateLabel} · {coachMessageCount} coach {coachMessageCount === 1 ? "message" : "messages"}
+                                      </span>
+                                    </span>
+                                    <span className="shrink-0 text-sm font-semibold text-amber-300">
+                                      {isExpanded ? "Collapse" : "Expand"}
+                                    </span>
+                                  </button>
+
+                                  {isExpanded && (
+                                    <div id={`coach-history-${group.dateKey}`} className="space-y-3 border-t border-neutral-800 p-3 sm:p-4">
+                                      {group.messages.map((message, index) => (
+                                        <div
+                                          key={message.id ?? `${group.dateKey}-${message.role}-${index}`}
+                                          className={`max-w-[96%] break-words whitespace-pre-wrap rounded-xl border px-4 py-3 text-sm leading-6 sm:max-w-[82%] ${
+                                            message.role === "user"
+                                              ? "ml-auto border-amber-500/30 bg-amber-400 text-black"
+                                              : "mr-auto border-neutral-800 bg-neutral-900 text-neutral-100"
+                                          }`}
+                                        >
+                                          <p
+                                            className={`mb-1 text-xs font-semibold uppercase tracking-[0.14em] ${
+                                              message.role === "user" ? "text-black/70" : "text-amber-300"
+                                            }`}
+                                          >
+                                            {message.role === "user" ? "You" : "Patriot K9 Coach"}
+                                          </p>
+                                          {message.content}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </article>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </section>
+                    )}
 
                     {isFreeChatLimitReached ? (
                       <div className="mt-6 rounded-lg border border-amber-500/30 bg-amber-400/10 p-5 sm:p-6" aria-live="polite">
@@ -4154,7 +4308,7 @@ ${recentHistory}`;
                                 void handleSend();
                               }
                             }}
-                            placeholder={`Ask Patriot K9 Coach about ${dogProfile.name || "your dog"}'s training...`}
+                            placeholder="Ask Patriot K9 Coach about today's training..."
                             disabled={loading || !hasActiveDog}
                             className="min-h-[104px] w-full flex-1 resize-y rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-base leading-6 text-white outline-none placeholder:text-neutral-500 focus:border-amber-400 focus:ring-2 focus:ring-amber-400/30 disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-[88px]"
                           />
