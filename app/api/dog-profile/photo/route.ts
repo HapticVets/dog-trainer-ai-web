@@ -131,15 +131,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unable to upload dog photo." }, { status: 500 });
     }
 
-    const { error: updateError } = await supabaseAdmin
+    const { data: updatedProfile, error: updateError } = await supabaseAdmin
       .from("dog_profiles")
       .update({ profile_image_path: path, updated_at: new Date().toISOString() })
       .eq("id", dogProfileId)
-      .eq("clerk_user_id", userId);
+      .eq("clerk_user_id", userId)
+      .select("profile_image_path")
+      .maybeSingle();
 
-    if (updateError) {
+    if (updateError || !updatedProfile?.profile_image_path) {
       await supabaseAdmin.storage.from(BUCKET).remove([path]);
-      console.error("Dog photo database update failed:", updateError);
+      console.error("Dog photo database update failed:", updateError ?? "No dog profile was updated.");
       return NextResponse.json({ error: "Unable to save dog photo." }, { status: 500 });
     }
 
@@ -152,8 +154,8 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      profileImagePath: path,
-      profileImageUrl: await createSignedImageUrl(path),
+      profileImagePath: updatedProfile.profile_image_path,
+      profileImageUrl: await createSignedImageUrl(updatedProfile.profile_image_path),
     });
   } catch (error) {
     console.error("Dog photo upload crashed:", error);
