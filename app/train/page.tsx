@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useUser } from "@clerk/nextjs";
+import Image from "next/image";
 import DogProfilePhotoPicker from "@/components/DogProfilePhotoPicker";
 import GoogleAdsSignUpConversion from "@/components/GoogleAdsSignUpConversion";
 import {
@@ -87,6 +88,28 @@ type ToastState = {
   message: string;
   variant: "success" | "warning" | "error";
 };
+
+type MissionAction = {
+  label: string;
+  targetId?: string;
+};
+
+const StatusIcon = ({ complete, current }: { complete: boolean; current?: boolean }) => (
+  <span
+    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border ${
+      complete
+        ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
+        : current
+        ? "border-amber-500/40 bg-amber-400/10 text-amber-200"
+        : "border-neutral-700 bg-neutral-900 text-neutral-500"
+    }`}
+    aria-hidden="true"
+  >
+    <svg viewBox="0 0 16 16" className="h-4 w-4 fill-none stroke-current stroke-[1.8]">
+      {complete ? <path d="m3.5 8.2 2.6 2.5 6.4-6.1" /> : <circle cx="8" cy="8" r="3" />}
+    </svg>
+  </span>
+);
 
 const rewardTypeOptions = ["Food", "Toy", "Ball", "Food and Toy", "Praise"];
 
@@ -315,22 +338,60 @@ export default function TrainPage() {
       ? "Log today's training session"
       : "Generate the next session or ask AI follow-up";
 
+  const currentPlanPhase =
+    parsedCurrentPlan.find((section) => section.label === "Current Phase")?.content ||
+    (hasCurrentPlan ? "Current plan active" : "Case file stage");
+  const todaysObjective =
+    parsedCurrentPlan.find((section) => section.label === "Objective")?.content ||
+    dogProfile.mainGoal ||
+    "Create a dog case file";
+  const equipmentSummary = dogProfile.equipmentUsed.length
+    ? dogProfile.equipmentUsed.join(", ")
+    : "No equipment noted";
+  const workflowSteps = [
+    { label: "Case File", complete: hasActiveDog },
+    { label: "Plan", complete: hasCurrentPlan },
+    { label: "Session Logged", complete: hasSessions },
+    {
+      label: "Next Session",
+      complete: false,
+      current: workflowState === "progressing",
+    },
+  ];
+  const completedWorkflowSteps = workflowSteps.filter((step) => step.complete).length;
+  const missionAction: MissionAction =
+    workflowState === "no_dog"
+      ? { label: "Create Dog Case File" }
+      : workflowState === "case_file_complete"
+      ? { label: "Generate First Session", targetId: "first-session-section" }
+      : workflowState === "plan_ready_to_log"
+      ? { label: "Log Today’s Session", targetId: "session-log-section" }
+      : { label: "Generate Next Session", targetId: "current-plan-section" };
+
   const statusCardItems = [
     {
       label: "Case File",
       value: hasActiveDog ? "Complete" : "Not started",
+      complete: hasActiveDog,
+      current: workflowState === "no_dog",
     },
     {
       label: "Current Plan",
       value: hasCurrentPlan ? "Generated" : "Not generated",
+      complete: hasCurrentPlan,
+      current: workflowState === "case_file_complete",
     },
     {
       label: "Last Session",
       value: latestSession?.date || "Not logged",
+      complete: hasSessions,
+      current: workflowState === "plan_ready_to_log",
     },
     {
       label: "Next Action",
       value: workflowNextAction,
+      complete: false,
+      current: workflowState === "progressing",
     },
   ];
 
@@ -382,6 +443,18 @@ export default function TrainPage() {
     if (toastTimeoutRef.current) window.clearTimeout(toastTimeoutRef.current);
     setToast({ message, variant });
     toastTimeoutRef.current = window.setTimeout(() => setToast(null), 5000);
+  };
+
+  const handleMissionAction = () => {
+    if (!missionAction.targetId) {
+      handleAddDog();
+      return;
+    }
+
+    document.getElementById(missionAction.targetId)?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
   };
 
   const refreshTrainerAccess = async () => {
@@ -2639,40 +2712,130 @@ ${recentHistory}`;
         </section>
       ) : (
         <>
-      <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-6">
-        <div className="rounded-lg border border-neutral-800 bg-black/40 p-5 sm:p-6">
-          <p className="text-sm uppercase tracking-[0.2em] text-amber-400">
-            Training Status
-          </p>
-          <h2 className="mt-2 text-2xl font-bold sm:text-3xl">
-            Next relevant action
-          </h2>
-          <p className="mt-2 text-neutral-400">
-            The trainer now guides the active dog forward one clear step at a time.
-          </p>
+          <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-6">
+            <div className="rounded-xl border border-neutral-800 bg-black/45 p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] sm:p-6">
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-center">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-400">
+                    Today&apos;s Mission
+                  </p>
+                  <div className="mt-4 flex min-w-0 items-center gap-4">
+                    <div className="relative h-[88px] w-[88px] shrink-0 overflow-hidden rounded-xl border border-amber-500/25 bg-neutral-900 sm:h-[104px] sm:w-[104px]">
+                      {hasActiveDog && dogProfile.profileImageUrl ? (
+                        <Image
+                          src={dogProfile.profileImageUrl}
+                          alt={`${dogProfile.name} active dog profile`}
+                          fill
+                          sizes="(max-width: 640px) 88px, 104px"
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-neutral-800 to-black text-3xl font-bold text-amber-300">
+                          {dogProfile.name.trim().slice(0, 1).toUpperCase() || "K9"}
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="truncate text-2xl font-bold sm:text-3xl">
+                          {hasActiveDog ? dogProfile.name : "No active dog"}
+                        </h2>
+                        {hasActiveDog && (
+                          <span className="rounded-full border border-amber-500/30 bg-amber-400/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-amber-200">
+                            Active Case
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-2 break-words text-sm text-neutral-300">
+                        {hasActiveDog
+                          ? dogProfile.mainGoal || "Training priority not set"
+                          : "Create a case file to begin structured coaching."}
+                      </p>
+                      {hasActiveDog && (
+                        <span className="mt-3 inline-flex rounded-full border border-neutral-700 bg-neutral-900 px-2.5 py-1 text-xs font-semibold text-neutral-200">
+                          Severity: {dogProfile.severity || "Not set"}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
 
-          <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            {statusCardItems.map((item) => (
-              <div
-                key={item.label}
-                className="rounded border border-neutral-800 bg-neutral-950 p-4"
-              >
-                <p className="text-xs uppercase tracking-[0.2em] text-neutral-500">
-                  {item.label}
-                </p>
-                <p className="mt-3 text-sm font-semibold text-white sm:text-base">
-                  {item.value}
-                </p>
+                <div className="min-w-0 rounded-lg border border-neutral-800 bg-neutral-950/80 p-4 sm:p-5">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="min-w-0">
+                      <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">Training phase</p>
+                      <p className="mt-2 break-words text-sm font-semibold text-white">{currentPlanPhase}</p>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">Session duration</p>
+                      <p className="mt-2 text-sm font-semibold text-white">
+                        {hasCurrentPlan ? "See plan setup" : "Available after plan generation"}
+                      </p>
+                    </div>
+                    <div className="min-w-0 sm:col-span-2">
+                      <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">Today&apos;s objective</p>
+                      <p className="mt-2 break-words text-sm leading-6 text-neutral-200">{todaysObjective}</p>
+                    </div>
+                    <div className="min-w-0 sm:col-span-2">
+                      <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">Equipment / setup</p>
+                      <p className="mt-2 break-words text-sm text-neutral-300">{equipmentSummary}</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleMissionAction}
+                    className="mt-5 min-h-11 w-full rounded bg-amber-400 px-5 py-3 font-semibold text-black hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-200 focus:ring-offset-2 focus:ring-offset-neutral-950 sm:w-auto"
+                  >
+                    {missionAction.label}
+                  </button>
+                </div>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
+
+              <div className="mt-6 border-t border-neutral-800 pt-5">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-400">
+                      Progress tracker
+                    </p>
+                    <p className="mt-1 text-sm text-neutral-400">
+                      {completedWorkflowSteps} of 3 record-backed workflow steps complete
+                    </p>
+                  </div>
+                  {latestSession && (
+                    <p className="text-sm text-neutral-300">Latest session: {latestSession.date}</p>
+                  )}
+                </div>
+                <ol className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  {workflowSteps.map((step) => (
+                    <li
+                      key={step.label}
+                      className="flex min-w-0 items-center gap-3 rounded border border-neutral-800 bg-neutral-950/70 px-3 py-3"
+                    >
+                      <StatusIcon complete={step.complete} current={step.current} />
+                      <span className="min-w-0 text-sm font-medium text-white">{step.label}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+
+              <div className="mt-5 grid gap-2 border-t border-neutral-800 pt-5 sm:grid-cols-2 xl:grid-cols-4">
+                {statusCardItems.map((item) => (
+                  <div key={item.label} className="flex min-w-0 items-start gap-3 px-1 py-2">
+                    <StatusIcon complete={item.complete} current={item.current} />
+                    <div className="min-w-0">
+                      <p className="text-xs uppercase tracking-[0.14em] text-neutral-500">{item.label}</p>
+                      <p className="mt-1 break-words text-sm font-medium text-neutral-200">{item.value}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
 
       <section className="mx-auto max-w-7xl px-4 pb-12 pt-6 sm:px-6 sm:pb-16 sm:pt-8">
         <div className="grid gap-6 xl:grid-cols-[minmax(420px,0.38fr)_minmax(0,0.62fr)] xl:gap-8">
           <div className="space-y-8">
-            <section className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
+            <section id="case-file-section" className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
               <div className="flex flex-col items-start justify-between gap-3 sm:flex-row">
                 <div>
                   <h2 className="text-2xl font-bold sm:text-3xl">Dog Case File</h2>
@@ -2733,7 +2896,7 @@ ${recentHistory}`;
             </section>
 
             {(workflowState === "plan_ready_to_log" || workflowState === "progressing") && (
-              <section className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
+              <section id="session-log-section" className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
                 <h2 className="text-2xl font-bold sm:text-3xl">Log Today's Training Session</h2>
                 <p className="mt-3 text-neutral-400">
                   Record what actually happened so the next session is built from real performance.
@@ -2886,7 +3049,7 @@ ${recentHistory}`;
             )}
 
             {workflowState === "case_file_complete" && (
-              <section className="rounded-lg border border-amber-500/30 bg-amber-400/10 p-6 sm:p-8">
+              <section id="first-session-section" className="rounded-lg border border-amber-500/30 bg-amber-400/10 p-6 sm:p-8">
                 <p className="text-sm uppercase tracking-[0.2em] text-amber-300">
                   Case File Complete
                 </p>
@@ -2926,7 +3089,7 @@ ${recentHistory}`;
 
             {(workflowState === "plan_ready_to_log" || workflowState === "progressing") && (
               <>
-                <section className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
+                <section id="current-plan-section" className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
                   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                     <div>
                       <h2 className="text-2xl font-bold sm:text-3xl">Current Training Plan</h2>
