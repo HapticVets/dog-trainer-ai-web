@@ -362,6 +362,39 @@ export default function TrainPage() {
       }),
     [savedPlans]
   );
+  const hasInitialTrainingPlan = savedPlans.some(
+    (plan) => plan.outputType === "initial_session_plan"
+  );
+  const trackedSkillSummaries = useMemo(() => {
+    const skills = new Map<string, { focus: string; sessions: number; lastWorkedOn: string }>();
+
+    sessionLogs.forEach((log) => {
+      const focus = log.focus.trim();
+      if (!focus) return;
+
+      const existing = skills.get(focus);
+      if (existing) {
+        existing.sessions += 1;
+        return;
+      }
+
+      skills.set(focus, {
+        focus,
+        sessions: 1,
+        lastWorkedOn: log.date,
+      });
+    });
+
+    return Array.from(skills.values()).slice(0, 6);
+  }, [sessionLogs]);
+  const recentProgressHighlights = sessionLogs
+    .slice(0, 3)
+    .map((log) => ({
+      date: log.date,
+      focus: log.focus,
+      wins: getSessionOutcome(log.wins).winsSummary,
+    }))
+    .filter((highlight) => highlight.wins !== "Not set");
 
   const workflowState: TrainingWorkflowState = !hasActiveDog
     ? "no_dog"
@@ -396,6 +429,27 @@ export default function TrainPage() {
   const equipmentSummary = dogProfile.equipmentUsed.length
     ? dogProfile.equipmentUsed.join(", ")
     : "No equipment noted";
+  const trainingMilestones = [
+    { label: "Case File", complete: hasActiveDog, detail: "Dog profile saved" },
+    {
+      label: "Training Plan",
+      complete: hasInitialTrainingPlan,
+      detail: hasInitialTrainingPlan ? "First plan generated" : "Generate the first plan",
+    },
+    {
+      label: "Sessions",
+      complete: hasSessions,
+      detail: hasSessions ? `${sessionLogs.length} logged` : "Log the first session",
+    },
+    {
+      label: "Current Phase",
+      complete: hasCurrentPlan,
+      detail: hasCurrentPlan ? currentPlanPhase : "Available after plan generation",
+    },
+  ];
+  const completedTrainingMilestones = trainingMilestones.filter(
+    (milestone) => milestone.complete
+  ).length;
   const workflowSteps = [
     { label: "Case File", complete: hasActiveDog },
     { label: "Plan", complete: hasCurrentPlan },
@@ -2889,6 +2943,142 @@ ${recentHistory}`;
                   </div>
                 ))}
               </div>
+            </div>
+          </section>
+
+          <section className="mx-auto max-w-7xl px-4 pb-2 sm:px-6 sm:pb-3">
+            <div className="rounded-xl border border-neutral-800 bg-black/45 p-5 shadow-[0_18px_45px_rgba(0,0,0,0.16)] sm:p-6">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-400">
+                    Long-Term Record
+                  </p>
+                  <h2 className="mt-2 text-2xl font-bold sm:text-3xl">Training Progress</h2>
+                  <p className="mt-3 max-w-3xl text-sm leading-6 text-neutral-400">
+                    Track your dog&apos;s development through completed training milestones and session history.
+                  </p>
+                </div>
+                {isPremiumUser && (
+                  <span className="w-fit rounded border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm font-semibold text-emerald-200">
+                    Premium Active
+                  </span>
+                )}
+              </div>
+
+              {!hasActiveDog ? (
+                <div className="mt-6 rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
+                  <h3 className="text-lg font-semibold text-white">Your training journey starts here.</h3>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-400">
+                    Create a dog case file, generate a plan, and complete sessions to build a lasting record of training milestones and progress.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="mt-6 grid gap-3 rounded-lg border border-neutral-800 bg-neutral-950 p-4 sm:grid-cols-2 xl:grid-cols-5">
+                    <div className="min-w-0">
+                      <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">Active dog</p>
+                      <p className="mt-1 truncate text-sm font-semibold text-white">{dogProfile.name}</p>
+                    </div>
+                    {hasCurrentPlan && (
+                      <div className="min-w-0">
+                        <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">Current phase</p>
+                        <p className="mt-1 break-words text-sm font-semibold text-white">{currentPlanPhase}</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">Completed sessions</p>
+                      <p className="mt-1 text-sm font-semibold text-white">{sessionLogs.length}</p>
+                    </div>
+                    {latestSession?.date && (
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">Last training date</p>
+                        <p className="mt-1 text-sm font-semibold text-white">{latestSession.date}</p>
+                      </div>
+                    )}
+                    {latestSession?.focus && (
+                      <div className="min-w-0">
+                        <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">Current focus</p>
+                        <p className="mt-1 break-words text-sm font-semibold text-white">{latestSession.focus}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-6">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                      <h3 className="text-lg font-semibold text-white">Training Journey</h3>
+                      <p
+                        className="text-sm text-neutral-400"
+                        role="progressbar"
+                        aria-label="Completed training milestones"
+                        aria-valuemin={0}
+                        aria-valuemax={trainingMilestones.length}
+                        aria-valuenow={completedTrainingMilestones}
+                      >
+                        {completedTrainingMilestones} of {trainingMilestones.length} milestones complete
+                      </p>
+                    </div>
+                    <ol className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                      {trainingMilestones.map((milestone, index) => {
+                        const isCurrentMilestone =
+                          !milestone.complete && index === completedTrainingMilestones;
+
+                        return (
+                          <li
+                            key={milestone.label}
+                            className="flex min-w-0 items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-950/80 p-3"
+                            aria-current={isCurrentMilestone ? "step" : undefined}
+                          >
+                            <StatusIcon complete={milestone.complete} current={isCurrentMilestone} />
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-white">{milestone.label}</p>
+                              <p className="mt-1 break-words text-xs leading-5 text-neutral-400">
+                                {milestone.detail}
+                              </p>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ol>
+                  </div>
+
+                  {trackedSkillSummaries.length > 0 && (
+                    <div className="mt-6 border-t border-neutral-800 pt-5">
+                      <h3 className="text-lg font-semibold text-white">Tracked Skills</h3>
+                      <p className="mt-1 text-sm text-neutral-400">
+                        Skills recorded from completed session focuses.
+                      </p>
+                      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                        {trackedSkillSummaries.map((skill) => (
+                          <div key={skill.focus} className="rounded border border-neutral-800 bg-neutral-950/80 p-3">
+                            <p className="text-sm font-semibold text-white">{skill.focus}</p>
+                            <p className="mt-1 text-xs text-neutral-400">
+                              {skill.sessions} logged session{skill.sessions === 1 ? "" : "s"}
+                              {skill.lastWorkedOn ? ` · Last worked ${skill.lastWorkedOn}` : ""}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {recentProgressHighlights.length > 0 && (
+                    <div className="mt-6 border-t border-neutral-800 pt-5">
+                      <h3 className="text-lg font-semibold text-white">Recent Progress Highlights</h3>
+                      <div className="mt-4 grid gap-3 lg:grid-cols-3">
+                        {recentProgressHighlights.map((highlight, index) => (
+                          <div key={`${highlight.date}-${highlight.focus}-${index}`} className="rounded border border-amber-500/20 bg-amber-400/5 p-3">
+                            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-300">
+                              {highlight.focus || "Session win"}
+                            </p>
+                            <p className="mt-2 text-sm leading-6 text-neutral-200">{highlight.wins}</p>
+                            {highlight.date && <p className="mt-2 text-xs text-neutral-500">{highlight.date}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </section>
 
