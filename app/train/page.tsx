@@ -262,6 +262,18 @@ export default function TrainPage() {
   const hasCurrentPlan = Boolean(currentPlan.trim());
   const isInitializingTrainer = !dogProfilesLoaded && !evaluationMode;
   const isPremiumUser = trainerAccess?.premium === true;
+  const freeMessagesUsed = trainerAccess?.aiChatMessagesUsed ?? 0;
+  const freeMessagesRemaining = trainerAccess?.aiChatMessagesRemaining ?? 0;
+  const freeMessageLimit = Math.max(
+    freeMessagesUsed + freeMessagesRemaining,
+    1
+  );
+  const freeMessageProgress = Math.min(
+    (freeMessagesUsed / freeMessageLimit) * 100,
+    100
+  );
+  const isFreeChatLimitReached =
+    !isPremiumUser && trainerAccess?.canUseAiChat === false;
   const latestSession = sessionLogs[0];
   const selectedGoals = dogProfile.selectedGoals;
   const categoryGoalOptions = useMemo(
@@ -2321,13 +2333,19 @@ ${recentHistory}`;
                 )}
               </div>
             )}
+
+            {!evaluationMode && isPremiumUser && (
+              <div className="rounded border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-200">
+                Premium Active
+              </div>
+            )}
           </div>
         </div>
       </section>
 
       {!isInitializingTrainer && trainerAccess && !trainerAccess.premium && (
         <section className="mx-auto max-w-7xl px-4 pt-6 sm:px-6">
-          <div className="rounded-lg border border-neutral-800 bg-black/30 p-5 sm:p-6">
+          <div className="rounded-lg border border-amber-500/20 bg-black/30 p-5 sm:p-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <p className="text-sm uppercase tracking-[0.2em] text-amber-400">
@@ -2338,16 +2356,38 @@ ${recentHistory}`;
                   and up to three AI training questions before upgrade is required.
                 </p>
               </div>
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-200">
-                  First session:{" "}
-                  {trainerAccess.canGenerateFirstSession ? "available" : "used"}
+              <div className="w-full max-w-xl rounded-lg border border-neutral-800 bg-neutral-950 p-4">
+                <div className="flex items-center justify-between gap-4 text-sm">
+                  <p className="font-semibold text-white">AI coaching messages</p>
+                  <p className="text-neutral-300">
+                    {freeMessagesUsed} used / {freeMessagesRemaining} remaining
+                  </p>
                 </div>
-                <div className="rounded border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-200">
-                  Session log: {trainerAccess.canLogSession ? "available" : "used"}
+                <div
+                  className="mt-3 h-2 overflow-hidden rounded-full bg-neutral-800"
+                  aria-label={`${freeMessagesUsed} of ${freeMessageLimit} free AI messages used`}
+                  role="progressbar"
+                  aria-valuemax={freeMessageLimit}
+                  aria-valuemin={0}
+                  aria-valuenow={Math.min(freeMessagesUsed, freeMessageLimit)}
+                >
+                  <div
+                    className="h-full rounded-full bg-amber-400 transition-[width]"
+                    style={{ width: `${freeMessageProgress}%` }}
+                  />
                 </div>
-                <div className="rounded border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-200">
-                  AI questions left: {trainerAccess.aiChatMessagesRemaining}
+                <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm font-medium text-amber-300">Unlimited with Premium</p>
+                  <button
+                    type="button"
+                    onClick={handleUpgrade}
+                    disabled={upgradeCheckoutLoading}
+                    className="w-full rounded bg-amber-400 px-4 py-3 text-sm font-semibold text-black hover:bg-amber-300 disabled:opacity-60 sm:w-auto"
+                  >
+                    {upgradeCheckoutLoading
+                      ? "Starting checkout..."
+                      : "⭐ Upgrade to Premium"}
+                  </button>
                 </div>
               </div>
             </div>
@@ -2790,8 +2830,26 @@ ${recentHistory}`;
                       </p>
                     </div>
 
-                    <div className="w-full rounded border border-neutral-700 bg-black/30 px-4 py-3 text-center text-sm text-neutral-300 md:w-auto md:text-left">
-                      AI assistant, not a live trainer
+                    <div className="flex w-full flex-col gap-2 md:w-auto md:items-end">
+                      <div className="rounded border border-neutral-700 bg-black/30 px-4 py-3 text-center text-sm text-neutral-300 md:text-left">
+                        AI assistant, not a live trainer
+                      </div>
+                      {isPremiumUser ? (
+                        <div className="rounded border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-center text-sm font-semibold text-emerald-200 md:text-left">
+                          Premium Active
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleUpgrade}
+                          disabled={upgradeCheckoutLoading}
+                          className="w-full rounded bg-amber-400 px-4 py-3 text-sm font-semibold text-black hover:bg-amber-300 disabled:opacity-60"
+                        >
+                          {upgradeCheckoutLoading
+                            ? "Starting checkout..."
+                            : "⭐ Upgrade to Premium"}
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -2852,24 +2910,50 @@ ${recentHistory}`;
                     </div>
                   </div>
 
-                  <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                    <textarea
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      placeholder="Ask about today's session... Example: Should I increase distractions? How do I stop forging? Is my dog ready for the next step?"
-                      disabled={loading || !hasActiveDog}
-                      className="min-h-[120px] w-full flex-1 rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-base text-white outline-none disabled:opacity-50 sm:min-h-[90px]"
-                    />
+                  {isFreeChatLimitReached ? (
+                    <div className="mt-6 rounded-lg border border-amber-500/30 bg-amber-400/10 p-5 sm:p-6">
+                      <p className="text-sm uppercase tracking-[0.2em] text-amber-300">
+                        Free coaching complete
+                      </p>
+                      <h3 className="mt-3 text-xl font-bold sm:text-2xl">
+                        Keep building your dog&apos;s training plan
+                      </h3>
+                      <p className="mt-3 max-w-2xl text-neutral-200">
+                        Premium unlocks unlimited AI coaching, ongoing training sessions,
+                        session history, and progression support for your active dog.
+                      </p>
+                      {upgradeCheckoutError && (
+                        <p className="mt-4 text-sm text-red-200">{upgradeCheckoutError}</p>
+                      )}
+                      <button
+                        type="button"
+                        onClick={handleUpgrade}
+                        disabled={upgradeCheckoutLoading}
+                        className="mt-5 w-full rounded bg-amber-400 px-5 py-3 font-semibold text-black hover:bg-amber-300 disabled:opacity-60 sm:w-auto"
+                      >
+                        {upgradeCheckoutLoading ? "Starting checkout..." : "Upgrade Now"}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                      <textarea
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        placeholder="Ask about today's session... Example: Should I increase distractions? How do I stop forging? Is my dog ready for the next step?"
+                        disabled={loading || !hasActiveDog}
+                        className="min-h-[120px] w-full flex-1 rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-base text-white outline-none disabled:opacity-50 sm:min-h-[90px]"
+                      />
 
-                    <button
-                      type="button"
-                      onClick={handleSend}
-                      disabled={loading || !input.trim() || !hasActiveDog}
-                      className="w-full self-end rounded bg-amber-400 px-6 py-3 font-semibold text-black disabled:opacity-50 sm:w-auto"
-                    >
-                      Send
-                    </button>
-                  </div>
+                      <button
+                        type="button"
+                        onClick={handleSend}
+                        disabled={loading || !input.trim() || !hasActiveDog}
+                        className="w-full self-end rounded bg-amber-400 px-6 py-3 font-semibold text-black disabled:opacity-50 sm:w-auto"
+                      >
+                        Send
+                      </button>
+                    </div>
+                  )}
                 </section>
                 )}
 
