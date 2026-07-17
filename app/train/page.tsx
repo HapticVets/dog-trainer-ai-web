@@ -12,10 +12,10 @@ import {
 } from "@/lib/dogGoals";
 import {
   buildDogCaseFileContext,
-  durationOptions,
   emptyDogCaseFile,
   ensurePrimaryPriority,
   equipmentOptions,
+  getDurationOptionsForValue,
   homeEnvironmentOptions,
   hydrateDogCaseFile,
   previousTrainingOptions,
@@ -121,12 +121,16 @@ const StatusIcon = ({ complete, current }: { complete: boolean; current?: boolea
 const rewardTypeOptions = ["Food", "Toy", "Ball", "Food and Toy", "Praise"];
 
 const skillLevelOptions = [
-  "Green dog",
-  "Beginner",
-  "Intermediate",
-  "Advanced",
-  "Competition ready",
+  "Well trained, looking to advance",
+  "Knows commands but needs consistency",
+  "Needs foundation training",
+  "Has behavior challenges",
 ];
+
+const getSkillLevelOptionsForValue = (currentValue: string) =>
+  skillLevelOptions.includes(currentValue)
+    ? skillLevelOptions
+    : [...skillLevelOptions, currentValue];
 
 const coachPromptSuggestions = [
   "What should I work on today?",
@@ -408,6 +412,8 @@ export default function TrainPage() {
     () => getAvailableMainGoals(dogProfile.goalType, dogProfile.mainGoal),
     [dogProfile.goalType, dogProfile.mainGoal]
   );
+  const durationOptionsForProfile = getDurationOptionsForValue(dogProfile.issueDuration);
+  const skillLevelOptionsForProfile = getSkillLevelOptionsForValue(dogProfile.skillLevel);
   const parsedCurrentPlan = useMemo(() => parsePlanSections(currentPlan), [currentPlan]);
   const savedPlans = useMemo(
     () =>
@@ -1765,7 +1771,7 @@ ${recentHistory}`;
       value: dogProfile.selectedGoals.join(", ") || "Not set",
     },
     { label: "Severity", value: dogProfile.severity || "Not set" },
-    { label: "Duration", value: dogProfile.issueDuration || "Not set" },
+    { label: "Training experience", value: dogProfile.issueDuration || "Not set" },
     {
       label: "Where it happens",
       value: dogProfile.whereItHappens.join(", ") || "Not set",
@@ -1964,7 +1970,7 @@ ${recentHistory}`;
           <div className="grid gap-5 md:grid-cols-2">
             <div>
               <label className="mb-2 block text-sm text-white">
-                How difficult is this problem today?
+                How challenging is this training priority right now?
               </label>
               <select
                 value={dogProfile.severity}
@@ -1980,7 +1986,7 @@ ${recentHistory}`;
             </div>
             <div>
               <label className="mb-2 block text-sm text-white">
-                How long has this been happening?
+                How long have you been actively training this skill?
               </label>
               <select
                 value={dogProfile.issueDuration}
@@ -1992,7 +1998,7 @@ ${recentHistory}`;
                 }
                 className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
               >
-                {durationOptions.map((option) => (
+                {durationOptionsForProfile.map((option) => (
                   <option key={option} value={option}>
                     {option}
                   </option>
@@ -2115,7 +2121,9 @@ ${recentHistory}`;
               </select>
             </div>
             <div>
-              <label className="mb-2 block text-sm text-white">Skill level</label>
+              <label className="mb-2 block text-sm text-white">
+                What best describes your dog&apos;s current training level?
+              </label>
               <select
                 value={dogProfile.skillLevel}
                 onChange={(e) =>
@@ -2126,7 +2134,7 @@ ${recentHistory}`;
                 }
                 className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
               >
-                {skillLevelOptions.map((option) => (
+                {skillLevelOptionsForProfile.map((option) => (
                   <option key={option} value={option}>
                     {option}
                   </option>
@@ -2523,7 +2531,7 @@ ${recentHistory}`;
             </div>
 
             <div className="rounded-lg border border-neutral-800 bg-black/30 p-4">
-              <label className="mb-2 block text-sm text-white">Duration</label>
+              <label className="mb-2 block text-sm text-white">Training experience</label>
               <select
                 value={dogProfile.issueDuration}
                 onChange={(e) =>
@@ -2534,7 +2542,7 @@ ${recentHistory}`;
                 }
                 className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
               >
-                {durationOptions.map((option) => (
+                {durationOptionsForProfile.map((option) => (
                   <option key={option} value={option}>
                     {option}
                   </option>
@@ -2671,7 +2679,7 @@ ${recentHistory}`;
                 }
                 className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
               >
-                {skillLevelOptions.map((option) => (
+                {skillLevelOptionsForProfile.map((option) => (
                   <option key={option} value={option}>
                     {option}
                   </option>

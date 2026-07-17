@@ -8,12 +8,18 @@ import {
 export const severityOptions = ["Mild", "Moderate", "Serious", "Urgent"] as const;
 
 export const durationOptions = [
-  "Just started",
-  "A few weeks",
-  "A few months",
-  "Since puppyhood",
-  "Not sure",
+  "Just starting",
+  "Less than 3 months",
+  "3–6 months",
+  "6–12 months",
+  "Over 1 year",
+  "My dog is already trained and I want to advance further",
 ] as const;
+
+export const getDurationOptionsForValue = (currentValue: string) =>
+  durationOptions.includes(currentValue as (typeof durationOptions)[number])
+    ? durationOptions
+    : [...durationOptions, currentValue];
 
 export const whereItHappensOptions = [
   "Home",
@@ -123,7 +129,7 @@ export const emptyDogCaseFile: DogCaseFile = {
   mainGoal: "Pulling on leash",
   selectedGoals: ["Pulling on leash"],
   severity: "Moderate",
-  issueDuration: "A few weeks",
+  issueDuration: "Just starting",
   whereItHappens: [],
   childrenInHome: false,
   otherDogsInHome: false,
@@ -288,7 +294,7 @@ export const hydrateDogCaseFile = (profile: {
     sex: parsed?.sex ?? "Not set",
     weight: parsed?.weight ?? "",
     severity: parsed?.severity ?? "Moderate",
-    issueDuration: parsed?.issueDuration ?? "A few weeks",
+    issueDuration: parsed?.issueDuration ?? "Just starting",
     whereItHappens: parsed?.whereItHappens ?? [],
     childrenInHome: parsed?.childrenInHome ?? false,
     otherDogsInHome: parsed?.otherDogsInHome ?? false,
@@ -386,10 +392,10 @@ Age: ${profile.age || "unknown"}
 Sex: ${profile.sex || "unknown"}
 Weight: ${profile.weight || "unknown"}
 Goal Category: ${normalizeGoalType(profile.goalType)}
-Selected Goals/Problems: ${profile.selectedGoals.join(", ") || "none"}
+Selected Training Goals/Concerns: ${profile.selectedGoals.join(", ") || "none"}
 Primary Priority: ${profile.mainGoal || "unknown"}
-Severity: ${profile.severity || "unknown"}
-Duration: ${profile.issueDuration || "unknown"}
+Current Difficulty/Severity: ${profile.severity || "unknown"}
+Training Experience / Concern Duration: ${profile.issueDuration || "unknown"}
 Where It Happens: ${profile.whereItHappens.join(", ") || "not provided"}
 Household Context: ${householdContext.join(", ") || "not provided"}
 Previous Training: ${profile.previousTraining || "unknown"}
