@@ -94,6 +94,13 @@ type MissionAction = {
   targetId?: string;
 };
 
+type EvaluationDraft = {
+  version: 1;
+  step: EvaluationStep;
+  profile: DogCaseFile;
+  previousActiveDogId: string;
+};
+
 const StatusIcon = ({ complete, current }: { complete: boolean; current?: boolean }) => (
   <span
     className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border ${
@@ -191,6 +198,68 @@ const evaluationStepTitles: Record<EvaluationStep, string> = {
 };
 
 const ACTIVE_DOG_STORAGE_KEY = "patriot-k9-active-dog-id";
+const EVALUATION_DRAFT_STORAGE_PREFIX = "patriot-k9-evaluation-draft";
+
+const isEvaluationStep = (value: unknown): value is EvaluationStep =>
+  typeof value === "number" && value >= 1 && value <= 6;
+
+const getEvaluationDraftStorageKey = (userId: string) =>
+  `${EVALUATION_DRAFT_STORAGE_PREFIX}:${userId}`;
+
+const getPersistedEvaluationDraft = (userId: string): EvaluationDraft | null => {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const rawDraft = window.localStorage.getItem(getEvaluationDraftStorageKey(userId));
+    if (!rawDraft) return null;
+
+    const parsedDraft = JSON.parse(rawDraft) as Partial<EvaluationDraft>;
+    if (!isEvaluationStep(parsedDraft.step) || !parsedDraft.profile) return null;
+
+    const profile = parsedDraft.profile;
+    return {
+      version: 1,
+      step: parsedDraft.step,
+      previousActiveDogId:
+        typeof parsedDraft.previousActiveDogId === "string"
+          ? parsedDraft.previousActiveDogId
+          : "",
+      profile: {
+        ...emptyDogCaseFile,
+        ...profile,
+        id: undefined,
+        profileImagePath: null,
+        profileImageUrl: null,
+        selectedGoals: Array.isArray(profile.selectedGoals)
+          ? profile.selectedGoals
+          : emptyDogCaseFile.selectedGoals,
+        whereItHappens: Array.isArray(profile.whereItHappens)
+          ? profile.whereItHappens
+          : [],
+        equipmentUsed: Array.isArray(profile.equipmentUsed)
+          ? profile.equipmentUsed
+          : [],
+      },
+    };
+  } catch {
+    return null;
+  }
+};
+
+const persistEvaluationDraft = (draft: EvaluationDraft, userId: string) => {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage.setItem(getEvaluationDraftStorageKey(userId), JSON.stringify(draft));
+  } catch (error) {
+    console.warn("Unable to persist dog evaluation draft.", error);
+  }
+};
+
+const clearPersistedEvaluationDraft = (userId?: string) => {
+  if (typeof window === "undefined" || !userId) return;
+  window.localStorage.removeItem(getEvaluationDraftStorageKey(userId));
+};
 
 const parsePlanSections = (plan: string): PlanSection[] => {
   if (!plan.trim()) return [];
@@ -653,6 +722,31 @@ export default function TrainPage() {
         );
 
         setDogProfiles(mapped);
+        const evaluationDraft = getPersistedEvaluationDraft(user.id);
+
+        if (evaluationDraft) {
+          const persistedActiveDogId = getPersistedActiveDogId();
+          const previousDog =
+            mapped.find((dog) => dog.id === evaluationDraft.previousActiveDogId) ??
+            mapped.find((dog) => dog.id === persistedActiveDogId) ??
+            null;
+
+          setEvaluationMode(true);
+          setEvaluationStep(evaluationDraft.step);
+          setProfileCollapsed(false);
+          setPreviousActiveDogId(previousDog?.id ?? "");
+          setPreviousActiveDogProfile(previousDog);
+          setPendingProfileImage(null);
+          setPendingProfileImageRemoval(false);
+          setProfileImageError("");
+          setSelectedDogId("");
+          setDogProfile(evaluationDraft.profile);
+          setSessionLogs([]);
+          setMessages([]);
+          setCurrentPlan("");
+          setSavedOutputs([]);
+          return;
+        }
 
         if (mapped.length > 0) {
           setEvaluationMode(false);
@@ -686,6 +780,31 @@ export default function TrainPage() {
 
     refreshTrainerAccess();
   }, [user]);
+
+  useEffect(() => {
+    if (!user || !evaluationMode) return;
+
+    persistEvaluationDraft(
+      {
+        version: 1,
+        step: evaluationStep,
+        profile: {
+          ...dogProfile,
+          id: undefined,
+          profileImagePath: null,
+          profileImageUrl: null,
+        },
+        previousActiveDogId,
+      },
+      user.id
+    );
+  }, [
+    user,
+    evaluationMode,
+    evaluationStep,
+    dogProfile,
+    previousActiveDogId,
+  ]);
 
   useEffect(() => {
     if (!user || !selectedDogId || !dogProfile.name.trim()) {
@@ -934,6 +1053,7 @@ export default function TrainPage() {
 
     setUpgradeModal(null);
     setUpgradeCheckoutError("");
+    clearPersistedEvaluationDraft(user?.id);
     setPreviousActiveDogId(selectedDogId);
     setPreviousActiveDogProfile(selectedDogId ? dogProfile : null);
     setEvaluationMode(true);
@@ -962,6 +1082,7 @@ export default function TrainPage() {
   const handleCancelEvaluation = () => {
     setUpgradeModal(null);
     setUpgradeCheckoutError("");
+    clearPersistedEvaluationDraft(user?.id);
     setEvaluationMode(false);
     setEvaluationStep(1);
     setPendingProfileImage(null);
@@ -1124,6 +1245,7 @@ export default function TrainPage() {
       activateDog(saved);
       setEvaluationMode(false);
       setEvaluationStep(1);
+      clearPersistedEvaluationDraft(user.id);
       setPreviousActiveDogId("");
       setPreviousActiveDogProfile(null);
       setProfileCollapsed(true);
