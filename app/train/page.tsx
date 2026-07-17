@@ -133,12 +133,14 @@ const getSkillLevelOptionsForValue = (currentValue: string) =>
     : [...skillLevelOptions, currentValue];
 
 const coachPromptSuggestions = [
-  "What should I work on today?",
-  "Is my dog ready for more distractions?",
-  "Why did my dog regress?",
-  "Should I shorten the next session?",
-  "How do I improve engagement?",
-  "What should I do after a bad session?",
+  "Explain today’s mission",
+  "What should I watch for?",
+  "Is my dog ready to progress?",
+  "How should I reward this?",
+  "What if my dog regresses?",
+  "Should I shorten the session?",
+  "How do I increase difficulty?",
+  "What should I do next?",
 ];
 
 const sessionFocusOptions = [
@@ -3855,8 +3857,8 @@ ${recentHistory}`;
                   )}
                 </section>
 
-                {workflowState === "progressing" && (
-                  <section className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
+                {(workflowState === "plan_ready_to_log" || workflowState === "progressing") && (
+                  <section id="patriot-k9-coach" className="rounded-2xl border border-neutral-800 bg-gradient-to-br from-neutral-900 via-neutral-950 to-black p-5 shadow-[0_18px_44px_rgba(0,0,0,0.24)] sm:p-6">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                       <div className="flex min-w-0 items-center gap-3">
                         <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-amber-500/30 bg-neutral-900 text-lg font-bold text-amber-300">
@@ -3880,7 +3882,7 @@ ${recentHistory}`;
                             Coaching for {dogProfile.name || "your active dog"}
                           </h2>
                           <p className="mt-2 text-sm text-neutral-400">
-                            Get guidance based on your dog&apos;s case file, current training plan, and logged sessions.
+                            Guidance based on your dog&apos;s case file, current plan, and logged sessions.
                           </p>
                         </div>
                       </div>
@@ -3920,6 +3922,11 @@ ${recentHistory}`;
                       {hasSessions && (
                         <span className="rounded-full border border-neutral-700 bg-black/30 px-3 py-1 text-xs font-medium text-neutral-300">
                           Session history available
+                        </span>
+                      )}
+                      {hasCurrentPlan && (
+                        <span className="rounded-full border border-neutral-700 bg-black/30 px-3 py-1 text-xs font-medium text-neutral-300">
+                          Current phase: {currentPlanPhase}
                         </span>
                       )}
                     </div>
@@ -3966,16 +3973,16 @@ ${recentHistory}`;
                         aria-live="polite"
                       >
                         {messages.length === 0 && !loading && (
-                          <div className="rounded border border-neutral-800 bg-neutral-950/80 p-4 text-sm text-neutral-300">
-                            <p className="font-semibold text-white">Start with the training decision in front of you.</p>
+                          <div className="rounded-xl border border-amber-500/20 bg-neutral-950/80 p-5 text-sm text-neutral-300">
+                            <p className="font-semibold text-white">Your coach is ready.</p>
                             <p className="mt-2 leading-6 text-neutral-400">
-                              Ask about today&apos;s session, behavior changes, progression, rewards, corrections, or the next practical step.
+                              Ask about today&apos;s mission, progression, rewards, behavior changes, or what to do next.
                             </p>
                             <ul className="mt-3 grid gap-2 text-neutral-300 sm:grid-cols-2">
-                              <li>Today&apos;s training priority</li>
-                              <li>Whether to add distraction</li>
-                              <li>How to recover after a setback</li>
-                              <li>When to progress the plan</li>
+                              <li>Today&apos;s mission</li>
+                              <li>Reward timing</li>
+                              <li>Difficulty changes</li>
+                              <li>When to progress</li>
                             </ul>
                           </div>
                         )}
@@ -3983,7 +3990,7 @@ ${recentHistory}`;
                         {messages.map((message, index) => (
                           <div
                             key={`${message.role}-${index}`}
-                            className={`max-w-[96%] break-words whitespace-pre-wrap rounded-lg border px-4 py-3 text-sm leading-6 sm:max-w-[82%] ${
+                            className={`max-w-[96%] break-words whitespace-pre-wrap rounded-xl border px-4 py-3 text-sm leading-6 shadow-[0_8px_20px_rgba(0,0,0,0.16)] sm:max-w-[82%] ${
                               message.role === "user"
                                 ? "ml-auto border-amber-500/30 bg-amber-400 text-black"
                                 : "mr-auto border-neutral-800 bg-neutral-900 text-neutral-100"
@@ -4050,7 +4057,7 @@ ${recentHistory}`;
                                 void handleSend();
                               }
                             }}
-                            placeholder="Ask Patriot K9 Coach about your dog&apos;s training..."
+                            placeholder={`Ask Patriot K9 Coach about ${dogProfile.name || "your dog"}'s training...`}
                             disabled={loading || !hasActiveDog}
                             className="min-h-[104px] w-full flex-1 resize-y rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-base leading-6 text-white outline-none placeholder:text-neutral-500 focus:border-amber-400 focus:ring-2 focus:ring-amber-400/30 disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-[88px]"
                           />
