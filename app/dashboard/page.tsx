@@ -51,6 +51,18 @@ type SessionLog = {
   focus: string;
   wins: string;
   issues: string;
+  createdAt?: string;
+};
+
+type DashboardDogProfile = DogCaseFile & {
+  createdAt?: string;
+};
+
+type CoachMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  createdAt: string;
 };
 
 type SavedOutput = {
@@ -58,6 +70,18 @@ type SavedOutput = {
   outputType: "initial_session_plan" | "progress_report" | "next_session_plan";
   content: string;
   createdAt: string;
+};
+
+type TimelineEvent = {
+  id: string;
+  type: "case-file" | "plan" | "session" | "report" | "coach";
+  title: string;
+  description: string;
+  createdAt: string;
+  action?: {
+    label: string;
+    href: string;
+  };
 };
 
 const getPlanSection = (plan: string, heading: string) => {
@@ -81,6 +105,59 @@ const getPlanDuration = (setup: string) =>
 const getPreview = (value: string, limit = 180) =>
   value.length > limit ? `${value.slice(0, limit).trim()}...` : value;
 
+const formatTimelineTimestamp = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Date unavailable";
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+};
+
+const getTimelineWeekKey = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Date unavailable";
+
+  const weekStart = new Date(date);
+  const day = weekStart.getDay();
+  weekStart.setDate(weekStart.getDate() - ((day + 6) % 7));
+  weekStart.setHours(0, 0, 0, 0);
+
+  return weekStart.toISOString().slice(0, 10);
+};
+
+const getTimelineWeekLabel = (weekKey: string) => {
+  if (weekKey === "Date unavailable") return weekKey;
+
+  const weekStart = new Date(`${weekKey}T12:00:00`);
+  return `Week of ${new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+  }).format(weekStart)}`;
+};
+
+const TimelineIcon = ({ type }: { type: TimelineEvent["type"] }) => {
+  const paths = {
+    "case-file": <path d="M4 2.8h5l3 3v7.4H4V2.8Zm4 2.5h2.2M6 8h4M6 10.5h3" />,
+    plan: <path d="M3 4.2h10M3 8h10M3 11.8h6M10.8 10.5l1.5 1.5 2.3-3" />,
+    session: <path d="M4 2.8v2.4M12 2.8v2.4M3 5.2h10v8.3H3V5.2Zm2.2 3h5.6M5.2 10.7h3.2" />,
+    report: <path d="M4 2.8h5l3 3v7.4H4V2.8Zm2 5.1h4M6 10.4h3M10.3 5.8h1.4" />,
+    coach: <path d="M3 3.5h10v7H7l-3.3 2.4.5-2.4H3v-7Z" />,
+  };
+
+  return (
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-amber-500/25 bg-amber-400/10 text-amber-200">
+      <svg viewBox="0 0 16 16" className="h-4 w-4 fill-none stroke-current stroke-[1.5]" aria-hidden="true">
+        {paths[type]}
+      </svg>
+    </span>
+  );
+};
+
 const DashboardIcon = ({ type }: { type: "dog" | "phase" | "sessions" | "focus" }) => {
   const paths = {
     dog: <path d="M3 12.5c1.4-3.8 3-5.7 5-5.7s3.6 1.9 5 5.7M5.2 7.2 4 4.5l2.6.7M10.8 7.2 12 4.5l-2.6.7" />,
@@ -103,11 +180,13 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [portalLoading, setPortalLoading] = useState(false);
 
-  const [dogProfiles, setDogProfiles] = useState<DogCaseFile[]>([]);
+  const [dogProfiles, setDogProfiles] = useState<DashboardDogProfile[]>([]);
   const [selectedDogId, setSelectedDogId] = useState<string>("");
   const [selectedDogName, setSelectedDogName] = useState("");
   const [sessionLogs, setSessionLogs] = useState<SessionLog[]>([]);
   const [savedOutputs, setSavedOutputs] = useState<SavedOutput[]>([]);
+  const [coachMessages, setCoachMessages] = useState<CoachMessage[]>([]);
+  const [showAllTimelineEvents, setShowAllTimelineEvents] = useState(false);
   const [progressReport, setProgressReport] = useState("");
   const [reportLoading, setReportLoading] = useState(false);
 
@@ -186,9 +265,10 @@ export default function DashboardPage() {
           return;
         }
 
-        const mapped: DogCaseFile[] = (data.profiles || []).map((profile: any) =>
-          hydrateDogCaseFile(profile)
-        );
+        const mapped: DashboardDogProfile[] = (data.profiles || []).map((profile: any) => ({
+          ...hydrateDogCaseFile(profile),
+          createdAt: profile.created_at,
+        }));
 
         setDogProfiles(mapped);
 
@@ -208,6 +288,7 @@ export default function DashboardPage() {
     if (!selectedDogId || !selectedDogName.trim()) {
       setSessionLogs([]);
       setSavedOutputs([]);
+      setCoachMessages([]);
       setProgressReport("");
       return;
     }
@@ -240,6 +321,7 @@ export default function DashboardPage() {
           focus: log.focus ?? "",
           wins: log.wins ?? "",
           issues: log.issues ?? "",
+          createdAt: log.created_at,
         }));
 
         setSessionLogs(mappedLogs);
@@ -289,8 +371,46 @@ export default function DashboardPage() {
       }
     };
 
+    const loadCoachMessages = async () => {
+      try {
+        const res = await fetch(
+          `/api/dog-chats?dog_profile_id=${encodeURIComponent(selectedDogId)}`,
+          {
+            method: "GET",
+            cache: "no-store",
+          }
+        );
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          console.error("Failed to load coach messages:", data.error);
+          setCoachMessages([]);
+          return;
+        }
+
+        setCoachMessages(
+          (data.chats || []).map((chat: {
+            id: string;
+            role: "user" | "assistant";
+            content: string;
+            created_at: string;
+          }) => ({
+            id: chat.id,
+            role: chat.role,
+            content: chat.content,
+            createdAt: chat.created_at,
+          }))
+        );
+      } catch (error) {
+        console.error("Failed to load coach messages:", error);
+        setCoachMessages([]);
+      }
+    };
+
     loadSessionLogs();
     loadOutputs();
+    loadCoachMessages();
   }, [selectedDogId, selectedDogName]);
 
   const handleSelectDog = (id: string) => {
@@ -300,9 +420,11 @@ export default function DashboardPage() {
     if (found) {
       setSelectedDogName(found.name);
       setProgressReport("");
+      setShowAllTimelineEvents(false);
     } else {
       setSelectedDogName("");
       setProgressReport("");
+      setShowAllTimelineEvents(false);
     }
   };
 
@@ -415,6 +537,122 @@ ${sessionSummary}`;
   const savedProgressReports = savedOutputs.filter(
     (output) => output.outputType === "progress_report"
   );
+  const coachConversationEvents = useMemo(() => {
+    const messagesByDate = new Map<string, CoachMessage[]>();
+
+    coachMessages.forEach((message) => {
+      if (!message.createdAt) return;
+
+      const date = new Date(message.createdAt);
+      if (Number.isNaN(date.getTime())) return;
+
+      const dateKey = date.toISOString().slice(0, 10);
+      messagesByDate.set(dateKey, [...(messagesByDate.get(dateKey) ?? []), message]);
+    });
+
+    return Array.from(messagesByDate.entries()).map(([dateKey, messages]) => {
+      const latestMessage = messages[messages.length - 1];
+      const coachMessageCount = messages.filter((message) => message.role === "assistant").length;
+
+      return {
+        id: `coach-${dateKey}`,
+        type: "coach" as const,
+        title: "Coach Conversation",
+        description: `${messages.length} messages exchanged${
+          coachMessageCount > 0 ? `, including ${coachMessageCount} coach response${coachMessageCount === 1 ? "" : "s"}` : ""
+        }.`,
+        createdAt: latestMessage.createdAt,
+        action: {
+          label: "View Coaching",
+          href: "/train#patriot-k9-coach",
+        },
+      };
+    });
+  }, [coachMessages]);
+  const timelineEvents = useMemo(() => {
+    const events: TimelineEvent[] = [];
+
+    if (selectedDogProfile?.createdAt) {
+      events.push({
+        id: `case-file-${selectedDogProfile.id}`,
+        type: "case-file",
+        title: "Case File Created",
+        description: `${selectedDogProfile.name}'s training case file was created for ${selectedDogProfile.mainGoal || "their primary training goal"}.`,
+        createdAt: selectedDogProfile.createdAt,
+        action: {
+          label: "View Case File",
+          href: "/train",
+        },
+      });
+    }
+
+    savedOutputs.forEach((output) => {
+      if (output.outputType === "progress_report") {
+        events.push({
+          id: `report-${output.id}`,
+          type: "report",
+          title: "Mission Report Completed",
+          description: "A progress report was generated from completed training sessions.",
+          createdAt: output.createdAt,
+        });
+        return;
+      }
+
+      const objective = getPlanSection(output.content, "SESSION OBJECTIVE");
+      events.push({
+        id: `plan-${output.id}`,
+        type: "plan",
+        title:
+          output.outputType === "initial_session_plan"
+            ? "Training Plan Generated"
+            : "Next Training Plan Generated",
+        description: objective || "A structured training mission was generated.",
+        createdAt: output.createdAt,
+        action: {
+          label: "View Plan",
+          href: "/train#current-training-plan",
+        },
+      });
+    });
+
+    sessionLogs.forEach((session) => {
+      const timestamp = session.createdAt || session.date;
+      if (!timestamp) return;
+
+      events.push({
+        id: `session-${session.id}`,
+        type: "session",
+        title: "Training Session Logged",
+        description: `${session.focus || "Training mission"}${session.duration ? ` · ${session.duration}` : ""}${
+          session.wins ? ` · Wins: ${getPreview(session.wins, 88)}` : ""
+        }`,
+        createdAt: timestamp,
+        action: {
+          label: "View Session",
+          href: "/train#mission-reports",
+        },
+      });
+    });
+
+    events.push(...coachConversationEvents);
+
+    return events
+      .filter((event) => !Number.isNaN(new Date(event.createdAt).getTime()))
+      .sort((first, second) => new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime());
+  }, [coachConversationEvents, savedOutputs, selectedDogProfile, sessionLogs]);
+  const visibleTimelineEvents = showAllTimelineEvents
+    ? timelineEvents
+    : timelineEvents.slice(0, 12);
+  const timelineWeeks = useMemo(() => {
+    const weeks = new Map<string, TimelineEvent[]>();
+
+    visibleTimelineEvents.forEach((event) => {
+      const weekKey = getTimelineWeekKey(event.createdAt);
+      weeks.set(weekKey, [...(weeks.get(weekKey) ?? []), event]);
+    });
+
+    return Array.from(weeks.entries());
+  }, [visibleTimelineEvents]);
 
   const handleManageSubscription = async () => {
     if (portalLoading) return;
@@ -661,6 +899,82 @@ ${sessionSummary}`;
             </Link>
           </div>
         </div>
+
+        <section className="mt-8 rounded-2xl border border-neutral-800 bg-gradient-to-br from-neutral-900 to-neutral-950 p-5 shadow-[0_18px_44px_rgba(0,0,0,0.24)] sm:p-7">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">
+                Training Progress
+              </p>
+              <h2 className="mt-3 text-3xl font-bold">Training Timeline</h2>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral-400">
+                Review {selectedDogName || "your dog"}&apos;s training journey from the first case file through plans, sessions, reports, and coaching.
+              </p>
+            </div>
+            {timelineEvents.length > 0 && (
+              <span className="self-start rounded border border-neutral-700 bg-black/30 px-3 py-2 text-xs font-semibold text-neutral-300 sm:self-auto">
+                {timelineEvents.length} recorded {timelineEvents.length === 1 ? "event" : "events"}
+              </span>
+            )}
+          </div>
+
+          {!hasActiveDog ? (
+            <div className="mt-6 rounded-xl border border-neutral-800 bg-black/30 p-5 text-sm leading-6 text-neutral-400">
+              Select a dog to review its complete training timeline.
+            </div>
+          ) : timelineWeeks.length === 0 ? (
+            <div className="mt-6 rounded-xl border border-amber-500/20 bg-amber-400/5 p-5 text-sm leading-6 text-neutral-300">
+              This timeline will begin as training activity is saved. Create a case file, generate a mission, or log a session to add the first milestone.
+            </div>
+          ) : (
+            <div className="mt-6 space-y-7">
+              {timelineWeeks.map(([weekKey, events]) => (
+                <div key={weekKey}>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">
+                    {getTimelineWeekLabel(weekKey)}
+                  </p>
+                  <div className="mt-3 space-y-3 border-l border-neutral-800 pl-4 sm:pl-5">
+                    {events.map((event) => (
+                      <article key={event.id} className="relative rounded-xl border border-neutral-800 bg-black/35 p-4 shadow-[0_10px_24px_rgba(0,0,0,0.14)]">
+                        <span className="absolute -left-[1.55rem] top-5 h-3 w-3 rounded-full border-2 border-neutral-950 bg-amber-400 sm:-left-[1.8rem]" aria-hidden="true" />
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="flex min-w-0 gap-3">
+                            <TimelineIcon type={event.type} />
+                            <div className="min-w-0">
+                              <h3 className="text-base font-semibold text-white">{event.title}</h3>
+                              <p className="mt-1 text-xs text-neutral-500">{formatTimelineTimestamp(event.createdAt)}</p>
+                              <p className="mt-2 break-words text-sm leading-6 text-neutral-300">{event.description}</p>
+                            </div>
+                          </div>
+                          {event.action && (
+                            <Link
+                              href={event.action.href}
+                              className="inline-flex min-h-10 shrink-0 items-center justify-center rounded border border-neutral-700 px-3 py-2 text-xs font-semibold text-amber-200 transition-colors hover:border-amber-500/50 hover:bg-amber-400/10 focus:outline-none focus:ring-2 focus:ring-amber-300 sm:w-auto"
+                            >
+                              {event.action.label}
+                            </Link>
+                          )}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {timelineEvents.length > 12 && (
+            <button
+              type="button"
+              onClick={() => setShowAllTimelineEvents((showAll) => !showAll)}
+              className="mt-6 min-h-11 w-full rounded border border-neutral-700 px-4 py-3 text-sm font-semibold text-neutral-200 transition-colors hover:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-amber-300 sm:w-auto"
+            >
+              {showAllTimelineEvents
+                ? "Show Recent Events"
+                : `Show ${timelineEvents.length - 12} Older ${timelineEvents.length - 12 === 1 ? "Event" : "Events"}`}
+            </button>
+          )}
+        </section>
 
         <section className="mt-8 rounded-xl border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">Dog Training Record</p>
