@@ -551,7 +551,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="border-b border-neutral-800 px-6 py-24">
+      <section id="pricing" className="scroll-mt-24 border-b border-neutral-800 px-6 py-24">
         <div className="mx-auto max-w-6xl text-center">
           <p className="text-sm uppercase tracking-[0.25em] text-amber-400">
             Premium Value

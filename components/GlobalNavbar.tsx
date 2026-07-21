@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton, useUser } from "@clerk/nextjs";
 
-const navItems = [
+const workspaceNavItems = [
   { href: "/", label: "Home" },
   { href: "/method", label: "Method" },
   { href: "/about", label: "About" },
@@ -13,7 +13,23 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard" },
 ];
 
-const trainingOptionsNavItem = { href: "/training-options", label: "Training Options" };
+const marketingNavItems = [
+  { href: "/", label: "Home" },
+  { href: "/#how-it-works", label: "How It Works" },
+  { href: "/training-options", label: "Training Options" },
+  { href: "/#pricing", label: "Pricing" },
+];
+
+const marketingPagePrefixes = [
+  "/",
+  "/method",
+  "/about",
+  "/puppy-training",
+  "/german-shepherd-training",
+  "/leash-training",
+  "/stop-barking",
+  "/training-options",
+];
 
 const trainingHelpItems = [
   { href: "/puppy-training", label: "Puppy Training" },
@@ -24,7 +40,7 @@ const trainingHelpItems = [
 
 export default function GlobalNavbar() {
   const pathname = usePathname();
-  const { isSignedIn } = useUser();
+  const { isLoaded, isSignedIn } = useUser();
   const [isDesktopDropdownOpen, setIsDesktopDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -33,9 +49,10 @@ export default function GlobalNavbar() {
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
-  const visibleNavItems = isSignedIn
-    ? navItems
-    : [...navItems.slice(0, 2), trainingOptionsNavItem, ...navItems.slice(2)];
+  const isMarketingPage = marketingPagePrefixes.some((prefix) =>
+    prefix === "/" ? pathname === "/" : pathname.startsWith(prefix)
+  );
+  const visibleNavItems = isMarketingPage ? marketingNavItems : workspaceNavItems;
   const isTrainingHelpActive = trainingHelpItems.some((item) =>
     pathname.startsWith(item.href),
   );
@@ -44,6 +61,11 @@ export default function GlobalNavbar() {
     `rounded px-4 py-2 text-sm font-semibold transition ${
       isActive ? "bg-amber-400 text-black" : "text-white hover:bg-neutral-900"
     }`;
+
+  const isNavItemActive = (href: string) => {
+    if (href.startsWith("/#")) return false;
+    return pathname === href || (href !== "/" && pathname.startsWith(href));
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-neutral-800 bg-neutral-950">
@@ -61,9 +83,7 @@ export default function GlobalNavbar() {
         <div className="flex items-center gap-3">
           <nav className="hidden lg:flex items-center gap-2">
             {visibleNavItems.map((item) => {
-              const isActive =
-                pathname === item.href ||
-                (item.href !== "/" && pathname.startsWith(item.href));
+              const isActive = isNavItemActive(item.href);
 
               return (
                 <Link
@@ -126,7 +146,7 @@ export default function GlobalNavbar() {
             </div>
           </nav>
 
-          {!isSignedIn && (
+            {isLoaded && !isSignedIn && (
             <div className="hidden lg:flex items-center gap-2">
               <Link
                 href="/sign-in"
@@ -143,11 +163,21 @@ export default function GlobalNavbar() {
             </div>
           )}
 
-          {isSignedIn && (
-            <div className="ml-2">
+          {isLoaded && isSignedIn && (
+            <div className="ml-2 flex items-center gap-2">
+              {isMarketingPage && (
+                <Link
+                  href="/dashboard"
+                  className="hidden rounded border border-neutral-600 px-4 py-2 text-sm font-semibold text-white hover:bg-neutral-900 lg:inline-flex"
+                >
+                  Dashboard
+                </Link>
+              )}
               <UserButton />
             </div>
           )}
+
+          {!isLoaded && <div className="h-8 w-8" aria-hidden="true" />}
 
           <button
             type="button"
@@ -168,9 +198,7 @@ export default function GlobalNavbar() {
         >
           <nav className="flex flex-col gap-2">
             {visibleNavItems.map((item) => {
-              const isActive =
-                pathname === item.href ||
-                (item.href !== "/" && pathname.startsWith(item.href));
+              const isActive = isNavItemActive(item.href);
 
               return (
                 <Link
@@ -213,7 +241,7 @@ export default function GlobalNavbar() {
               </div>
             </div>
 
-            {!isSignedIn && (
+          {isLoaded && !isSignedIn && (
               <div className="mt-2 grid gap-2">
                 <Link
                   href="/sign-in"
