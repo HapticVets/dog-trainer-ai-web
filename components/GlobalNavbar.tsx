@@ -13,6 +13,8 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard" },
 ];
 
+const trainingOptionsNavItem = { href: "/training-options", label: "Training Options" };
+
 const trainingHelpItems = [
   { href: "/puppy-training", label: "Puppy Training" },
   { href: "/german-shepherd-training", label: "German Shepherd Training" },
@@ -31,10 +33,10 @@ export default function GlobalNavbar() {
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
-  const visibleTrainingHelpItems = isSignedIn
-    ? trainingHelpItems
-    : [{ href: "/training-options", label: "Training Options" }, ...trainingHelpItems];
-  const isTrainingHelpActive = visibleTrainingHelpItems.some((item) =>
+  const visibleNavItems = isSignedIn
+    ? navItems
+    : [...navItems.slice(0, 2), trainingOptionsNavItem, ...navItems.slice(2)];
+  const isTrainingHelpActive = trainingHelpItems.some((item) =>
     pathname.startsWith(item.href),
   );
 
@@ -57,8 +59,8 @@ export default function GlobalNavbar() {
         </Link>
 
         <div className="flex items-center gap-3">
-          <nav className="hidden md:flex items-center gap-2">
-            {navItems.map((item) => {
+          <nav className="hidden lg:flex items-center gap-2">
+            {visibleNavItems.map((item) => {
               const isActive =
                 pathname === item.href ||
                 (item.href !== "/" && pathname.startsWith(item.href));
@@ -101,7 +103,7 @@ export default function GlobalNavbar() {
                   role="menu"
                   className="absolute right-0 top-full mt-2 w-64 rounded-xl border border-neutral-800 bg-neutral-950 p-2 shadow-[0_16px_40px_rgba(0,0,0,0.45)]"
                 >
-                  {visibleTrainingHelpItems.map((item) => {
+                  {trainingHelpItems.map((item) => {
                     const isActive = pathname.startsWith(item.href);
 
                     return (
@@ -125,7 +127,7 @@ export default function GlobalNavbar() {
           </nav>
 
           {!isSignedIn && (
-            <div className="hidden md:flex items-center gap-2">
+            <div className="hidden lg:flex items-center gap-2">
               <Link
                 href="/sign-in"
                 className="rounded border border-neutral-600 px-4 py-2 text-sm hover:bg-neutral-900"
@@ -152,7 +154,7 @@ export default function GlobalNavbar() {
             aria-expanded={isMobileMenuOpen}
             aria-controls="mobile-navigation"
             onClick={() => setIsMobileMenuOpen((currentValue) => !currentValue)}
-            className="rounded border border-neutral-700 px-3 py-2 text-sm font-semibold text-white transition hover:bg-neutral-900 md:hidden"
+            className="rounded border border-neutral-700 px-3 py-2 text-sm font-semibold text-white transition hover:bg-neutral-900 lg:hidden"
           >
             Menu
           </button>
@@ -162,10 +164,10 @@ export default function GlobalNavbar() {
       {isMobileMenuOpen && (
         <div
           id="mobile-navigation"
-          className="border-t border-neutral-800 px-4 py-4 md:hidden"
+          className="border-t border-neutral-800 px-4 py-4 lg:hidden"
         >
           <nav className="flex flex-col gap-2">
-            {navItems.map((item) => {
+            {visibleNavItems.map((item) => {
               const isActive =
                 pathname === item.href ||
                 (item.href !== "/" && pathname.startsWith(item.href));
@@ -174,6 +176,7 @@ export default function GlobalNavbar() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
                   className={`rounded-lg px-4 py-3 text-sm font-semibold transition ${
                     isActive
                       ? "bg-amber-400 text-black"
@@ -190,7 +193,7 @@ export default function GlobalNavbar() {
                 Training Help
               </p>
               <div className="mt-3 flex flex-col gap-2">
-                {visibleTrainingHelpItems.map((item) => {
+                {trainingHelpItems.map((item) => {
                   const isActive = pathname.startsWith(item.href);
 
                   return (
