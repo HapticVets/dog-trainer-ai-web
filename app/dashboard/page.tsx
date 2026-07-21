@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import DogTrainingTimeline from "@/components/DogTrainingTimeline";
 import TrainingConsistencyCard from "@/components/TrainingConsistencyCard";
 import {
   buildDogCaseFileContext,
@@ -910,7 +911,17 @@ ${sessionSummary}`;
           </div>
         </div>
 
-        <section className="mt-8 rounded-2xl border border-neutral-800 bg-gradient-to-br from-neutral-900 to-neutral-950 p-5 shadow-[0_18px_44px_rgba(0,0,0,0.24)] sm:p-7">
+        {selectedDogId ? (
+          <div className="mt-8">
+            <DogTrainingTimeline
+              dogProfileId={selectedDogId}
+              refreshKey={sessionLogs.length}
+              preview
+            />
+          </div>
+        ) : null}
+
+        <section className="hidden mt-8 rounded-2xl border border-neutral-800 bg-gradient-to-br from-neutral-900 to-neutral-950 p-5 shadow-[0_18px_44px_rgba(0,0,0,0.24)] sm:p-7" aria-hidden="true">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">

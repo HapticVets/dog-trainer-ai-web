@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getDefaultMainGoal, normalizeGoalType } from '@/lib/dogGoals'
 import { getTrainerAccess } from '@/app/lib/trainer-access'
+import { hydrateDogCaseFile } from '@/lib/dogCaseFile'
+import { createDogTimelineEvent } from '@/lib/dogTimeline'
 
 const DOG_PROFILE_IMAGES_BUCKET = 'dog-profile-images'
 
@@ -78,6 +80,20 @@ export async function POST(request: Request) {
     }
 
     if (body.id) {
+      const { data: previousProfile, error: previousProfileError } = await supabaseAdmin
+        .from('dog_profiles')
+        .select('id, name, main_goal, custom_notes')
+        .eq('id', body.id)
+        .eq('clerk_user_id', userId)
+        .maybeSingle()
+
+      if (previousProfileError || !previousProfile) {
+        return NextResponse.json(
+          { error: previousProfileError?.message || 'Dog profile not found' },
+          { status: previousProfileError ? 500 : 404 }
+        )
+      }
+
       const { data, error } = await supabaseAdmin
         .from('dog_profiles')
         .update(payload)
@@ -89,6 +105,41 @@ export async function POST(request: Request) {
       if (error) {
         console.error('Supabase UPDATE dog_profiles error:', error)
         return NextResponse.json({ error: error.message, details: error }, { status: 500 })
+      }
+
+      if (previousProfile.main_goal !== data.main_goal) {
+        await createDogTimelineEvent({
+          userId,
+          dogId: data.id,
+          eventType: 'goal_updated',
+          title: 'Training Goal Updated',
+          summary: `Training focus changed from ${previousProfile.main_goal || 'not set'} to ${data.main_goal || 'not set'}.`,
+          metadata: { previous_goal: previousProfile.main_goal, new_goal: data.main_goal },
+          sourceType: 'dog_profile_goal',
+          sourceId: `${data.id}:${data.updated_at}`,
+        })
+      }
+
+      const previousCaseFile = hydrateDogCaseFile(previousProfile)
+      const updatedCaseFile = hydrateDogCaseFile(data)
+      const changedFields = [
+        previousCaseFile.breed !== updatedCaseFile.breed ? 'breed' : '',
+        previousCaseFile.age !== updatedCaseFile.age ? 'age' : '',
+        previousCaseFile.skillLevel !== updatedCaseFile.skillLevel ? 'training level' : '',
+        previousCaseFile.severity !== updatedCaseFile.severity ? 'training assessment' : '',
+      ].filter(Boolean)
+
+      if (changedFields.length > 0) {
+        await createDogTimelineEvent({
+          userId,
+          dogId: data.id,
+          eventType: 'profile_updated',
+          title: 'Case File Updated',
+          summary: `Updated ${changedFields.join(', ')} in the training case file.`,
+          metadata: { updated_fields: changedFields.join(', ') },
+          sourceType: 'dog_profile_update',
+          sourceId: `${data.id}:${data.updated_at}`,
+        })
       }
 
       return NextResponse.json({ profile: data })
@@ -117,6 +168,19 @@ export async function POST(request: Request) {
       console.error('Supabase INSERT dog_profiles error:', error)
       return NextResponse.json({ error: error.message, details: error }, { status: 500 })
     }
+
+    const caseFile = hydrateDogCaseFile(data)
+    await createDogTimelineEvent({
+      userId,
+      dogId: data.id,
+      eventType: 'profile_created',
+      title: 'Case File Created',
+      summary: `${data.name}'s training record was created.`,
+      metadata: { breed: caseFile.breed, age: caseFile.age, primary_goal: data.main_goal },
+      sourceType: 'dog_profile',
+      sourceId: data.id,
+      occurredAt: data.created_at,
+    })
 
     return NextResponse.json({ profile: data })
   } catch (error) {

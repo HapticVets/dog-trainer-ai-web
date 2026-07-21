@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { getTrainerAccess } from "@/app/lib/trainer-access";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { createDogTimelineEvent } from "@/lib/dogTimeline";
 
 const BUCKET = "dog-profile-images";
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
@@ -38,7 +39,7 @@ const isValidImageSignature = (buffer: Buffer, mimeType: AcceptedMimeType) => {
 const getOwnedProfile = async (userId: string, dogProfileId: string) => {
   const { data, error } = await supabaseAdmin
     .from("dog_profiles")
-    .select("id, profile_image_path")
+    .select("id, name, profile_image_path")
     .eq("id", dogProfileId)
     .eq("clerk_user_id", userId)
     .maybeSingle();
@@ -165,6 +166,17 @@ export async function POST(request: NextRequest) {
       if (removeError) console.error("Previous dog photo cleanup failed:", removeError);
     }
 
+    await createDogTimelineEvent({
+      userId,
+      dogId: dogProfileId,
+      eventType: "profile_updated",
+      title: "Dog Photo Updated",
+      summary: "Updated the dog profile photo in the case file.",
+      metadata: { change: "profile photo" },
+      sourceType: "dog_profile_photo",
+      sourceId: updatedProfile.profile_image_path,
+    });
+
     return NextResponse.json({
       profileImagePath: updatedProfile.profile_image_path,
       profileImageUrl: await createSignedImageUrl(updatedProfile.profile_image_path),
@@ -205,6 +217,17 @@ export async function DELETE(request: NextRequest) {
         .remove([profile.profile_image_path]);
 
       if (removeError) console.error("Dog photo storage cleanup failed:", removeError);
+
+      await createDogTimelineEvent({
+        userId,
+        dogId: dogProfileId,
+        eventType: "profile_updated",
+        title: "Dog Photo Removed",
+        summary: "Removed the dog profile photo from the case file.",
+        metadata: { change: "profile photo removed" },
+        sourceType: "dog_profile_photo_removed",
+        sourceId: profile.profile_image_path,
+      });
     }
 
     return NextResponse.json({ profileImagePath: null, profileImageUrl: null });

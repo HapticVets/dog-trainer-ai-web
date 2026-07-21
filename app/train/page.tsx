@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import Image from "next/image";
 import DogProfilePhotoPicker from "@/components/DogProfilePhotoPicker";
+import DogTrainingTimeline from "@/components/DogTrainingTimeline";
 import GoogleAdsSignUpConversion from "@/components/GoogleAdsSignUpConversion";
 import TrainingConsistencyCard from "@/components/TrainingConsistencyCard";
 import {
@@ -1514,6 +1515,7 @@ export default function TrainPage() {
         },
         body: JSON.stringify({
           dog_name: dogProfile.name.trim(),
+          dog_profile_id: selectedDogId,
           goal_type: dogProfile.goalType,
           main_goal: dogProfile.mainGoal,
           reward_type: dogProfile.rewardType,
@@ -2954,6 +2956,13 @@ ${recentHistory}`;
           Add Another Dog
         </button>
       </div>
+
+      {selectedDogId && (
+        <DogTrainingTimeline
+          dogProfileId={selectedDogId}
+          refreshKey={sessionLogs.length}
+        />
+      )}
     </div>
   );
 
