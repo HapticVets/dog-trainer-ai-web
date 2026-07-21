@@ -976,6 +976,22 @@ ${sessionSummary}`;
           )}
         </section>
 
+        <section className="mt-8 flex flex-col gap-4 rounded-xl border border-neutral-800 bg-black/30 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">Professional Support</p>
+            <h2 className="mt-2 text-xl font-bold">Need Hands-On Help?</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-400">
+              Some training goals benefit from direct coaching with a professional trainer.
+            </p>
+          </div>
+          <Link
+            href="/training-options"
+            className="inline-flex min-h-11 w-full shrink-0 items-center justify-center rounded border border-amber-500/40 px-5 py-3 text-sm font-semibold text-amber-200 transition-colors hover:bg-amber-400/10 focus:outline-none focus:ring-2 focus:ring-amber-300 sm:w-auto"
+          >
+            Explore In-Person Training
+          </Link>
+        </section>
+
         <section className="mt-8 rounded-xl border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">Dog Training Record</p>
           <h2 className="mt-3 text-3xl font-bold">Active Dog Profile</h2>

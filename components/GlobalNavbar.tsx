@@ -31,7 +31,10 @@ export default function GlobalNavbar() {
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
-  const isTrainingHelpActive = trainingHelpItems.some((item) =>
+  const visibleTrainingHelpItems = isSignedIn
+    ? trainingHelpItems
+    : [{ href: "/training-options", label: "Training Options" }, ...trainingHelpItems];
+  const isTrainingHelpActive = visibleTrainingHelpItems.some((item) =>
     pathname.startsWith(item.href),
   );
 
@@ -98,7 +101,7 @@ export default function GlobalNavbar() {
                   role="menu"
                   className="absolute right-0 top-full mt-2 w-64 rounded-xl border border-neutral-800 bg-neutral-950 p-2 shadow-[0_16px_40px_rgba(0,0,0,0.45)]"
                 >
-                  {trainingHelpItems.map((item) => {
+                  {visibleTrainingHelpItems.map((item) => {
                     const isActive = pathname.startsWith(item.href);
 
                     return (
@@ -187,7 +190,7 @@ export default function GlobalNavbar() {
                 Training Help
               </p>
               <div className="mt-3 flex flex-col gap-2">
-                {trainingHelpItems.map((item) => {
+                {visibleTrainingHelpItems.map((item) => {
                   const isActive = pathname.startsWith(item.href);
 
                   return (

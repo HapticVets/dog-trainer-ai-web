@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 const trainingResourceLinks = [
+  { href: "/training-options", label: "Training Options" },
   { href: "/puppy-training", label: "Puppy Training" },
   { href: "/german-shepherd-training", label: "German Shepherd Training" },
   { href: "/leash-training", label: "Leash Training" },

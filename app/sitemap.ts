@@ -5,6 +5,7 @@ const publicRoutes = [
   "/",
   "/about",
   "/method",
+  "/training-options",
   "/puppy-training",
   "/stop-barking",
   "/leash-training",
