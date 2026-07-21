@@ -5,6 +5,7 @@ import { useUser } from "@clerk/nextjs";
 import Image from "next/image";
 import DogProfilePhotoPicker from "@/components/DogProfilePhotoPicker";
 import GoogleAdsSignUpConversion from "@/components/GoogleAdsSignUpConversion";
+import TrainingConsistencyCard from "@/components/TrainingConsistencyCard";
 import {
   getAvailableMainGoals,
   getDefaultMainGoal,
@@ -26,6 +27,7 @@ import {
   toggleMultiValue,
   type DogCaseFile,
 } from "@/lib/dogCaseFile";
+import { getTrainingConsistency } from "@/lib/trainingConsistency";
 
 type ChatMessage = {
   id?: string;
@@ -393,6 +395,10 @@ export default function TrainPage() {
   const hasActiveDog = Boolean(selectedDogId && dogProfile.name.trim());
   const hasNoDogProfiles = dogProfilesLoaded && dogProfiles.length === 0;
   const hasSessions = sessionLogs.length > 0;
+  const trainingConsistency = useMemo(
+    () => getTrainingConsistency(sessionLogs),
+    [sessionLogs],
+  );
   const hasCurrentPlan = Boolean(currentPlan.trim());
   const isInitializingTrainer = !dogProfilesLoaded && !evaluationMode;
   const isPremiumUser = trainerAccess?.premium === true;
@@ -2901,6 +2907,8 @@ ${recentHistory}`;
           </span>
         </div>
       </div>
+
+      <TrainingConsistencyCard consistency={trainingConsistency} compact />
 
       {isPremiumUser ? (
         <DogProfilePhotoPicker

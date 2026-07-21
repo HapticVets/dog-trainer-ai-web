@@ -3,11 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import TrainingConsistencyCard from "@/components/TrainingConsistencyCard";
 import {
   buildDogCaseFileContext,
   hydrateDogCaseFile,
   type DogCaseFile,
 } from "@/lib/dogCaseFile";
+import { getTrainingConsistency } from "@/lib/trainingConsistency";
 
 type DashboardSummary = {
   totalDogs: number;
@@ -191,6 +193,10 @@ export default function DashboardPage() {
   const [reportLoading, setReportLoading] = useState(false);
 
   const hasActiveDog = Boolean(selectedDogId && selectedDogName.trim());
+  const trainingConsistency = useMemo(
+    () => getTrainingConsistency(sessionLogs),
+    [sessionLogs],
+  );
 
   const selectedDogProfile = useMemo(
     () => dogProfiles.find((dog) => dog.id === selectedDogId) || null,
@@ -820,6 +826,10 @@ ${sessionSummary}`;
             </div>
             <p className="mt-3 text-sm text-neutral-400">Primary training objective</p>
           </div>
+        </div>
+
+        <div className="mt-6">
+          <TrainingConsistencyCard consistency={trainingConsistency} />
         </div>
 
         <div className="mt-8 grid gap-8 xl:grid-cols-2">

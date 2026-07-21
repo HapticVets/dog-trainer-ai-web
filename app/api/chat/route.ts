@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { getTrainerAccess } from "@/app/lib/trainer-access";
 import { buildDogCaseFileContext, hydrateDogCaseFile } from "@/lib/dogCaseFile";
 import { buildPatriotK9DoctrinePrompt } from "@/lib/patriotK9Protocols";
+import { buildTrainingConsistencyContext } from "@/lib/trainingConsistency";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -102,6 +103,7 @@ export async function POST(req: Request) {
       equipmentUsed: body.dogProfile?.equipmentUsed ?? hydratedDogProfile.equipmentUsed,
     };
     const sessionLogs = body.sessionLogs || [];
+    const trainingConsistencyContext = buildTrainingConsistencyContext(sessionLogs);
 
     const latestSession = sessionLogs[0] || null;
 
@@ -224,6 +226,15 @@ This means:
 Do NOT default back to the dog profile if session evidence is more current.
 
 --------------------------------
+TRAINING CONSISTENCY RULE
+--------------------------------
+Use the training consistency context to calibrate recommendations. If it says the
+last recorded session was more than 7 days ago, briefly ask whether the handler
+continued training without logging or wants to resume from the last recorded
+session before giving new progression advice. Do not block the conversation or
+withhold a direct answer.
+
+--------------------------------
 FAILURE RULE
 --------------------------------
 If the dog is:
@@ -315,6 +326,11 @@ ${latestSessionSummary}
 RECENT SESSION HISTORY
 --------------------------------
 ${sessionHistorySummary}
+
+--------------------------------
+TRAINING CONSISTENCY
+--------------------------------
+${trainingConsistencyContext}
 
 --------------------------------
 HARD RULES
