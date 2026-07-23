@@ -5,6 +5,10 @@ import { getTrainerAccess } from "@/app/lib/trainer-access";
 import { buildDogCaseFileContext, hydrateDogCaseFile } from "@/lib/dogCaseFile";
 import { buildPatriotK9DoctrinePrompt } from "@/lib/patriotK9Protocols";
 import { buildTrainingConsistencyContext } from "@/lib/trainingConsistency";
+import {
+  buildDogTrainingPhaseContext,
+  getDogTrainingPhase,
+} from "@/lib/dogTrainingPhase";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -104,6 +108,18 @@ export async function POST(req: Request) {
     };
     const sessionLogs = body.sessionLogs || [];
     const trainingConsistencyContext = buildTrainingConsistencyContext(sessionLogs);
+    let trainingPhaseContext = buildDogTrainingPhaseContext(null);
+
+    if (typeof dogProfile.id === "string" && dogProfile.id) {
+      try {
+        trainingPhaseContext = buildDogTrainingPhaseContext(
+          await getDogTrainingPhase(userId, dogProfile.id),
+        );
+      } catch (phaseError) {
+        // Phase data is optional framework context and must not interrupt coaching.
+        console.error("Unable to load dog training phase for coach context:", phaseError);
+      }
+    }
 
     const latestSession = sessionLogs[0] || null;
 
@@ -206,7 +222,7 @@ Never skip forward.
 DECISION ENGINE
 --------------------------------
 You MUST determine:
-- Current Phase: Foundation / Structure / Control / Real World
+- Current Phase: use the assigned Training Phase record when available; otherwise state that no proprietary phase is assigned
 - Primary C: Clarity / Consistency / Control / Challenge
 - Session Type: Foundation Reset / Patterning / Controlled Exposure / Real World
 - Relevant Patriot K9 Protocol
@@ -331,6 +347,11 @@ ${sessionHistorySummary}
 TRAINING CONSISTENCY
 --------------------------------
 ${trainingConsistencyContext}
+
+--------------------------------
+ASSIGNED TRAINING PHASE
+--------------------------------
+${trainingPhaseContext}
 
 --------------------------------
 HARD RULES

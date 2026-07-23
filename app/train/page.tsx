@@ -5,6 +5,7 @@ import { useUser } from "@clerk/nextjs";
 import Image from "next/image";
 import DogProfilePhotoPicker from "@/components/DogProfilePhotoPicker";
 import DogTrainingTimeline from "@/components/DogTrainingTimeline";
+import TrainingPhaseCard from "@/components/TrainingPhaseCard";
 import GoogleAdsSignUpConversion from "@/components/GoogleAdsSignUpConversion";
 import TrainingConsistencyCard from "@/components/TrainingConsistencyCard";
 import {
@@ -2911,6 +2912,8 @@ ${recentHistory}`;
       </div>
 
       <TrainingConsistencyCard consistency={trainingConsistency} compact />
+
+      {selectedDogId && <TrainingPhaseCard key={selectedDogId} dogProfileId={selectedDogId} />}
 
       {isPremiumUser ? (
         <DogProfilePhotoPicker
