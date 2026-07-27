@@ -59,9 +59,9 @@ export default function SeoLandingPage({ config }: SeoLandingPageProps) {
             ) : (
               <video
                 autoPlay={section.media.cinematic}
-                muted
+                muted={true}
                 loop={section.media.cinematic}
-                playsInline
+                playsInline={true}
                 preload="metadata"
                 poster={section.media.poster}
                 controls={!section.media.cinematic}
