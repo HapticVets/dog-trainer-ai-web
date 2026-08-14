@@ -7,6 +7,7 @@ export const FREE_SESSION_LOG_LIMIT = 1;
 export const FREE_DOG_PROFILE_LIMIT = 1;
 
 export type TrainerAccess = {
+  admin: boolean;
   premium: boolean;
   freeMessagesUsed: number;
   freeMessagesRemaining: number;
@@ -27,6 +28,7 @@ export type TrainerAccess = {
 export async function getTrainerAccess(userId: string): Promise<TrainerAccess> {
   const client = await clerkClient();
   const user = await client.users.getUser(userId);
+  const admin = user.publicMetadata?.role === "admin";
   const premium = user.publicMetadata?.premium === true;
 
   const [
@@ -76,6 +78,7 @@ export async function getTrainerAccess(userId: string): Promise<TrainerAccess> {
   const aiChatMessagesRemaining = Math.max(FREE_AI_CHAT_LIMIT - aiChatMessagesUsed, 0);
 
   return {
+    admin,
     premium,
     freeMessagesUsed: aiChatMessagesUsed,
     freeMessagesRemaining: aiChatMessagesRemaining,
@@ -85,7 +88,7 @@ export async function getTrainerAccess(userId: string): Promise<TrainerAccess> {
     sessionLogsUsed,
     nextSessionsGenerated,
     dogProfilesUsed,
-    canCreateCaseFile: premium || dogProfilesUsed < FREE_DOG_PROFILE_LIMIT,
+    canCreateCaseFile: admin || premium || dogProfilesUsed < FREE_DOG_PROFILE_LIMIT,
     canGenerateFirstSession: premium || firstSessionsGenerated < FREE_FIRST_SESSION_LIMIT,
     canLogSession: premium || sessionLogsUsed < FREE_SESSION_LOG_LIMIT,
     canUseAiChat: premium || aiChatMessagesUsed < FREE_AI_CHAT_LIMIT,

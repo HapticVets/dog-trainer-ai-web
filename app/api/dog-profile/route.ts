@@ -7,6 +7,8 @@ import { hydrateDogCaseFile } from '@/lib/dogCaseFile'
 import { createDogTimelineEvent } from '@/lib/dogTimeline'
 
 const DOG_PROFILE_IMAGES_BUCKET = 'dog-profile-images'
+const customerDogProfileColumns =
+  'id, clerk_user_id, name, goal_type, main_goal, reward_type, skill_level, custom_notes, profile_image_path, created_at, updated_at'
 
 export async function GET() {
   try {
@@ -18,7 +20,7 @@ export async function GET() {
 
     const { data, error } = await supabaseAdmin
       .from('dog_profiles')
-      .select('*')
+      .select(customerDogProfileColumns)
       .eq('clerk_user_id', userId)
       .order('created_at', { ascending: true })
 
@@ -99,7 +101,7 @@ export async function POST(request: Request) {
         .update(payload)
         .eq('id', body.id)
         .eq('clerk_user_id', userId)
-        .select()
+        .select(customerDogProfileColumns)
         .single()
 
       if (error) {
@@ -161,7 +163,7 @@ export async function POST(request: Request) {
     const { data, error } = await supabaseAdmin
       .from('dog_profiles')
       .insert([payload])
-      .select()
+      .select(customerDogProfileColumns)
       .single()
 
     if (error) {

@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const access = await getTrainerAccess(userId);
-    if (!access.premium) {
+    if (!access.premium && !access.admin) {
       return NextResponse.json(
         {
           error: "Dog profile photos are a Premium personalization feature.",

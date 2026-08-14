@@ -40,7 +40,7 @@ const trainingHelpItems = [
 
 export default function GlobalNavbar() {
   const pathname = usePathname();
-  const { isLoaded, isSignedIn } = useUser();
+  const { isLoaded, isSignedIn, user } = useUser();
   const [isDesktopDropdownOpen, setIsDesktopDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -53,6 +53,10 @@ export default function GlobalNavbar() {
     prefix === "/" ? pathname === "/" : pathname.startsWith(prefix)
   );
   const visibleNavItems = isMarketingPage ? marketingNavItems : workspaceNavItems;
+  const adminNavItems =
+    isLoaded && user?.publicMetadata?.role === "admin"
+      ? [...visibleNavItems, { href: "/admin", label: "Admin" }]
+      : visibleNavItems;
   const isTrainingHelpActive = trainingHelpItems.some((item) =>
     pathname.startsWith(item.href),
   );
@@ -82,7 +86,7 @@ export default function GlobalNavbar() {
 
         <div className="flex items-center gap-3">
           <nav className="hidden lg:flex items-center gap-2">
-            {visibleNavItems.map((item) => {
+            {adminNavItems.map((item) => {
               const isActive = isNavItemActive(item.href);
 
               return (
@@ -197,7 +201,7 @@ export default function GlobalNavbar() {
           className="border-t border-neutral-800 px-4 py-4 lg:hidden"
         >
           <nav className="flex flex-col gap-2">
-            {visibleNavItems.map((item) => {
+            {adminNavItems.map((item) => {
               const isActive = isNavItemActive(item.href);
 
               return (
