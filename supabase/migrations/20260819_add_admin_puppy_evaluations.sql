@@ -1,0 +1,8 @@
+create table if not exists public.admin_puppy_evaluations (
+  id uuid primary key default gen_random_uuid(), puppy_id uuid not null, litter_id uuid not null,
+  evaluation_week text not null, evaluation_date date not null default current_date, evaluated_by_clerk_user_id text not null,
+  handler_engagement smallint check (handler_engagement between 1 and 5), environmental_confidence smallint check (environmental_confidence between 1 and 5), recovery smallint check (recovery between 1 and 5), adaptability smallint check (adaptability between 1 and 5), food_motivation smallint check (food_motivation between 1 and 5), toy_drive smallint check (toy_drive between 1 and 5), drive_regulation smallint check (drive_regulation between 1 and 5), neutrality smallint check (neutrality between 1 and 5), handler_orientation smallint check (handler_orientation between 1 and 5), independence smallint check (independence between 1 and 5), sound_recovery smallint check (sound_recovery between 1 and 5), handling_tolerance smallint check (handling_tolerance between 1 and 5), frustration_tolerance smallint check (frustration_tolerance between 1 and 5), crate_settling smallint check (crate_settling between 1 and 5), recall_tendency smallint check (recall_tendency between 1 and 5), disengagement smallint check (disengagement between 1 and 5),
+  overall_notes text, strengths text, development_focus text, created_at timestamptz not null default now(), updated_at timestamptz not null default now()
+);
+create index if not exists admin_puppy_evaluations_puppy_date_idx on public.admin_puppy_evaluations (puppy_id,evaluation_date desc,evaluation_week);
+alter table public.admin_puppy_evaluations enable row level security;
