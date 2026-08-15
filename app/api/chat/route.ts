@@ -9,6 +9,7 @@ import {
   buildDogTrainingPhaseContext,
   getDogTrainingPhase,
 } from "@/lib/dogTrainingPhase";
+import { getActiveClientHomeworkContext } from "@/lib/clientHomework";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -109,6 +110,7 @@ export async function POST(req: Request) {
     const sessionLogs = body.sessionLogs || [];
     const trainingConsistencyContext = buildTrainingConsistencyContext(sessionLogs);
     let trainingPhaseContext = buildDogTrainingPhaseContext(null);
+    let clientHomeworkContext = null;
 
     if (typeof dogProfile.id === "string" && dogProfile.id) {
       try {
@@ -119,9 +121,17 @@ export async function POST(req: Request) {
         // Phase data is optional framework context and must not interrupt coaching.
         console.error("Unable to load dog training phase for coach context:", phaseError);
       }
+
+      clientHomeworkContext = await getActiveClientHomeworkContext(userId, dogProfile.id);
     }
 
     const latestSession = sessionLogs[0] || null;
+    const homeworkContextSummary = clientHomeworkContext
+      ? `APPROVED PATRIOT K9 CLIENT HOMEWORK\nFocus: ${clientHomeworkContext.homework_focus}\nNotes: ${clientHomeworkContext.homework_notes || "No additional notes."}\nThis direction takes priority over older customer session history. For a session plan, create a repeatable 10-20 minute home session with 3-4 concise steps, calm reset, and no progression beyond this boundary.`
+      : "No approved Patriot K9 client homework context.";
+    const homeworkSessionFormat = clientHomeworkContext
+      ? `When generating an initial or next session for this linked Client Dog, use only this concise format:\nTODAY'S HOMEWORK\nGOAL\nSESSION PLAN\nWHAT TO WATCH FOR\nSTOP / RESET IF\nESTIMATED DURATION\nUse 3-4 duration-labeled steps totaling 10-20 minutes. The approved homework context is the upper boundary for difficulty.`
+      : "";
 
     const latestSessionSummary = latestSession
       ? `LATEST SESSION
@@ -349,6 +359,13 @@ TRAINING CONSISTENCY
 ${trainingConsistencyContext}
 
 --------------------------------
+APPROVED CLIENT HOMEWORK CONTEXT
+--------------------------------
+${homeworkContextSummary}
+
+${homeworkSessionFormat}
+
+--------------------------------
 ASSIGNED TRAINING PHASE
 --------------------------------
 ${trainingPhaseContext}
@@ -385,6 +402,7 @@ HARD RULES
     return NextResponse.json({
       reply,
       premium: refreshedAccess.premium,
+      clientAccess: refreshedAccess.clientAccess,
       freeMessagesUsed: refreshedAccess.freeMessagesUsed,
       freeMessagesRemaining: refreshedAccess.freeMessagesRemaining,
       requiresUpgrade: false,

@@ -5,6 +5,8 @@ import Link from "next/link";
 import { FormEvent, useEffect, useEffectEvent, useState } from "react";
 import { dogRecordTypeLabel, type AdminDogProfile } from "@/lib/adminDogs";
 import { hydrateDogCaseFile } from "@/lib/dogCaseFile";
+import AdminClientAccess from "@/components/AdminClientAccess";
+import AdminHomeworkSyncControls, { type HomeworkSyncValue } from "@/components/AdminHomeworkSyncControls";
 
 type AdminNote = {
   id: string;
@@ -85,6 +87,7 @@ export default function AdminDogCaseFile({ dogId }: { dogId: string }) {
   const [savingSession, setSavingSession] = useState(false);
   const [sessionToComplete, setSessionToComplete] = useState<AdminTrainingSession | null>(null);
   const [completingSession, setCompletingSession] = useState(false);
+  const [homeworkSync, setHomeworkSync] = useState<HomeworkSyncValue>({ enabled: false, focus: "", notes: "" });
 
   const loadCaseFile = useEffectEvent(async () => {
     setLoading(true);
@@ -190,12 +193,13 @@ export default function AdminDogCaseFile({ dogId }: { dogId: string }) {
     const form = new FormData(event.currentTarget);
     setCompletingSession(true); setError("");
     try {
-      const body = Object.fromEntries(form.entries());
+      const body = { ...Object.fromEntries(form.entries()), share_homework: homeworkSync.enabled, homework_focus: homeworkSync.focus, homework_notes: homeworkSync.notes };
       const response = await fetch(`/api/admin/dogs/${encodeURIComponent(dogId)}/sessions/${encodeURIComponent(sessionToComplete.id)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const data = await response.json() as { session?: AdminTrainingSession; error?: string };
       if (!response.ok || !data.session) throw new Error(data.error || "Unable to complete the training session.");
       setCaseFile((current) => current ? { ...current, adminSessions: current.adminSessions.map((session) => session.id === data.session?.id ? data.session as AdminTrainingSession : session) } : current);
       setSessionToComplete(null); setNotice("Training session completed.");
+      setHomeworkSync({ enabled: false, focus: "", notes: "" });
     } catch (sessionError) { setError(sessionError instanceof Error ? sessionError.message : "Unable to complete the training session."); }
     finally { setCompletingSession(false); }
   };
@@ -230,6 +234,8 @@ export default function AdminDogCaseFile({ dogId }: { dogId: string }) {
           </div>
         </div>
       </header>
+
+      {profile.record_type === "client" && <div className="mt-6 grid gap-6 lg:grid-cols-2"><AdminClientAccess dog={profile} /><AdminHomeworkSyncControls value={homeworkSync} onChange={setHomeworkSync} /></div>}
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,0.8fr)]">
         <div className="space-y-6">

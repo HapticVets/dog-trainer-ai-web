@@ -69,6 +69,8 @@ type PlanSection = {
 
 type TrainerAccessState = {
   premium: boolean;
+  clientAccess: boolean;
+  hasFullTrainerAccess: boolean;
   freeMessagesUsed: number;
   freeMessagesRemaining: number;
   aiChatMessagesUsed: number;
@@ -404,6 +406,8 @@ export default function TrainPage() {
   const hasCurrentPlan = Boolean(currentPlan.trim());
   const isInitializingTrainer = !dogProfilesLoaded && !evaluationMode;
   const isPremiumUser = trainerAccess?.premium === true;
+  const hasClientAccess = trainerAccess?.clientAccess === true;
+  const hasFullTrainerAccess = trainerAccess?.hasFullTrainerAccess === true;
   const freeMessagesUsed = trainerAccess?.aiChatMessagesUsed ?? 0;
   const freeMessagesRemaining = trainerAccess?.aiChatMessagesRemaining ?? 0;
   const freeMessageLimit = Math.max(
@@ -415,7 +419,7 @@ export default function TrainPage() {
     100
   );
   const isFreeChatLimitReached =
-    !isPremiumUser && trainerAccess?.canUseAiChat === false;
+    !hasFullTrainerAccess && trainerAccess?.canUseAiChat === false;
   const latestSession = sessionLogs[0];
   const visibleMissionReports = showOlderMissionReports
     ? sessionLogs
@@ -1084,7 +1088,7 @@ export default function TrainPage() {
   };
 
   const handleAddDog = () => {
-    if (!isPremiumUser && trainerAccess && !trainerAccess.canCreateCaseFile) {
+    if (!hasFullTrainerAccess && trainerAccess && !trainerAccess.canCreateCaseFile) {
       showMultiDogUpgradePrompt();
       return;
     }
@@ -1400,7 +1404,7 @@ export default function TrainPage() {
 
     if (!input.trim() || loading) return;
 
-    if (!isPremiumUser && trainerAccess && !trainerAccess.canUseAiChat) {
+    if (!hasFullTrainerAccess && trainerAccess && !trainerAccess.canUseAiChat) {
       showUpgradePrompt(
         "You’ve used your free AI coaching messages. Upgrade to unlock unlimited training sessions, AI coaching, session history, and ongoing progression."
       );
@@ -1501,7 +1505,7 @@ export default function TrainPage() {
         : sessionForm.issue;
     const winsSummary = `${sessionForm.result}. ${sessionForm.wins.trim()}`;
 
-    if (!isPremiumUser && trainerAccess && !trainerAccess.canLogSession) {
+    if (!hasFullTrainerAccess && trainerAccess && !trainerAccess.canLogSession) {
       showUpgradePrompt(
         "You’ve used your free training session. Upgrade to unlock unlimited training sessions, AI coaching, session history, and ongoing progression."
       );
@@ -1607,7 +1611,7 @@ export default function TrainPage() {
 
     if (planLoading) return;
 
-    if (!isPremiumUser && trainerAccess && !trainerAccess.canGenerateFirstSession) {
+    if (!hasFullTrainerAccess && trainerAccess && !trainerAccess.canGenerateFirstSession) {
       showUpgradePrompt(
         "You’ve used your free training session. Upgrade to unlock unlimited training sessions, AI coaching, session history, and ongoing progression."
       );
@@ -1708,7 +1712,7 @@ ${buildDogCaseFileContext(dogProfile)}`;
       return;
     }
 
-    if (!isPremiumUser) {
+    if (!hasFullTrainerAccess) {
       showUpgradePrompt(
         "You’ve used your free training session. Upgrade to unlock unlimited training sessions, AI coaching, session history, and ongoing progression."
       );
@@ -1911,7 +1915,7 @@ ${recentHistory}`;
 
       {evaluationStep === 1 && (
         <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
-          {isPremiumUser ? (
+          {hasFullTrainerAccess ? (
             <DogProfilePhotoPicker
               key="new-dog-evaluation-photo"
               dogName={dogProfile.name}
@@ -2398,7 +2402,7 @@ ${recentHistory}`;
         </div>
       )}
 
-      {isPremiumUser ? (
+      {hasFullTrainerAccess ? (
         <DogProfilePhotoPicker
           key={selectedDogId || "new-dog-photo"}
           dogName={dogProfile.name}
@@ -2915,7 +2919,7 @@ ${recentHistory}`;
 
       {selectedDogId && <TrainingPhaseCard key={selectedDogId} dogProfileId={selectedDogId} />}
 
-      {isPremiumUser ? (
+      {hasFullTrainerAccess ? (
         <DogProfilePhotoPicker
           key={selectedDogId || "active-dog-photo"}
           dogName={dogProfile.name}
@@ -3092,6 +3096,12 @@ ${recentHistory}`;
                 </div>
               </div>
             </div>
+          ) : hasClientAccess ? (
+            <div className="rounded-xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-neutral-950 to-neutral-950 p-5 shadow-[0_16px_44px_rgba(0,0,0,0.2)] sm:p-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">Included Training Access</p>
+              <h2 className="mt-3 text-2xl font-bold text-white">Patriot K9 Client Access</h2>
+              <p className="mt-2 text-sm leading-6 text-neutral-300">Included with your in-person Patriot K9 training. Your linked dog can use ongoing coaching, sessions, and homework guidance.</p>
+            </div>
           ) : (
             <div className="rounded-xl border border-amber-500/25 bg-gradient-to-br from-amber-400/10 via-neutral-950 to-neutral-950 p-5 shadow-[0_16px_44px_rgba(0,0,0,0.2)] sm:p-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -3163,7 +3173,7 @@ ${recentHistory}`;
         </section>
       )}
 
-      {!isInitializingTrainer && trainerAccess && !evaluationMode && !isPremiumUser && (
+      {!isInitializingTrainer && trainerAccess && !evaluationMode && !hasFullTrainerAccess && (
         <section className="mx-auto max-w-7xl space-y-5 px-4 pt-5 sm:px-6">
           <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">
@@ -3433,9 +3443,9 @@ ${recentHistory}`;
                     Track your dog&apos;s development through completed training milestones and session history.
                   </p>
                 </div>
-                {isPremiumUser && (
+                {hasFullTrainerAccess && (
                   <span className="w-fit rounded border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm font-semibold text-emerald-200">
-                    Premium Active
+                    {hasClientAccess ? "Client Access Included" : "Premium Active"}
                   </span>
                 )}
               </div>
@@ -4016,9 +4026,9 @@ ${recentHistory}`;
                         <span className="rounded border border-neutral-700 bg-black/30 px-3 py-2 text-xs font-medium text-neutral-300">
                           Phase: {currentPlanPhase}
                         </span>
-                        {isPremiumUser ? (
+                        {hasFullTrainerAccess ? (
                           <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-200">
-                            Premium Active
+                            {hasClientAccess ? "Client Access Included" : "Premium Active"}
                           </span>
                         ) : (
                           <button
@@ -4256,7 +4266,7 @@ ${recentHistory}`;
                         <p className="mt-3 text-xs text-neutral-500">
                           Press Enter to send. Use Shift+Enter for a new line.
                         </p>
-                        {!isPremiumUser && (
+                        {!hasFullTrainerAccess && (
                           <p className="mt-1 text-xs text-amber-300/90">
                             Free plan includes 3 AI messages. Upgrade for unlimited coaching.
                           </p>
@@ -4278,9 +4288,9 @@ ${recentHistory}`;
                           Review previous training sessions, progress, and coaching decisions.
                         </p>
                       </div>
-                      {isPremiumUser && (
+                      {hasFullTrainerAccess && (
                         <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm font-semibold text-emerald-200">
-                          Premium Active
+                          {hasClientAccess ? "Client Access Included" : "Premium Active"}
                         </span>
                       )}
                     </div>

@@ -9,6 +9,8 @@ export const FREE_DOG_PROFILE_LIMIT = 1;
 export type TrainerAccess = {
   admin: boolean;
   premium: boolean;
+  clientAccess: boolean;
+  hasFullTrainerAccess: boolean;
   freeMessagesUsed: number;
   freeMessagesRemaining: number;
   aiChatMessagesUsed: number;
@@ -30,6 +32,8 @@ export async function getTrainerAccess(userId: string): Promise<TrainerAccess> {
   const user = await client.users.getUser(userId);
   const admin = user.publicMetadata?.role === "admin";
   const premium = user.publicMetadata?.premium === true;
+  const clientAccess = user.publicMetadata?.clientAccess === true;
+  const hasFullTrainerAccess = admin || premium || clientAccess;
 
   const [
     chatCountResult,
@@ -80,6 +84,8 @@ export async function getTrainerAccess(userId: string): Promise<TrainerAccess> {
   return {
     admin,
     premium,
+    clientAccess,
+    hasFullTrainerAccess,
     freeMessagesUsed: aiChatMessagesUsed,
     freeMessagesRemaining: aiChatMessagesRemaining,
     aiChatMessagesUsed,
@@ -88,11 +94,11 @@ export async function getTrainerAccess(userId: string): Promise<TrainerAccess> {
     sessionLogsUsed,
     nextSessionsGenerated,
     dogProfilesUsed,
-    canCreateCaseFile: admin || premium || dogProfilesUsed < FREE_DOG_PROFILE_LIMIT,
-    canGenerateFirstSession: premium || firstSessionsGenerated < FREE_FIRST_SESSION_LIMIT,
-    canLogSession: premium || sessionLogsUsed < FREE_SESSION_LOG_LIMIT,
-    canUseAiChat: premium || aiChatMessagesUsed < FREE_AI_CHAT_LIMIT,
-    canGenerateNextSession: premium,
-    hasAccess: premium || aiChatMessagesUsed < FREE_AI_CHAT_LIMIT,
+    canCreateCaseFile: hasFullTrainerAccess || dogProfilesUsed < FREE_DOG_PROFILE_LIMIT,
+    canGenerateFirstSession: hasFullTrainerAccess || firstSessionsGenerated < FREE_FIRST_SESSION_LIMIT,
+    canLogSession: hasFullTrainerAccess || sessionLogsUsed < FREE_SESSION_LOG_LIMIT,
+    canUseAiChat: hasFullTrainerAccess || aiChatMessagesUsed < FREE_AI_CHAT_LIMIT,
+    canGenerateNextSession: hasFullTrainerAccess,
+    hasAccess: hasFullTrainerAccess || aiChatMessagesUsed < FREE_AI_CHAT_LIMIT,
   };
 }
