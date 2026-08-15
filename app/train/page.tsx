@@ -6,6 +6,7 @@ import Image from "next/image";
 import DogProfilePhotoPicker from "@/components/DogProfilePhotoPicker";
 import CustomerTrainingActions from "@/components/CustomerTrainingActions";
 import CustomerSessionWorkspace from "@/components/CustomerSessionWorkspace";
+import CustomerProgressView from "@/components/CustomerProgressView";
 import DogTrainingTimeline from "@/components/DogTrainingTimeline";
 import TrainingPhaseCard from "@/components/TrainingPhaseCard";
 import GoogleAdsSignUpConversion from "@/components/GoogleAdsSignUpConversion";
@@ -404,7 +405,7 @@ export default function TrainPage() {
   const [toast, setToast] = useState<ToastState | null>(null);
   const [customerHomework, setCustomerHomework] = useState<CustomerHomework | null>(null);
   const [clientOnboardingStarted, setClientOnboardingStarted] = useState(false);
-  const [customerView, setCustomerView] = useState<"home" | "session" | "workspace">("home");
+  const [customerView, setCustomerView] = useState<"home" | "session" | "progress" | "workspace">("home");
   const toastTimeoutRef = useRef<number | null>(null);
 
   const hasActiveDog = Boolean(selectedDogId && dogProfile.name.trim());
@@ -3184,9 +3185,11 @@ ${recentHistory}`;
           dogName={dogProfile.name}
           photoUrl={dogProfile.profileImageUrl}
           trainerFocusActive={Boolean(customerHomework)}
+          lastSessionLabel={latestSession?.focus}
           onManageDog={() => setCustomerView("workspace")}
           onGenerateSession={handleGenerateTodaySession}
-          onViewProgress={() => { setCustomerView("workspace"); window.setTimeout(() => scrollToTrainingSection("training-progress-section"), 0); }}
+          onRepeatSession={hasCurrentPlan ? () => setCustomerView("session") : undefined}
+          onViewProgress={() => setCustomerView("progress")}
           onTalkToCoach={() => { setCustomerView("workspace"); window.setTimeout(handleAskAiAction, 0); }}
         />
       )}
@@ -3484,7 +3487,14 @@ ${recentHistory}`;
             {evaluationWizardContent}
           </section>
         </section>
-      ) : customerView === "home" ? null : customerView === "session" ? (
+      ) : customerView === "home" ? null : customerView === "progress" ? (
+        <CustomerProgressView
+          dogId={selectedDogId}
+          dogName={dogProfile.name}
+          sessions={sessionLogs}
+          onBack={() => setCustomerView("home")}
+        />
+      ) : customerView === "session" ? (
         <CustomerSessionWorkspace
           dogName={dogProfile.name}
           plan={currentPlan}

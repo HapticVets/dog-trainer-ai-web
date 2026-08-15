@@ -1,0 +1,9 @@
+"use client";
+
+import DogTrainingTimeline from "@/components/DogTrainingTimeline";
+
+type Session = { id: string; date: string; focus: string; wins: string; issues: string };
+
+export default function CustomerProgressView({ dogId, dogName, sessions, onBack }: { dogId: string; dogName: string; sessions: Session[]; onBack: () => void }) {
+  return <section className="mx-auto max-w-3xl px-4 pb-12 pt-6 sm:px-6 sm:pt-10"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">Training Progress</p><h2 className="mt-2 text-2xl font-bold text-white">{dogName}</h2></div><button type="button" onClick={onBack} className="min-h-11 rounded-lg border border-neutral-700 px-4 py-2 text-sm font-semibold text-neutral-100 hover:bg-neutral-900">Back to Trainer</button></div><div className="mt-6 rounded-xl border border-neutral-800 bg-neutral-950 p-5"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">Completed sessions</p><p className="mt-2 text-3xl font-bold text-amber-300">{sessions.length}</p><div className="mt-5 space-y-3">{sessions.length ? sessions.map((session) => <article key={session.id} className="rounded-lg border border-neutral-800 bg-black/30 p-4"><p className="font-semibold text-white">{session.focus || "Training session"}</p><p className="mt-1 text-xs text-neutral-500">{session.date || "Date not recorded"}</p><p className="mt-3 text-sm leading-6 text-neutral-300">{session.wins}</p>{session.issues && <p className="mt-2 text-sm leading-6 text-neutral-400">Challenges: {session.issues}</p>}</article>) : <p className="text-sm text-neutral-400">Completed sessions will appear here after you finish your first session.</p>}</div></div><div className="mt-6"><DogTrainingTimeline dogProfileId={dogId} refreshKey={sessions.length} /></div></section>;
+}

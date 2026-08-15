@@ -6,8 +6,10 @@ type CustomerTrainingActionsProps = {
   dogName: string;
   photoUrl?: string | null;
   trainerFocusActive: boolean;
+  lastSessionLabel?: string;
   onManageDog: () => void;
   onGenerateSession: () => void;
+  onRepeatSession?: () => void;
   onViewProgress: () => void;
   onTalkToCoach: () => void;
 };
@@ -16,8 +18,10 @@ export default function CustomerTrainingActions({
   dogName,
   photoUrl,
   trainerFocusActive,
+  lastSessionLabel,
   onManageDog,
   onGenerateSession,
+  onRepeatSession,
   onViewProgress,
   onTalkToCoach,
 }: CustomerTrainingActionsProps) {
@@ -36,8 +40,9 @@ export default function CustomerTrainingActions({
           </div>
         </div>
         <button type="button" onClick={onGenerateSession} className="mt-7 min-h-14 w-full rounded-xl bg-amber-400 px-5 py-4 text-sm font-bold uppercase tracking-[0.08em] text-black transition hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-200 focus:ring-offset-2 focus:ring-offset-neutral-950">
-          Generate Today&apos;s Session
+          Generate New Session
         </button>
+        {onRepeatSession && <button type="button" onClick={onRepeatSession} className="mt-3 min-h-12 w-full rounded-xl border border-amber-500/40 bg-amber-400/10 px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-amber-100 hover:bg-amber-400/15 focus:outline-none focus:ring-2 focus:ring-amber-300">Repeat Last Session{lastSessionLabel ? `: ${lastSessionLabel}` : ""}</button>}
         <div className="mt-3 grid grid-cols-2 gap-3">
           <button type="button" onClick={onViewProgress} className="min-h-12 rounded-xl border border-neutral-700 bg-black/30 px-3 py-3 text-sm font-semibold text-neutral-100 hover:border-amber-500/50 hover:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-amber-300">View Progress</button>
           <button type="button" onClick={onTalkToCoach} className="min-h-12 rounded-xl border border-neutral-700 bg-black/30 px-3 py-3 text-sm font-semibold text-neutral-100 hover:border-amber-500/50 hover:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-amber-300">Talk to Coach</button>
