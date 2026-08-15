@@ -8,6 +8,7 @@ import CustomerTrainingActions from "@/components/CustomerTrainingActions";
 import CustomerSessionWorkspace from "@/components/CustomerSessionWorkspace";
 import CustomerProgressView from "@/components/CustomerProgressView";
 import CustomerCoachView from "@/components/CustomerCoachView";
+import CustomerPlanDetailView from "@/components/CustomerPlanDetailView";
 import DogTrainingTimeline from "@/components/DogTrainingTimeline";
 import TrainingPhaseCard from "@/components/TrainingPhaseCard";
 import GoogleAdsSignUpConversion from "@/components/GoogleAdsSignUpConversion";
@@ -49,6 +50,7 @@ type SessionLog = {
   focus: string;
   wins: string;
   issues: string;
+  createdAt?: string;
 };
 
 type SavedOutput = {
@@ -357,6 +359,10 @@ const getSessionOutcome = (wins: string) => {
 
 export default function TrainPage() {
   const { user } = useUser();
+  const [requestedDogId, setRequestedDogId] = useState<string | null>(null);
+  const [requestedPlanId, setRequestedPlanId] = useState<string | null>(null);
+  const [requestedView, setRequestedView] = useState<string | null>(null);
+  const [routeIntentLoaded, setRouteIntentLoaded] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -406,7 +412,8 @@ export default function TrainPage() {
   const [toast, setToast] = useState<ToastState | null>(null);
   const [customerHomework, setCustomerHomework] = useState<CustomerHomework | null>(null);
   const [clientOnboardingStarted, setClientOnboardingStarted] = useState(false);
-  const [customerView, setCustomerView] = useState<"home" | "session" | "progress" | "coach" | "workspace">("home");
+  const [customerView, setCustomerView] = useState<"home" | "session" | "progress" | "coach" | "plan" | "workspace">("home");
+  const [outputsLoading, setOutputsLoading] = useState(false);
   const toastTimeoutRef = useRef<number | null>(null);
 
   const hasActiveDog = Boolean(selectedDogId && dogProfile.name.trim());
@@ -477,6 +484,19 @@ export default function TrainPage() {
       }),
     [savedPlans]
   );
+  const requestedPlan = useMemo(
+    () => requestedPlanId ? savedPlans.find((plan) => plan.id === requestedPlanId) ?? null : savedPlans[0] ?? null,
+    [requestedPlanId, savedPlans]
+  );
+  const completedSessionForRequestedPlan = useMemo(() => {
+    if (!requestedPlan) return null;
+    const planTime = new Date(requestedPlan.createdAt).getTime();
+    if (Number.isNaN(planTime)) return null;
+    return sessionLogs.find((session) => {
+      const sessionTime = session.createdAt ? new Date(session.createdAt).getTime() : Number.NaN;
+      return !Number.isNaN(sessionTime) && sessionTime >= planTime;
+    }) ?? null;
+  }, [requestedPlan, sessionLogs]);
   const hasInitialTrainingPlan = savedPlans.some(
     (plan) => plan.outputType === "initial_session_plan"
   );
@@ -518,6 +538,14 @@ export default function TrainPage() {
     : hasCurrentPlan
     ? "plan_ready_to_log"
     : "case_file_complete";
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setRequestedDogId(params.get("dog"));
+    setRequestedPlanId(params.get("plan"));
+    setRequestedView(params.get("view"));
+    setRouteIntentLoaded(true);
+  }, []);
 
   const workflowNextAction =
     workflowState === "no_dog"
@@ -705,6 +733,7 @@ export default function TrainPage() {
 
   const returnToCustomerHome = () => {
     setCustomerView("home");
+    window.history.replaceState(null, "", "/train");
     window.scrollTo({ top: 0, behavior: "auto" });
   };
 
@@ -754,7 +783,7 @@ export default function TrainPage() {
         else showToast(data.error || "Unable to save the session.", "error");
         return null;
       }
-      setSessionLogs((current) => [{ id: data.log.id, date: data.log.session_date ?? "", duration: data.log.duration ? `${data.log.duration} min` : "", focus: data.log.focus ?? "", wins: data.log.wins ?? "", issues: data.log.issues ?? "" }, ...current]);
+      setSessionLogs((current) => [{ id: data.log.id, date: data.log.session_date ?? "", duration: data.log.duration ? `${data.log.duration} min` : "", focus: data.log.focus ?? "", wins: data.log.wins ?? "", issues: data.log.issues ?? "", createdAt: data.log.created_at }, ...current]);
       await refreshTrainerAccess();
       showToast("Session saved.", "success");
       const completedSession = {
@@ -883,7 +912,7 @@ export default function TrainPage() {
   };
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !routeIntentLoaded) return;
 
     const loadDogProfiles = async () => {
       try {
@@ -930,7 +959,16 @@ export default function TrainPage() {
           return;
         }
 
-        if (mapped.length > 0) {
+        const requestedDog = requestedDogId
+          ? mapped.find((dog) => dog.id === requestedDogId) ?? null
+          : null;
+
+        if (requestedDog) {
+          setEvaluationMode(false);
+          setOutputsLoading(true);
+          activateDog(requestedDog);
+          setCustomerView(requestedView === "plan" ? "plan" : "home");
+        } else if (mapped.length > 0) {
           setEvaluationMode(false);
           const persistedActiveDogId = getPersistedActiveDogId();
           const persistedDog = mapped.find((dog) => dog.id === persistedActiveDogId) ?? null;
@@ -952,7 +990,7 @@ export default function TrainPage() {
     };
 
     loadDogProfiles();
-  }, [user]);
+  }, [user, requestedDogId, requestedView, routeIntentLoaded]);
 
   useEffect(() => {
     if (!user) {
@@ -1025,6 +1063,7 @@ export default function TrainPage() {
           focus: log.focus ?? "",
           wins: log.wins ?? "",
           issues: log.issues ?? "",
+          createdAt: log.created_at,
         }));
 
         setSessionLogs(mappedLogs);
@@ -1067,6 +1106,7 @@ export default function TrainPage() {
     };
 
     const loadOutputs = async () => {
+      setOutputsLoading(true);
       try {
         const res = await fetch(
           `/api/dog-outputs?dog_profile_id=${encodeURIComponent(selectedDogId)}`,
@@ -1105,6 +1145,8 @@ export default function TrainPage() {
         console.error("Failed to load dog outputs:", error);
         setSavedOutputs([]);
         setCurrentPlan("");
+      } finally {
+        setOutputsLoading(false);
       }
     };
 
@@ -3545,6 +3587,22 @@ ${latestCoachReview}`;
         />
       ) : customerView === "coach" ? (
         <CustomerCoachView dogName={dogProfile.name} photoUrl={dogProfile.profileImageUrl} messages={messages} input={input} loading={loading} limited={isFreeChatLimitReached} onInputChange={setInput} onSend={() => void handleSend()} onBack={returnToCustomerHome} onUpgrade={handleUpgrade} />
+      ) : customerView === "plan" ? (
+        <CustomerPlanDetailView
+          dogName={dogProfile.name}
+          plan={requestedPlan}
+          loading={outputsLoading}
+          completedSession={completedSessionForRequestedPlan}
+          coachReview={completedSessionForRequestedPlan && latestCoachReview !== "No coach review has been recorded yet." ? latestCoachReview : null}
+          onBack={returnToCustomerHome}
+          onContinue={() => {
+            if (!requestedPlan) return;
+            setCurrentPlan(requestedPlan.content);
+            setCustomerView("session");
+            window.scrollTo({ top: 0, behavior: "auto" });
+          }}
+          onGenerate={handleGenerateTodaySession}
+        />
       ) : customerView === "session" ? (
         <CustomerSessionWorkspace
           dogName={dogProfile.name}

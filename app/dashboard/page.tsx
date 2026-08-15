@@ -1204,10 +1204,14 @@ ${sessionSummary}`;
           )}
 
           <Link
-            href="/train"
+            href={activeTrainingPlan && selectedDogId
+              ? `/train?view=plan&dog=${encodeURIComponent(selectedDogId)}&plan=${encodeURIComponent(activeTrainingPlan.id)}`
+              : selectedDogId
+                ? `/train?dog=${encodeURIComponent(selectedDogId)}`
+                : "/train"}
             className="mt-6 inline-flex w-full justify-center rounded border border-amber-500/40 px-5 py-3 text-sm font-semibold text-amber-200 transition-colors hover:bg-amber-400/10 focus:outline-none focus:ring-2 focus:ring-amber-200 focus:ring-offset-2 focus:ring-offset-neutral-950 sm:w-auto"
           >
-            View Full Plan
+            {activeTrainingPlan ? "View Full Plan" : "Generate Training Plan"}
           </Link>
         </div>
       </section>
