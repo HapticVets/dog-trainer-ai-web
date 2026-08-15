@@ -5,6 +5,10 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 const DOG_PROFILE_IMAGES_BUCKET = "dog-profile-images";
 const internalRecordTypes = ["personal", "client", "breeding"];
 
+const isMissingTimelineTableError = (error: { code?: string; message?: string }) =>
+  error.code === "PGRST205" ||
+  error.message?.includes("Could not find the table 'public.dog_timeline_events' in the schema cache") === true;
+
 const getAuthorizationResponse = (error: unknown) => {
   if (error instanceof AdminAuthorizationError) {
     return NextResponse.json({ success: false, error: error.message }, { status: error.status });
@@ -35,6 +39,7 @@ const deleteRelatedRecords = async (ownerId: string, dogId: string) => {
     },
     {
       label: "training timeline",
+      optionalUntilTimelineMigrationIsApplied: true,
       run: () =>
         supabaseAdmin
           .from("dog_timeline_events")
@@ -51,6 +56,16 @@ const deleteRelatedRecords = async (ownerId: string, dogId: string) => {
   for (const operation of operations) {
     const { error } = await operation.run();
     if (error) {
+      if (
+        operation.optionalUntilTimelineMigrationIsApplied &&
+        isMissingTimelineTableError(error)
+      ) {
+        console.warn(
+          "Skipping timeline cleanup because dog_timeline_events is not present. Apply migration 20260721_add_dog_timeline_events.sql.",
+        );
+        continue;
+      }
+
       console.error(`Admin dog ${operation.label} cleanup error:`, error);
       return `Unable to remove related ${operation.label}.`;
     }
