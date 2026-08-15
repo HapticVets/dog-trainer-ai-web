@@ -10,6 +10,14 @@ const DOG_PROFILE_IMAGES_BUCKET = 'dog-profile-images'
 const customerDogProfileColumns =
   'id, clerk_user_id, name, goal_type, main_goal, reward_type, skill_level, custom_notes, profile_image_path, created_at, updated_at'
 
+const getCustomerDogProfileInsertError = (error: { code?: string; message?: string }) => {
+  if (error.code === '23505') {
+    return 'A dog profile with this name already exists in your account.'
+  }
+
+  return error.message || 'Unable to save dog profile'
+}
+
 export async function GET() {
   try {
     const { userId } = await auth()
@@ -168,7 +176,7 @@ export async function POST(request: Request) {
 
     if (error) {
       console.error('Supabase INSERT dog_profiles error:', error)
-      return NextResponse.json({ error: error.message, details: error }, { status: 500 })
+      return NextResponse.json({ error: getCustomerDogProfileInsertError(error) }, { status: 500 })
     }
 
     const caseFile = hydrateDogCaseFile(data)

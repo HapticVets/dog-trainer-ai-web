@@ -39,6 +39,10 @@ const getAdminDogCreationErrorMessage = (
     return "Required database field is missing.";
   }
 
+  if (error?.code === "23505") {
+    return "An internal dog record with these details already exists.";
+  }
+
   if (recordType === "client") {
     return "Client dog record could not be saved.";
   }
