@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AdminAuthorizationError, requireAdminWorkspace } from "@/lib/admin";
+import type { AdminDogProfile } from "@/lib/adminDogs";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 const DOG_PROFILE_IMAGES_BUCKET = "dog-profile-images";
 const internalRecordTypes = ["personal", "client", "breeding"];
+const adminDogColumns =
+  "id, name, goal_type, main_goal, reward_type, skill_level, custom_notes, profile_image_path, record_type, client_owner_name, client_owner_email, client_owner_phone, created_at, updated_at";
 
-const isMissingTimelineTableError = (error: { code?: string; message?: string }) =>
-  error.code === "PGRST205" ||
-  error.message?.includes("Could not find the table 'public.dog_timeline_events' in the schema cache") === true;
+const isMissingOptionalSchemaError = (error: { code?: string }) =>
+  error.code === "PGRST205" || error.code === "PGRST204";
 
 const getAuthorizationResponse = (error: unknown) => {
   if (error instanceof AdminAuthorizationError) {
@@ -17,7 +19,7 @@ const getAuthorizationResponse = (error: unknown) => {
   return null;
 };
 
-const deleteRelatedRecords = async (ownerId: string, dogId: string) => {
+const deleteRelatedRecords = async (dogId: string) => {
   const operations = [
     {
       label: "coaching history",
@@ -25,7 +27,6 @@ const deleteRelatedRecords = async (ownerId: string, dogId: string) => {
         supabaseAdmin
           .from("dog_chats")
           .delete()
-          .eq("clerk_user_id", ownerId)
           .eq("dog_profile_id", dogId),
     },
     {
@@ -34,7 +35,6 @@ const deleteRelatedRecords = async (ownerId: string, dogId: string) => {
         supabaseAdmin
           .from("dog_outputs")
           .delete()
-          .eq("clerk_user_id", ownerId)
           .eq("dog_profile_id", dogId),
     },
     {
@@ -44,12 +44,22 @@ const deleteRelatedRecords = async (ownerId: string, dogId: string) => {
         supabaseAdmin
           .from("dog_timeline_events")
           .delete()
-          .eq("clerk_user_id", ownerId)
           .eq("dog_id", dogId),
     },
     {
       label: "training phase",
+      optionalUntilTimelineMigrationIsApplied: true,
       run: () => supabaseAdmin.from("dog_training_phase").delete().eq("dog_id", dogId),
+    },
+    {
+      label: "internal trainer notes",
+      optionalUntilTimelineMigrationIsApplied: true,
+      run: () => supabaseAdmin.from("admin_dog_notes").delete().eq("dog_id", dogId),
+    },
+    {
+      label: "linked session logs",
+      optionalUntilTimelineMigrationIsApplied: true,
+      run: () => supabaseAdmin.from("session_logs").delete().eq("dog_profile_id", dogId),
     },
   ];
 
@@ -65,12 +75,9 @@ const deleteRelatedRecords = async (ownerId: string, dogId: string) => {
         });
       }
 
-      if (
-        operation.optionalUntilTimelineMigrationIsApplied &&
-        isMissingTimelineTableError(error)
-      ) {
+      if (operation.optionalUntilTimelineMigrationIsApplied && isMissingOptionalSchemaError(error)) {
         console.warn(
-          "Skipping timeline cleanup because dog_timeline_events is not present. Apply migration 20260721_add_dog_timeline_events.sql.",
+          `Skipping ${operation.label} cleanup because its optional table or column is not present. Apply the related Supabase migration.`,
         );
         continue;
       }
@@ -87,9 +94,68 @@ type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
+const withSignedImageUrl = async (profile: AdminDogProfile) => {
+  if (!profile.profile_image_path) return { ...profile, profile_image_url: null };
+
+  const { data, error } = await supabaseAdmin.storage
+    .from(DOG_PROFILE_IMAGES_BUCKET)
+    .createSignedUrl(profile.profile_image_path, 60 * 60);
+
+  if (error) {
+    console.error("Admin case file photo signing error:", error);
+    return { ...profile, profile_image_url: null };
+  }
+
+  return { ...profile, profile_image_url: data.signedUrl };
+};
+
+export async function GET(_request: NextRequest, { params }: RouteContext) {
+  try {
+    await requireAdminWorkspace();
+    const { id } = await params;
+
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from("dog_profiles")
+      .select(adminDogColumns)
+      .eq("id", id)
+      .in("record_type", internalRecordTypes)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error("Admin case file profile load error:", profileError);
+      return NextResponse.json({ error: "Unable to load the internal dog record." }, { status: 500 });
+    }
+    if (!profile) return NextResponse.json({ error: "Internal dog record not found." }, { status: 404 });
+
+    const { data: sessions, error: sessionError } = await supabaseAdmin
+      .from("session_logs")
+      .select("id, session_date, duration, focus, wins, issues, goal_type, main_goal, created_at")
+      .eq("dog_profile_id", id)
+      .order("created_at", { ascending: false });
+
+    const sessionHistoryAvailable = !sessionError;
+    if (sessionError && sessionError.code !== "PGRST205" && sessionError.code !== "42703") {
+      console.error("Admin case file session history error:", sessionError);
+      return NextResponse.json({ error: "Unable to load training history." }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      profile: await withSignedImageUrl(profile as AdminDogProfile),
+      sessions: sessions ?? [],
+      sessionHistoryAvailable,
+    });
+  } catch (error) {
+    const authorizationResponse = getAuthorizationResponse(error);
+    if (authorizationResponse) return authorizationResponse;
+
+    console.error("GET /api/admin/dogs/[id] crashed:", error);
+    return NextResponse.json({ error: "Unable to load the internal dog record." }, { status: 500 });
+  }
+}
+
 export async function DELETE(_request: NextRequest, { params }: RouteContext) {
   try {
-    const { ownerId } = await requireAdminWorkspace();
+    await requireAdminWorkspace();
     const { id } = await params;
 
     if (!id) {
@@ -100,7 +166,6 @@ export async function DELETE(_request: NextRequest, { params }: RouteContext) {
       .from("dog_profiles")
       .select("id, profile_image_path")
       .eq("id", id)
-      .eq("clerk_user_id", ownerId)
       .in("record_type", internalRecordTypes)
       .maybeSingle();
 
@@ -115,7 +180,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteContext) {
 
     // These records carry a dog id, unlike session_logs which only retain a dog name.
     // Deleting sessions by name could remove another dog's history, so they are retained.
-    const relatedRecordError = await deleteRelatedRecords(ownerId, id);
+    const relatedRecordError = await deleteRelatedRecords(id);
     if (relatedRecordError) {
       return NextResponse.json({ success: false, error: relatedRecordError }, { status: 500 });
     }
@@ -124,7 +189,6 @@ export async function DELETE(_request: NextRequest, { params }: RouteContext) {
       .from("dog_profiles")
       .delete()
       .eq("id", id)
-      .eq("clerk_user_id", ownerId)
       .in("record_type", internalRecordTypes)
       .select("id")
       .maybeSingle();

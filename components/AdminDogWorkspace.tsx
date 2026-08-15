@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import {
   dogRecordTypeLabel,
@@ -131,6 +132,12 @@ function DogRecordCard({
       )}
 
       <div className="mt-4 flex flex-wrap gap-2">
+        <Link
+          href={`/admin/dogs/${encodeURIComponent(dog.id)}`}
+          className="rounded-lg border border-amber-400/35 px-3 py-2 text-sm font-semibold text-amber-100 transition hover:bg-amber-400/10"
+        >
+          Open Case File
+        </Link>
         <input
           ref={inputRef}
           type="file"

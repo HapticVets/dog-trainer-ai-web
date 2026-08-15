@@ -64,6 +64,10 @@ export async function POST(request: Request) {
         reward_type: body.reward_type,
         skill_level: body.skill_level,
         custom_notes: body.custom_notes,
+        dog_profile_id:
+          typeof body.dog_profile_id === 'string' && body.dog_profile_id
+            ? body.dog_profile_id
+            : null,
         session_date: body.session_date,
         duration: body.duration,
         focus: body.focus,

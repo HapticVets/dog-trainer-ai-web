@@ -41,6 +41,9 @@ export type CreateAdminDogInput = {
 export const isDogRecordType = (value: unknown): value is DogRecordType =>
   typeof value === "string" && dogRecordTypes.includes(value as DogRecordType);
 
+export const isInternalDogRecord = (value: unknown): value is DogRecordType =>
+  isDogRecordType(value);
+
 export const dogRecordTypeLabel: Record<DogRecordType, string> = {
   personal: "Personal Dog",
   client: "Client Dog",

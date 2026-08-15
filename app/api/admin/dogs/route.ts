@@ -39,12 +39,11 @@ const withSignedImageUrl = async (profile: AdminDogProfile) => {
 
 export async function GET() {
   try {
-    const { ownerId } = await requireAdminWorkspace();
+    await requireAdminWorkspace();
     const { data, error } = await supabaseAdmin
       .from("dog_profiles")
       .select(adminDogColumns)
-      .eq("clerk_user_id", ownerId)
-      .not("record_type", "is", null)
+      .in("record_type", ["personal", "client", "breeding"])
       .order("created_at", { ascending: false });
 
     if (error) {
