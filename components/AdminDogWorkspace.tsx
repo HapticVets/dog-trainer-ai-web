@@ -60,7 +60,15 @@ const DogAvatar = ({ dog }: { dog: AdminDogProfile }) => (
   </div>
 );
 
-function DogRecordCard({ dog, onPhotoUpdated }: { dog: AdminDogProfile; onPhotoUpdated: () => void }) {
+function DogRecordCard({
+  dog,
+  onPhotoUpdated,
+  onDelete,
+}: {
+  dog: AdminDogProfile;
+  onPhotoUpdated: () => void;
+  onDelete: (dog: AdminDogProfile) => void;
+}) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
@@ -142,6 +150,14 @@ function DogRecordCard({ dog, onPhotoUpdated }: { dog: AdminDogProfile; onPhotoU
         >
           {uploading ? "Uploading..." : dog.profile_image_url ? "Replace photo" : "Add photo"}
         </button>
+        <button
+          type="button"
+          onClick={() => onDelete(dog)}
+          disabled={uploading}
+          className="rounded-lg border border-red-500/30 px-3 py-2 text-sm font-semibold text-red-200 transition hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Delete Dog
+        </button>
       </div>
       {error && <p className="mt-3 text-sm text-red-300" role="alert">{error}</p>}
     </article>
@@ -154,6 +170,8 @@ export default function AdminDogWorkspace() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<NewDogForm>(initialForm);
   const [saving, setSaving] = useState(false);
+  const [dogPendingDeletion, setDogPendingDeletion] = useState<AdminDogProfile | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
 
@@ -199,6 +217,34 @@ export default function AdminDogWorkspace() {
       setError(submitError instanceof Error ? submitError.message : "Unable to create internal dog record.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!dogPendingDeletion) return;
+
+    setDeleting(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await fetch(`/api/admin/dogs/${encodeURIComponent(dogPendingDeletion.id)}`, {
+        method: "DELETE",
+      });
+      const data = (await response.json()) as { error?: string; photoCleanupFailed?: boolean };
+      if (!response.ok) throw new Error(data.error || "Unable to delete the internal dog record.");
+
+      setDogs((currentDogs) => currentDogs.filter((dog) => dog.id !== dogPendingDeletion.id));
+      setDogPendingDeletion(null);
+      setNotice(
+        data.photoCleanupFailed
+          ? "Dog record deleted. The profile image could not be cleaned up."
+          : "Dog record deleted.",
+      );
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Unable to delete the internal dog record.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -293,12 +339,58 @@ export default function AdminDogWorkspace() {
                   <p className="mt-4 rounded-xl border border-dashed border-neutral-800 bg-neutral-950/50 p-5 text-sm text-neutral-500">No {dogRecordTypeLabel[recordType].toLowerCase()} records yet.</p>
                 ) : (
                   <div className="mt-4 grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-                    {groupedDogs.map((dog) => <DogRecordCard key={dog.id} dog={dog} onPhotoUpdated={() => void loadDogs()} />)}
+                    {groupedDogs.map((dog) => (
+                      <DogRecordCard
+                        key={dog.id}
+                        dog={dog}
+                        onPhotoUpdated={() => void loadDogs()}
+                        onDelete={setDogPendingDeletion}
+                      />
+                    ))}
                   </div>
                 )}
               </section>
             );
           })}
+        </div>
+      )}
+
+      {dogPendingDeletion && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end bg-black/70 p-4 sm:items-center sm:justify-center"
+          role="presentation"
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-dog-title"
+            aria-describedby="delete-dog-description"
+            className="w-full max-w-md rounded-2xl border border-red-500/30 bg-neutral-950 p-6 shadow-[0_24px_70px_rgba(0,0,0,0.6)]"
+          >
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-300">Permanent action</p>
+            <h2 id="delete-dog-title" className="mt-3 text-2xl font-bold text-white">Delete this dog record?</h2>
+            <p id="delete-dog-description" className="mt-3 text-sm leading-6 text-neutral-300">
+              This will permanently remove {dogPendingDeletion.name}&apos;s internal dog record. This action cannot be undone.
+            </p>
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setDogPendingDeletion(null)}
+                disabled={deleting}
+                className="min-h-11 rounded-lg border border-neutral-700 px-4 py-2.5 text-sm font-bold text-neutral-200 transition hover:bg-neutral-900 disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleDelete()}
+                disabled={deleting}
+                className="min-h-11 rounded-lg bg-red-500 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-red-400 disabled:cursor-wait disabled:opacity-60"
+              >
+                {deleting ? "Deleting..." : "Delete Dog"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </section>

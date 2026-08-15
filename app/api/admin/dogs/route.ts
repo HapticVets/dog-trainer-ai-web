@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { AdminAuthorizationError, requireAdmin } from "@/lib/admin";
+import { AdminAuthorizationError, requireAdminWorkspace } from "@/lib/admin";
 import {
   buildAdminDogPayload,
   isDogRecordType,
@@ -39,11 +39,11 @@ const withSignedImageUrl = async (profile: AdminDogProfile) => {
 
 export async function GET() {
   try {
-    const userId = await requireAdmin();
+    const { ownerId } = await requireAdminWorkspace();
     const { data, error } = await supabaseAdmin
       .from("dog_profiles")
       .select(adminDogColumns)
-      .eq("clerk_user_id", userId)
+      .eq("clerk_user_id", ownerId)
       .not("record_type", "is", null)
       .order("created_at", { ascending: false });
 
@@ -68,7 +68,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const userId = await requireAdmin();
+    const { ownerId } = await requireAdminWorkspace();
     const body = (await request.json()) as Partial<CreateAdminDogInput>;
 
     if (!body.name?.trim()) {
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Choose a valid dog record type." }, { status: 400 });
     }
 
-    const payload = buildAdminDogPayload(userId, {
+    const payload = buildAdminDogPayload(ownerId, {
       name: body.name,
       breed: body.breed,
       age: body.age,

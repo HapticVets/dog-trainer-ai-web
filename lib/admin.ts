@@ -25,3 +25,9 @@ export async function requireAdmin() {
 
   return userId;
 }
+
+// Phase 1 scopes internal records to the creating admin. This helper is the
+// single seam for introducing a shared-admin workspace later.
+export async function requireAdminWorkspace() {
+  return { ownerId: await requireAdmin() };
+}
