@@ -139,10 +139,22 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       return NextResponse.json({ error: "Unable to load training history." }, { status: 500 });
     }
 
+    const { data: adminSessions, error: adminSessionsError } = await supabaseAdmin
+      .from("admin_training_sessions")
+      .select("*")
+      .eq("dog_id", id)
+      .order("created_at", { ascending: false });
+
+    if (adminSessionsError && adminSessionsError.code !== "PGRST205") {
+      console.error("Admin case file internal session error:", adminSessionsError);
+      return NextResponse.json({ error: "Unable to load internal training sessions." }, { status: 500 });
+    }
+
     return NextResponse.json({
       profile: await withSignedImageUrl(profile as AdminDogProfile),
       sessions: sessions ?? [],
       sessionHistoryAvailable,
+      adminSessions: adminSessions ?? [],
     });
   } catch (error) {
     const authorizationResponse = getAuthorizationResponse(error);
