@@ -62,6 +62,7 @@ const getOwnedDog = async (userId: string, dogId: string) => {
     .select("id, name, main_goal, goal_type, reward_type, skill_level, custom_notes, created_at")
     .eq("id", dogId)
     .eq("clerk_user_id", userId)
+    .is("record_type", null)
     .maybeSingle();
 
   if (error) throw new Error(error.message);
@@ -110,18 +111,16 @@ const getWeekKey = (date = new Date()) => {
 export const recordConsistencyThresholds = async ({
   userId,
   dogId,
-  dogName,
 }: {
   userId: string;
   dogId: string;
-  dogName: string;
 }) => {
   try {
     const { data, error } = await supabaseAdmin
       .from("session_logs")
       .select("session_date, created_at, duration")
       .eq("clerk_user_id", userId)
-      .eq("dog_name", dogName);
+      .eq("dog_profile_id", dogId);
 
     if (error) throw new Error(error.message);
 
@@ -177,7 +176,7 @@ export const backfillDogTimeline = async (userId: string, dogId: string) => {
       .from("session_logs")
       .select("id, session_date, created_at, duration, focus, wins, issues")
       .eq("clerk_user_id", userId)
-      .eq("dog_name", dog.name);
+      .eq("dog_profile_id", dogId);
     if (error) throw new Error(error.message);
 
     for (const session of sessions ?? []) {

@@ -1,5 +1,6 @@
 import { clerkClient } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { getOwnedCustomerDogIds } from "@/lib/customerDogProfiles";
 
 export const FREE_AI_CHAT_LIMIT = 3;
 export const FREE_FIRST_SESSION_LIMIT = 1;
@@ -34,6 +35,11 @@ export async function getTrainerAccess(userId: string): Promise<TrainerAccess> {
   const premium = user.publicMetadata?.premium === true;
   const clientAccess = user.publicMetadata?.clientAccess === true;
   const hasFullTrainerAccess = admin || premium || clientAccess;
+  const customerDogIds = await getOwnedCustomerDogIds(userId);
+  // An empty PostgREST `in` filter is invalid, so use a non-existent UUID to count zero rows.
+  const customerDogIdsForQueries = customerDogIds.length
+    ? customerDogIds
+    : ["00000000-0000-0000-0000-000000000000"];
 
   const [
     chatCountResult,
@@ -46,25 +52,30 @@ export async function getTrainerAccess(userId: string): Promise<TrainerAccess> {
       .from("dog_chats")
       .select("*", { count: "exact", head: true })
       .eq("clerk_user_id", userId)
+      .in("dog_profile_id", customerDogIdsForQueries)
       .eq("role", "user"),
     supabaseAdmin
       .from("dog_outputs")
       .select("*", { count: "exact", head: true })
       .eq("clerk_user_id", userId)
+      .in("dog_profile_id", customerDogIdsForQueries)
       .eq("output_type", "initial_session_plan"),
     supabaseAdmin
       .from("dog_outputs")
       .select("*", { count: "exact", head: true })
       .eq("clerk_user_id", userId)
+      .in("dog_profile_id", customerDogIdsForQueries)
       .eq("output_type", "next_session_plan"),
     supabaseAdmin
       .from("session_logs")
       .select("*", { count: "exact", head: true })
-      .eq("clerk_user_id", userId),
+      .eq("clerk_user_id", userId)
+      .in("dog_profile_id", customerDogIdsForQueries),
     supabaseAdmin
       .from("dog_profiles")
       .select("*", { count: "exact", head: true })
-      .eq("clerk_user_id", userId),
+      .eq("clerk_user_id", userId)
+      .is("record_type", null),
   ]);
 
   if (chatCountResult.error) throw new Error(chatCountResult.error.message);

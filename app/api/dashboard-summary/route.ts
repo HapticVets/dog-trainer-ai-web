@@ -18,6 +18,7 @@ export async function GET() {
       .from("dog_profiles")
       .select("*")
       .eq("clerk_user_id", userId)
+      .is("record_type", null)
       .order("created_at", { ascending: false }),
 
     supabaseAdmin
@@ -55,8 +56,9 @@ export async function GET() {
   }
 
   const dogProfiles = dogProfilesResult.data ?? [];
-  const sessionLogs = sessionLogsResult.data ?? [];
-  const outputs = outputsResult.data ?? [];
+  const customerDogIds = new Set(dogProfiles.map((dog) => dog.id));
+  const sessionLogs = (sessionLogsResult.data ?? []).filter((log) => log.dog_profile_id && customerDogIds.has(log.dog_profile_id));
+  const outputs = (outputsResult.data ?? []).filter((output) => output.dog_profile_id && customerDogIds.has(output.dog_profile_id));
 
   const latestDog = dogProfiles[0] ?? null;
   const latestSession = sessionLogs[0] ?? null;

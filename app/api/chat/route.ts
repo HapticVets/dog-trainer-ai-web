@@ -10,6 +10,7 @@ import {
   getDogTrainingPhase,
 } from "@/lib/dogTrainingPhase";
 import { getActiveClientHomeworkContext } from "@/lib/clientHomework";
+import { getOwnedCustomerDog } from "@/lib/customerDogProfiles";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -87,14 +88,21 @@ export async function POST(req: Request) {
     }
 
     const messages = body.messages || [];
+    if (typeof body.dogProfile?.id !== "string" || !body.dogProfile.id) {
+      return NextResponse.json({ reply: "Select a dog profile before starting training.", requiresUpgrade: false }, { status: 400 });
+    }
+    const ownedDog = await getOwnedCustomerDog(userId, body.dogProfile.id);
+    if (!ownedDog) {
+      return NextResponse.json({ reply: "Dog profile not found.", requiresUpgrade: false }, { status: 404 });
+    }
     const hydratedDogProfile = hydrateDogCaseFile({
-      id: body.dogProfile?.id,
-      name: body.dogProfile?.name,
-      goal_type: body.dogProfile?.goalType,
-      main_goal: body.dogProfile?.mainGoal,
-      reward_type: body.dogProfile?.rewardType,
-      skill_level: body.dogProfile?.skillLevel,
-      custom_notes: body.dogProfile?.customNotes,
+      id: ownedDog.id,
+      name: ownedDog.name,
+      goal_type: ownedDog.goal_type,
+      main_goal: ownedDog.main_goal,
+      reward_type: ownedDog.reward_type,
+      skill_level: ownedDog.skill_level,
+      custom_notes: ownedDog.custom_notes,
     });
     const dogProfile = {
       ...hydratedDogProfile,

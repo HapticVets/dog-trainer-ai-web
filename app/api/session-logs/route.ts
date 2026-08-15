@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getTrainerAccess } from '@/app/lib/trainer-access'
 import { createDogTimelineEvent, recordConsistencyThresholds } from '@/lib/dogTimeline'
+import { getOwnedCustomerDog, getOwnedCustomerDogIds } from '@/lib/customerDogProfiles'
 
 export async function GET(request: NextRequest) {
   const { userId } = await auth()
@@ -12,11 +13,17 @@ export async function GET(request: NextRequest) {
   }
 
   const dogName = request.nextUrl.searchParams.get('dog_name')
+  const customerDogIds = await getOwnedCustomerDogIds(userId)
+
+  if (customerDogIds.length === 0) {
+    return NextResponse.json({ logs: [] })
+  }
 
   let query = supabaseAdmin
     .from('session_logs')
     .select('*')
     .eq('clerk_user_id', userId)
+    .in('dog_profile_id', customerDogIds)
     .order('created_at', { ascending: false })
 
   if (dogName) {
@@ -52,6 +59,10 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json()
+
+  if (typeof body.dog_profile_id !== 'string' || !body.dog_profile_id || !await getOwnedCustomerDog(userId, body.dog_profile_id)) {
+    return NextResponse.json({ error: 'Dog profile not found' }, { status: 404 })
+  }
 
   const { data, error } = await supabaseAdmin
     .from('session_logs')
@@ -104,7 +115,6 @@ export async function POST(request: Request) {
     await recordConsistencyThresholds({
       userId,
       dogId: body.dog_profile_id,
-      dogName: data.dog_name,
     })
   }
 
@@ -124,11 +134,27 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Missing id' }, { status: 400 })
   }
 
+  const { data: log, error: logError } = await supabaseAdmin
+    .from('session_logs')
+    .select('id, dog_profile_id')
+    .eq('id', id)
+    .eq('clerk_user_id', userId)
+    .maybeSingle()
+
+  if (logError) {
+    return NextResponse.json({ error: logError.message }, { status: 500 })
+  }
+
+  if (!log?.dog_profile_id || !await getOwnedCustomerDog(userId, log.dog_profile_id)) {
+    return NextResponse.json({ error: 'Session log not found' }, { status: 404 })
+  }
+
   const { error } = await supabaseAdmin
     .from('session_logs')
     .delete()
     .eq('id', id)
     .eq('clerk_user_id', userId)
+    .eq('dog_profile_id', log.dog_profile_id)
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })

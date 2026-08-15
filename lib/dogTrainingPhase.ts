@@ -33,6 +33,7 @@ const getOwnedDog = async (userId: string, dogId: string) => {
     .select("id")
     .eq("id", dogId)
     .eq("clerk_user_id", userId)
+    .is("record_type", null)
     .maybeSingle();
 
   if (error) throw new Error(error.message);

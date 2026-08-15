@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getTrainerAccess } from "@/app/lib/trainer-access";
+import { getOwnedCustomerDog } from "@/lib/customerDogProfiles";
 
 export async function GET(request: NextRequest) {
   const { userId } = await auth();
@@ -15,6 +16,7 @@ export async function GET(request: NextRequest) {
   if (!dogProfileId) {
     return NextResponse.json({ error: "Missing dog_profile_id" }, { status: 400 });
   }
+  if (!await getOwnedCustomerDog(userId, dogProfileId)) return NextResponse.json({ error: "Dog profile not found" }, { status: 404 });
 
   const { data, error } = await supabaseAdmin
     .from("dog_outputs")
@@ -42,6 +44,7 @@ export async function POST(request: Request) {
   if (!body.dogProfileId) {
     return NextResponse.json({ error: "dogProfileId is required" }, { status: 400 });
   }
+  if (!await getOwnedCustomerDog(userId, body.dogProfileId)) return NextResponse.json({ error: "Dog profile not found" }, { status: 404 });
 
   if (!body.outputType || !body.content) {
     return NextResponse.json({ error: "outputType and content are required" }, { status: 400 });

@@ -30,6 +30,7 @@ export async function GET() {
       .from('dog_profiles')
       .select(customerDogProfileColumns)
       .eq('clerk_user_id', userId)
+      .is('record_type', null)
       .order('created_at', { ascending: true })
 
     if (error) {
@@ -82,6 +83,7 @@ export async function POST(request: Request) {
       reward_type: body.rewardType ?? 'Food',
       skill_level: body.skillLevel ?? 'Beginner',
       custom_notes: body.customNotes ?? '',
+      record_type: null,
       updated_at: new Date().toISOString(),
     }
 
@@ -95,6 +97,7 @@ export async function POST(request: Request) {
         .select('id, name, main_goal, custom_notes')
         .eq('id', body.id)
         .eq('clerk_user_id', userId)
+        .is('record_type', null)
         .maybeSingle()
 
       if (previousProfileError || !previousProfile) {
@@ -109,6 +112,7 @@ export async function POST(request: Request) {
         .update(payload)
         .eq('id', body.id)
         .eq('clerk_user_id', userId)
+        .is('record_type', null)
         .select(customerDogProfileColumns)
         .single()
 
@@ -218,6 +222,7 @@ export async function DELETE(request: NextRequest) {
       .select('profile_image_path')
       .eq('id', id)
       .eq('clerk_user_id', userId)
+      .is('record_type', null)
       .maybeSingle()
 
     if (profileError) {
@@ -234,6 +239,7 @@ export async function DELETE(request: NextRequest) {
       .delete()
       .eq('id', id)
       .eq('clerk_user_id', userId)
+      .is('record_type', null)
 
     if (error) {
       console.error('Supabase DELETE dog_profiles error:', error)

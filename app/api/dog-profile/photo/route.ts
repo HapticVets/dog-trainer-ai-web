@@ -1,8 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { getTrainerAccess } from "@/app/lib/trainer-access";
-import { requireAdmin, AdminAuthorizationError } from "@/lib/admin";
-import { isInternalDogRecord } from "@/lib/adminDogs";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { createDogTimelineEvent } from "@/lib/dogTimeline";
 
@@ -41,22 +39,15 @@ const isValidImageSignature = (buffer: Buffer, mimeType: AcceptedMimeType) => {
 const getOwnedProfile = async (userId: string, dogProfileId: string) => {
   const { data, error } = await supabaseAdmin
     .from("dog_profiles")
-    .select("id, clerk_user_id, name, profile_image_path, record_type")
+    .select("id, clerk_user_id, name, profile_image_path")
     .eq("id", dogProfileId)
+    .eq("clerk_user_id", userId)
+    .is("record_type", null)
     .maybeSingle();
 
   if (error) throw new Error(error.message);
   if (!data) return null;
-  if (data.clerk_user_id === userId) return data;
-  if (!isInternalDogRecord(data.record_type)) return null;
-
-  try {
-    await requireAdmin();
-    return data;
-  } catch (adminError) {
-    if (adminError instanceof AdminAuthorizationError) return null;
-    throw adminError;
-  }
+  return data;
 };
 
 const createSignedImageUrl = async (path: string) => {
@@ -159,6 +150,8 @@ export async function POST(request: NextRequest) {
       .from("dog_profiles")
       .update({ profile_image_path: path, updated_at: new Date().toISOString() })
       .eq("id", dogProfileId)
+      .eq("clerk_user_id", userId)
+      .is("record_type", null)
       .select("profile_image_path")
       .maybeSingle();
 
@@ -214,6 +207,8 @@ export async function DELETE(request: NextRequest) {
       .from("dog_profiles")
       .update({ profile_image_path: null, updated_at: new Date().toISOString() })
       .eq("id", dogProfileId)
+      .eq("clerk_user_id", userId)
+      .is("record_type", null)
 
     if (updateError) {
       console.error("Dog photo removal update failed:", updateError);
