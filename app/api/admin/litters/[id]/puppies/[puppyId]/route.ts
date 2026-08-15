@@ -27,7 +27,10 @@ export async function GET(_request: Request, { params }: Context) {
     }
     const index = (litterPuppies ?? []).findIndex((candidate) => candidate.id === puppyId);
     const nextPuppy = index >= 0 ? litterPuppies?.[index + 1] ?? null : null;
-    return NextResponse.json({ puppy, nextPuppy });
+    const profileImageUrl = puppy.profile_image_path
+      ? (await supabaseAdmin.storage.from("dog-profile-images").createSignedUrl(puppy.profile_image_path, 60 * 60)).data?.signedUrl ?? null
+      : null;
+    return NextResponse.json({ puppy, nextPuppy, profileImageUrl });
   } catch (error) {
     console.error("Admin puppy load failed", error);
     return NextResponse.json({ error: "Unable to load puppy record." }, { status: 500 });

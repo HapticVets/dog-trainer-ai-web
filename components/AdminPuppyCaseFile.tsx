@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import Image from "next/image";
+import { ChangeEvent, FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { STANDARD_COLLAR_COLORS, collarLabel, collarSwatch } from "@/lib/admin-puppy-collars";
 
 const traitGroups = [
@@ -63,9 +64,10 @@ type Puppy = {
   temporary_name: string | null;
   sex: string | null;
   collar_color: string | null;
+  profile_image_path: string | null;
   status: string;
 };
-type PuppyData = { puppy: Puppy; nextPuppy: Puppy | null };
+type PuppyData = { puppy: Puppy; nextPuppy: Puppy | null; profileImageUrl: string | null };
 type Draft = Record<TraitKey, number | null> & {
   evaluation_week: string;
   evaluation_date: string;
@@ -112,6 +114,8 @@ export default function AdminPuppyCaseFile({
   const [collarValue, setCollarValue] = useState("");
   const [customCollar, setCustomCollar] = useState("");
   const [savingCollar, setSavingCollar] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const evaluationUrl = `/api/admin/litters/${litterId}/puppies/${puppyId}/evaluations`;
 
@@ -170,6 +174,26 @@ export default function AdminPuppyCaseFile({
       setError(collarError instanceof Error ? collarError.message : "Unable to update collar.");
     } finally {
       setSavingCollar(false);
+    }
+  };
+
+  const uploadPhoto = async (event: ChangeEvent<HTMLInputElement>) => {
+    const image = event.target.files?.[0];
+    if (!image) return;
+    setUploadingPhoto(true);
+    setError("");
+    try {
+      const formData = new FormData();
+      formData.set("image", image);
+      const response = await fetch(`/api/admin/litters/${litterId}/puppies/${puppyId}/photo`, { method: "POST", body: formData });
+      const body = await readResponse(response) as { puppy: Puppy; profileImageUrl: string };
+      setData((current) => current ? { ...current, puppy: body.puppy, profileImageUrl: body.profileImageUrl } : current);
+      setNotice("Puppy photo updated.");
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : "Unable to upload puppy photo.");
+    } finally {
+      setUploadingPhoto(false);
+      event.target.value = "";
     }
   };
 
@@ -236,14 +260,17 @@ export default function AdminPuppyCaseFile({
         Back to Litter
       </Link>
       <header className="mt-4 flex flex-col gap-4 rounded-2xl border border-amber-400/20 bg-neutral-950 p-5 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+        <div className="flex items-center gap-4">
+          {data.profileImageUrl ? <Image unoptimized src={data.profileImageUrl} alt={`${collarLabel(puppy.collar_color)} ${puppy.puppy_code}`} width={80} height={80} className="h-20 w-20 rounded-xl border border-amber-400/25 object-cover" /> : <div className="grid h-20 w-20 place-items-center rounded-xl border border-neutral-700 bg-black text-2xl font-bold text-amber-200">{puppy.collar_color?.slice(0, 1) || "?"}</div>}
+          <div>
           <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.16em] text-white"><span aria-hidden="true" className="h-3 w-3 rounded-full border border-white/30" style={{ backgroundColor: collarSwatch(puppy.collar_color) }} />Puppy Development - {collarLabel(puppy.collar_color)}</p>
           <h1 className="mt-1 text-3xl font-bold text-amber-200">{puppy.puppy_code}</h1>
           <p className="mt-1 text-neutral-400">
             {puppy.temporary_name || "Temporary name pending"} · {puppy.sex || "Sex not set"} · {puppy.status} · Litter puppy
           </p>
+          </div>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row"><button type="button" onClick={openCollarEditor} className="min-h-11 rounded-lg border border-amber-400/35 px-4 py-2 font-semibold text-amber-100 hover:bg-amber-400/10">Edit Collar</button><button type="button" onClick={openNewEvaluation} className="min-h-11 rounded-lg bg-amber-400 px-4 py-2 font-bold text-black hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-200">Add Evaluation</button></div>
+        <div className="flex flex-col gap-2 sm:flex-row"><input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadPhoto} className="sr-only" /><button type="button" disabled={uploadingPhoto} onClick={() => photoInputRef.current?.click()} className="min-h-11 rounded-lg border border-neutral-700 px-4 py-2 font-semibold text-white hover:bg-neutral-800">{uploadingPhoto ? "Uploading..." : data.profileImageUrl ? "Replace Photo" : "Upload Photo"}</button><button type="button" onClick={openCollarEditor} className="min-h-11 rounded-lg border border-amber-400/35 px-4 py-2 font-semibold text-amber-100 hover:bg-amber-400/10">Edit Collar</button><button type="button" onClick={openNewEvaluation} className="min-h-11 rounded-lg bg-amber-400 px-4 py-2 font-bold text-black hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-200">Add Evaluation</button></div>
       </header>
 
       {notice && <p className="mt-4 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200" role="status">{notice}</p>}
