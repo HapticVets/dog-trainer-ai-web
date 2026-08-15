@@ -28,29 +28,27 @@ const sessionResponseFormat = {
       additionalProperties: false,
       required: ["title", "objectives", "training_plan", "trainer_focus", "progression_goal"],
       properties: {
-        title: { type: "string", minLength: 1 },
+        title: { type: "string" },
         objectives: {
           type: "array",
-          minItems: 2,
-          items: { type: "string", minLength: 1 },
+          items: { type: "string" },
         },
         training_plan: {
           type: "array",
-          minItems: 1,
           items: {
             type: "object",
             additionalProperties: false,
             required: ["step", "activity", "duration", "details"],
             properties: {
-              step: { type: "integer", minimum: 1 },
-              activity: { type: "string", minLength: 1 },
-              duration: { type: "string", minLength: 1 },
-              details: { type: "string", minLength: 1 },
+              step: { type: "integer" },
+              activity: { type: "string" },
+              duration: { type: "string" },
+              details: { type: "string" },
             },
           },
         },
-        trainer_focus: { type: "string", minLength: 1 },
-        progression_goal: { type: "string", minLength: 1 },
+        trainer_focus: { type: "string" },
+        progression_goal: { type: "string" },
       },
     },
   },
@@ -89,7 +87,26 @@ const asTrainingPlan = (value: unknown) => {
     .join("\n\n");
 };
 
-const normalizeGeneratedSession = (value: Record<string, unknown>): GeneratedSession | null => {
+const getPlanDuration = (value: unknown) => {
+  if (!Array.isArray(value)) return null;
+
+  const durations = value.map((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return Number.NaN;
+
+    const duration = asText(item.duration);
+    const match = /^(\d+) min$/.exec(duration);
+    return match ? Number(match[1]) : Number.NaN;
+  });
+
+  return durations.every(Number.isFinite)
+    ? { blockCount: durations.length, totalMinutes: durations.reduce((total, minutes) => total + minutes, 0) }
+    : null;
+};
+
+const normalizeGeneratedSession = (
+  value: Record<string, unknown>,
+  options: { requiresClientSessionDuration: boolean },
+): GeneratedSession | null => {
   const session = {
     title: asText(value.title),
     objectives: asObjectives(value.objectives),
@@ -114,6 +131,20 @@ const normalizeGeneratedSession = (value: Record<string, unknown>): GeneratedSes
       ),
     });
     return null;
+  }
+
+  if (options.requiresClientSessionDuration) {
+    const duration = getPlanDuration(value.training_plan ?? value.trainingPlan);
+    if (!duration || duration.blockCount < 5 || duration.totalMinutes < 55 || duration.totalMinutes > 65) {
+      console.error("Admin client session generation did not meet duration requirements", {
+        blockCount: duration?.blockCount ?? 0,
+        totalMinutes: duration?.totalMinutes ?? null,
+        expectedRange: "55-65 minutes",
+      });
+      return null;
+    }
+
+    session.training_plan = `${session.training_plan}\n\nEstimated Session Duration: ${duration.totalMinutes} minutes`;
   }
 
   return session;
@@ -150,6 +181,10 @@ export async function POST(_request: Request, { params }: RouteContext) {
       : "No completed internal sessions yet.";
     const noteContext = notes.length ? notes.map((note) => `${note.created_at}: ${note.note}`).join("\n") : "No recent trainer notes.";
     const nextNumber = (completedSessions[0]?.session_number ?? 0) + 1;
+    const isClientSession = dog.record_type === "client";
+    const durationGuidance = isClientSession
+      ? "This is a normal Patriot K9 private Client Dog session. Build 5-7 practical blocks with durations formatted exactly as whole minutes (for example, 10 min). Their total must be 55-65 minutes, with 60 minutes as the target. Use the hour responsibly: engagement or assessment warm-up, foundation/communication work, primary behavior or protocol work, controlled progression or distraction work when appropriate, recovery/reset, and a final owner coaching/homework handoff. Do not add inappropriate difficulty just to fill time; use repetitions, structured resets, and handler transfer when the dog needs a simpler session."
+      : "This is an internal Personal or Breeding/Kennel Dog session. Keep the number and duration of blocks flexible for the case; do not force a 60-minute session.";
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4.1",
@@ -157,7 +192,7 @@ export async function POST(_request: Request, { params }: RouteContext) {
       response_format: sessionResponseFormat,
       messages: [{
         role: "system",
-        content: `You are preparing a concise internal Patriot K9 Command training session. Use doctrine internally, but do not dump protocols. Prioritize calm engagement, clarity, structured communication, foundations before advanced work, environmental neutrality, recovery, progressive proofing, stability over speed, and real-world function. Do not diagnose or promise outcomes. Use the supplied schema exactly. Objectives must be 2-4 practical trainer-facing items. Each training-plan step must include an activity, duration, and concrete trainer details. Use previous completed-session evidence to repeat, regress, or progress responsibly.\n\nRELEVANT DOCTRINE\n${buildPatriotK9DoctrinePrompt()}\n\nDOG\n${buildDogCaseFileContext(profile)}\nRecord type: ${dog.record_type}\n\nRECENT TRAINER NOTES\n${noteContext}\n\nCOMPLETED SESSION HISTORY\n${history}`,
+        content: `You are preparing a concise internal Patriot K9 Command training session. Use doctrine internally, but do not dump protocols. Prioritize calm engagement, clarity, structured communication, foundations before advanced work, environmental neutrality, recovery, progressive proofing, stability over speed, and real-world function. Do not diagnose or promise outcomes. Use the supplied schema exactly. Objectives must be 2-4 practical trainer-facing items. Each training-plan step must include an activity, duration, and concrete trainer details. Use previous completed-session evidence to repeat, regress, or progress responsibly.\n\nSESSION DURATION GUIDANCE\n${durationGuidance}\n\nRELEVANT DOCTRINE\n${buildPatriotK9DoctrinePrompt()}\n\nDOG\n${buildDogCaseFileContext(profile)}\nRecord type: ${dog.record_type}\n\nRECENT TRAINER NOTES\n${noteContext}\n\nCOMPLETED SESSION HISTORY\n${history}`,
       }],
     });
 
@@ -173,7 +208,9 @@ export async function POST(_request: Request, { params }: RouteContext) {
       return NextResponse.json({ error: "Unable to generate a complete session. Please try again." }, { status: 500 });
     }
 
-    const session = normalizeGeneratedSession(generated);
+    const session = normalizeGeneratedSession(generated, {
+      requiresClientSessionDuration: isClientSession,
+    });
     if (!session) {
       return NextResponse.json({ error: "Unable to generate a complete session. Please try again." }, { status: 500 });
     }
