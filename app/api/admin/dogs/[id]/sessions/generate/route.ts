@@ -10,6 +10,115 @@ const internalRecordTypes = ["personal", "client", "breeding"];
 
 type RouteContext = { params: Promise<{ id: string }> };
 
+type GeneratedSession = {
+  title: string;
+  objectives: string;
+  training_plan: string;
+  trainer_focus: string;
+  progression_goal: string;
+};
+
+const sessionResponseFormat = {
+  type: "json_schema" as const,
+  json_schema: {
+    name: "admin_training_session",
+    strict: true,
+    schema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["title", "objectives", "training_plan", "trainer_focus", "progression_goal"],
+      properties: {
+        title: { type: "string", minLength: 1 },
+        objectives: {
+          type: "array",
+          minItems: 2,
+          items: { type: "string", minLength: 1 },
+        },
+        training_plan: {
+          type: "array",
+          minItems: 1,
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["step", "activity", "duration", "details"],
+            properties: {
+              step: { type: "integer", minimum: 1 },
+              activity: { type: "string", minLength: 1 },
+              duration: { type: "string", minLength: 1 },
+              details: { type: "string", minLength: 1 },
+            },
+          },
+        },
+        trainer_focus: { type: "string", minLength: 1 },
+        progression_goal: { type: "string", minLength: 1 },
+      },
+    },
+  },
+};
+
+const asText = (value: unknown) => typeof value === "string" ? value.trim() : "";
+
+const asObjectives = (value: unknown) => {
+  if (typeof value === "string") return value.trim();
+  if (!Array.isArray(value)) return "";
+
+  return value
+    .map(asText)
+    .filter(Boolean)
+    .map((objective) => `• ${objective}`)
+    .join("\n");
+};
+
+const asTrainingPlan = (value: unknown) => {
+  if (typeof value === "string") return value.trim();
+  if (!Array.isArray(value)) return "";
+
+  return value
+    .map((item, index) => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) return "";
+
+      const step = typeof item.step === "number" ? item.step : index + 1;
+      const activity = asText(item.activity);
+      const duration = asText(item.duration);
+      const details = asText(item.details);
+      if (!activity || !details) return "";
+
+      return `${step}. ${activity}${duration ? ` — ${duration}` : ""}\n   ${details}`;
+    })
+    .filter(Boolean)
+    .join("\n\n");
+};
+
+const normalizeGeneratedSession = (value: Record<string, unknown>): GeneratedSession | null => {
+  const session = {
+    title: asText(value.title),
+    objectives: asObjectives(value.objectives),
+    training_plan: asTrainingPlan(value.training_plan ?? value.trainingPlan),
+    trainer_focus: asText(value.trainer_focus ?? value.trainerFocus),
+    progression_goal: asText(value.progression_goal ?? value.progressionGoal),
+  };
+
+  const missingFields = Object.entries(session)
+    .filter(([, fieldValue]) => !fieldValue)
+    .map(([field]) => field);
+
+  if (missingFields.length > 0) {
+    console.error("Admin session generation returned incomplete content", {
+      missingFields,
+      responseFormat: "JSON object",
+      fieldTypes: Object.fromEntries(
+        ["title", "objectives", "training_plan", "trainer_focus", "progression_goal"].map((field) => [
+          field,
+          Array.isArray(value[field]) ? "array" : typeof value[field],
+        ]),
+      ),
+    });
+    return null;
+  }
+
+  return session;
+};
+
 export async function POST(_request: Request, { params }: RouteContext) {
   try {
     const userId = await requireAdmin();
@@ -45,26 +154,34 @@ export async function POST(_request: Request, { params }: RouteContext) {
     const completion = await openai.chat.completions.create({
       model: "gpt-4.1",
       temperature: 0.2,
-      response_format: { type: "json_object" },
+      response_format: sessionResponseFormat,
       messages: [{
         role: "system",
-        content: `You are preparing a concise internal Patriot K9 Command training session. Use doctrine internally, but do not dump protocols. Prioritize calm engagement, clarity, structured communication, foundations before advanced work, environmental neutrality, recovery, progressive proofing, stability over speed, and real-world function. Do not diagnose or promise outcomes. Return valid JSON with exactly: title, objectives, training_plan, trainer_focus, progression_goal. objectives must be 2-4 concise lines. training_plan must be a short numbered plan with durations. Use previous completed-session evidence to repeat, regress, or progress responsibly.\n\nRELEVANT DOCTRINE\n${buildPatriotK9DoctrinePrompt()}\n\nDOG\n${buildDogCaseFileContext(profile)}\nRecord type: ${dog.record_type}\n\nRECENT TRAINER NOTES\n${noteContext}\n\nCOMPLETED SESSION HISTORY\n${history}`,
+        content: `You are preparing a concise internal Patriot K9 Command training session. Use doctrine internally, but do not dump protocols. Prioritize calm engagement, clarity, structured communication, foundations before advanced work, environmental neutrality, recovery, progressive proofing, stability over speed, and real-world function. Do not diagnose or promise outcomes. Use the supplied schema exactly. Objectives must be 2-4 practical trainer-facing items. Each training-plan step must include an activity, duration, and concrete trainer details. Use previous completed-session evidence to repeat, regress, or progress responsibly.\n\nRELEVANT DOCTRINE\n${buildPatriotK9DoctrinePrompt()}\n\nDOG\n${buildDogCaseFileContext(profile)}\nRecord type: ${dog.record_type}\n\nRECENT TRAINER NOTES\n${noteContext}\n\nCOMPLETED SESSION HISTORY\n${history}`,
       }],
     });
 
     const raw = completion.choices[0]?.message?.content ?? "{}";
     let generated: Record<string, unknown>;
-    try { generated = JSON.parse(raw) as Record<string, unknown>; } catch { return NextResponse.json({ error: "The AI returned an unreadable session draft." }, { status: 500 }); }
-    const value = (key: string) => typeof generated[key] === "string" ? generated[key].trim() : "";
+    try {
+      generated = JSON.parse(raw) as Record<string, unknown>;
+    } catch {
+      console.error("Admin session generation parsing failed", {
+        responseFormat: "non-JSON or invalid JSON",
+        responseLength: raw.length,
+      });
+      return NextResponse.json({ error: "Unable to generate a complete session. Please try again." }, { status: 500 });
+    }
+
+    const session = normalizeGeneratedSession(generated);
+    if (!session) {
+      return NextResponse.json({ error: "Unable to generate a complete session. Please try again." }, { status: 500 });
+    }
 
     return NextResponse.json({
       draft: {
         session_number: nextNumber,
-        title: value("title") || `Session ${nextNumber}`,
-        objectives: value("objectives"),
-        training_plan: value("training_plan"),
-        trainer_focus: value("trainer_focus"),
-        progression_goal: value("progression_goal"),
+        ...session,
       },
       generatedBy: userId,
     });
