@@ -412,6 +412,9 @@ export default function TrainPage() {
   const [toast, setToast] = useState<ToastState | null>(null);
   const [customerHomework, setCustomerHomework] = useState<CustomerHomework | null>(null);
   const [clientOnboardingStarted, setClientOnboardingStarted] = useState(false);
+  const [sessionFocus, setSessionFocus] = useState("continue");
+  const [customSessionFocus, setCustomSessionFocus] = useState("");
+  const [activeSessionFocus, setActiveSessionFocus] = useState<string | null>(null);
   const [customerView, setCustomerView] = useState<"home" | "ready" | "session" | "progress" | "coach" | "plan" | "workspace">("home");
   const [outputsLoading, setOutputsLoading] = useState(false);
   const toastTimeoutRef = useRef<number | null>(null);
@@ -419,6 +422,13 @@ export default function TrainPage() {
   const hasActiveDog = Boolean(selectedDogId && dogProfile.name.trim());
   const isCustomerSimpleView = customerView !== "workspace";
   const hasNoDogProfiles = dogProfilesLoaded && dogProfiles.length === 0;
+  const selectedSessionFocus = sessionFocus === "custom"
+    ? customSessionFocus.trim()
+    : sessionFocus === "patriot-k9-homework"
+      ? customerHomework?.homework_focus ?? ""
+      : sessionFocus === "continue"
+        ? ""
+        : sessionFocus;
   const hasSessions = sessionLogs.length > 0;
   const trainingConsistency = useMemo(
     () => getTrainingConsistency(sessionLogs),
@@ -743,6 +753,11 @@ export default function TrainPage() {
       handleAddDog();
       return;
     }
+    if (sessionFocus === "custom" && !selectedSessionFocus) {
+      showToast("Enter a custom focus before generating the session.", "warning");
+      return;
+    }
+    setActiveSessionFocus(selectedSessionFocus || null);
     setCustomerView("session");
     if (!hasCurrentPlan) {
       void handleGenerateFirstSession();
@@ -773,7 +788,7 @@ export default function TrainPage() {
           custom_notes: dogProfile.additionalNotes,
           session_date: new Date().toISOString().slice(0, 10),
           duration: 15,
-          focus: dogProfile.mainGoal || "Training session",
+          focus: activeSessionFocus || dogProfile.mainGoal || "Training session",
           wins: `${result.rating}. ${result.wins.trim() || "Completed the structured session."}`,
           issues: [result.difficult, result.notes].filter(Boolean).join(" ") || "No major issue noted.",
         }),
@@ -1849,6 +1864,7 @@ CRITICAL RULES:
 - Be specific and executable.
 - The selected goal may be an owner-stated problem, not a command.
 - Translate the selected problem into structured Patriot K9 Command training steps.
+${selectedSessionFocus ? `- Today's requested focus is ${selectedSessionFocus}. Make it the primary focus of this session while adapting difficulty safely to the dog's skill, phase, and history.` : "- Continue the current training plan using the normal profile, phase, and history progression logic."}
 
 Use this exact format:
 
@@ -1966,6 +1982,7 @@ CRITICAL RULES:
 - Translate the selected problem into structured Patriot K9 Command training steps.
 - This is a customer homework session, not an internal trainer session: keep it to 10-20 minutes with 3-4 clear working steps.
 - Use plain owner-facing instructions, include a calm finish, and do not add trainer-only detail.
+${selectedSessionFocus ? `- Today's requested focus is ${selectedSessionFocus}. Make it the primary focus of this session while adapting difficulty safely to the dog's skill, phase, and history.` : "- Continue the current training plan using the normal profile, phase, and history progression logic."}
 
 Use this exact format:
 
@@ -3287,9 +3304,17 @@ ${latestCoachReview}`;
           trainerFocusActive={Boolean(customerHomework)}
           lastSessionLabel={latestSession?.focus}
           lastSessionDate={latestSession?.date}
+          sessionFocus={sessionFocus}
+          customSessionFocus={customSessionFocus}
+          homeworkFocus={customerHomework?.homework_focus}
+          onSessionFocusChange={setSessionFocus}
+          onCustomSessionFocusChange={setCustomSessionFocus}
           onManageDog={() => setCustomerView("workspace")}
           onGenerateSession={handleGenerateTodaySession}
-          onRepeatSession={hasCurrentPlan ? () => setCustomerView("session") : undefined}
+          onRepeatSession={hasCurrentPlan ? () => {
+            setActiveSessionFocus(latestSession?.focus || null);
+            setCustomerView("session");
+          } : undefined}
           onViewProgress={() => setCustomerView("progress")}
           onTalkToCoach={() => setCustomerView("coach")}
         />
@@ -3620,6 +3645,7 @@ ${latestCoachReview}`;
           dogName={dogProfile.name}
           photoUrl={dogProfile.profileImageUrl}
           plan={currentPlan}
+          sessionFocus={activeSessionFocus}
           loading={planLoading}
           onBack={returnToCustomerHome}
           onTalkToCoach={() => setCustomerView("coach")}

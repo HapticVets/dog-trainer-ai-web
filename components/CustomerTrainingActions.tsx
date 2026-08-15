@@ -8,6 +8,11 @@ type CustomerTrainingActionsProps = {
   trainerFocusActive: boolean;
   lastSessionLabel?: string;
   lastSessionDate?: string;
+  sessionFocus: string;
+  customSessionFocus: string;
+  homeworkFocus?: string | null;
+  onSessionFocusChange: (value: string) => void;
+  onCustomSessionFocusChange: (value: string) => void;
   onManageDog: () => void;
   onGenerateSession: () => void;
   onRepeatSession?: () => void;
@@ -21,6 +26,11 @@ export default function CustomerTrainingActions({
   trainerFocusActive,
   lastSessionLabel,
   lastSessionDate,
+  sessionFocus,
+  customSessionFocus,
+  homeworkFocus,
+  onSessionFocusChange,
+  onCustomSessionFocusChange,
   onManageDog,
   onGenerateSession,
   onRepeatSession,
@@ -45,6 +55,19 @@ export default function CustomerTrainingActions({
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">Last Session</p>
           <p className="mt-1 text-sm font-semibold text-white">{lastSessionLabel || "No completed session yet"}</p>
           <p className="mt-1 text-xs text-neutral-400">{lastSessionLabel ? `Completed ${lastSessionDate || "recently"}` : "Generate your first session when you are ready"}</p>
+        </div>
+        <div className="mt-5">
+          <label htmlFor="session-focus" className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-300">What do you want to work on today?</label>
+          <select id="session-focus" value={sessionFocus} onChange={(event) => onSessionFocusChange(event.target.value)} className="mt-2 min-h-12 w-full rounded-xl border border-neutral-700 bg-black px-3 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-amber-300">
+            {homeworkFocus && <option value="patriot-k9-homework">Patriot K9 Homework — Recommended</option>}
+            <option value="continue">Continue Current Training Plan</option>
+            {[
+              "Obedience", "Recall", "Heel / Leash Walking", "Place", "Stay", "Engagement", "Impulse Control", "Public Neutrality", "Reactivity", "Crate Training", "Puppy Foundations", "Service Dog Foundations", "Scent Work",
+            ].map((focus) => <option key={focus} value={focus}>{focus}</option>)}
+            <option value="custom">Other / Custom Focus</option>
+          </select>
+          {homeworkFocus && <p className="mt-2 text-xs leading-5 text-emerald-200">Your trainer&apos;s assigned homework is recommended.</p>}
+          {sessionFocus === "custom" && <label className="mt-3 block text-sm font-semibold text-neutral-200">What would you like to work on?<input value={customSessionFocus} onChange={(event) => onCustomSessionFocusChange(event.target.value)} placeholder="Door manners when guests arrive" className="mt-2 min-h-11 w-full rounded-lg border border-neutral-700 bg-black px-3 text-white placeholder:text-neutral-500" /></label>}
         </div>
         <button type="button" onClick={onGenerateSession} className="mt-7 min-h-14 w-full rounded-xl bg-amber-400 px-5 py-4 text-sm font-bold uppercase tracking-[0.08em] text-black transition hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-200 focus:ring-offset-2 focus:ring-offset-neutral-950">
           Generate New Session

@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 type CustomerSessionWorkspaceProps = {
   dogName: string;
   photoUrl?: string | null;
+  sessionFocus?: string | null;
   plan: string;
   loading: boolean;
   onBack: () => void;
@@ -33,7 +34,7 @@ const getListItems = (value: string) => {
   return items.length ? items : [value.trim()].filter(Boolean);
 };
 
-export default function CustomerSessionWorkspace({ dogName, photoUrl, plan, loading, onBack, onTalkToCoach, onSaveSession }: CustomerSessionWorkspaceProps) {
+export default function CustomerSessionWorkspace({ dogName, photoUrl, sessionFocus, plan, loading, onBack, onTalkToCoach, onSaveSession }: CustomerSessionWorkspaceProps) {
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -82,6 +83,7 @@ export default function CustomerSessionWorkspace({ dogName, photoUrl, plan, load
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">{showResults ? "Session Complete" : "Today’s Session"}</p>
               <h2 className="mt-1 truncate text-xl font-bold text-white sm:text-2xl">{showResults ? "Log Your Session" : dogName}</h2>
+              {!showResults && sessionFocus && <p className="mt-1 truncate text-xs font-semibold text-amber-200">Today&apos;s Focus: {sessionFocus}</p>}
             </div>
           </div>
           <button type="button" onClick={onBack} className="min-h-11 shrink-0 rounded-lg border border-neutral-700 px-3 py-2 text-sm font-semibold text-neutral-100 hover:bg-neutral-900">← Back to Trainer</button>
