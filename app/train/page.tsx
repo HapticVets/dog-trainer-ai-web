@@ -3618,6 +3618,7 @@ ${latestCoachReview}`;
       ) : customerView === "session" ? (
         <CustomerSessionWorkspace
           dogName={dogProfile.name}
+          photoUrl={dogProfile.profileImageUrl}
           plan={currentPlan}
           loading={planLoading}
           onBack={returnToCustomerHome}
