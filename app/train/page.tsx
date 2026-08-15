@@ -5,6 +5,7 @@ import { useUser } from "@clerk/nextjs";
 import Image from "next/image";
 import DogProfilePhotoPicker from "@/components/DogProfilePhotoPicker";
 import CustomerTrainingActions from "@/components/CustomerTrainingActions";
+import CustomerSessionWorkspace from "@/components/CustomerSessionWorkspace";
 import DogTrainingTimeline from "@/components/DogTrainingTimeline";
 import TrainingPhaseCard from "@/components/TrainingPhaseCard";
 import GoogleAdsSignUpConversion from "@/components/GoogleAdsSignUpConversion";
@@ -403,6 +404,7 @@ export default function TrainPage() {
   const [toast, setToast] = useState<ToastState | null>(null);
   const [customerHomework, setCustomerHomework] = useState<CustomerHomework | null>(null);
   const [clientOnboardingStarted, setClientOnboardingStarted] = useState(false);
+  const [customerView, setCustomerView] = useState<"home" | "session" | "workspace">("home");
   const toastTimeoutRef = useRef<number | null>(null);
 
   const hasActiveDog = Boolean(selectedDogId && dogProfile.name.trim());
@@ -696,6 +698,62 @@ export default function TrainPage() {
 
     scrollToTrainingSection("patriot-k9-coach");
     window.setTimeout(() => document.getElementById("patriot-k9-coach-input")?.focus(), 350);
+  };
+
+  const handleGenerateTodaySession = () => {
+    if (!hasActiveDog) {
+      handleAddDog();
+      return;
+    }
+    setCustomerView("session");
+    if (!hasCurrentPlan) {
+      void handleGenerateFirstSession();
+    } else if (hasSessions) {
+      void handleGenerateNextSessionPlan();
+    }
+  };
+
+  const handleCustomerSaveSession = async (result: {
+    rating: "Easy" | "About Right" | "Challenging";
+    wins: string;
+    difficult: string;
+    notes: string;
+  }) => {
+    if (!selectedDogId) return false;
+    try {
+      const response = await fetch("/api/session-logs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dog_name: dogProfile.name,
+          dog_profile_id: selectedDogId,
+          goal_type: dogProfile.goalType,
+          main_goal: dogProfile.mainGoal,
+          reward_type: dogProfile.rewardType,
+          skill_level: dogProfile.skillLevel,
+          custom_notes: dogProfile.additionalNotes,
+          session_date: new Date().toISOString().slice(0, 10),
+          duration: 15,
+          focus: dogProfile.mainGoal || "Training session",
+          wins: `${result.rating}. ${result.wins.trim() || "Completed the structured session."}`,
+          issues: [result.difficult, result.notes].filter(Boolean).join(" ") || "No major issue noted.",
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        if (data.requiresUpgrade) showUpgradePrompt(data.error || "Upgrade to continue training.");
+        else showToast(data.error || "Unable to save the session.", "error");
+        return false;
+      }
+      setSessionLogs((current) => [{ id: data.log.id, date: data.log.session_date ?? "", duration: data.log.duration ? `${data.log.duration} min` : "", focus: data.log.focus ?? "", wins: data.log.wins ?? "", issues: data.log.issues ?? "" }, ...current]);
+      await refreshTrainerAccess();
+      showToast("Session saved.", "success");
+      return true;
+    } catch (error) {
+      console.error("Unable to save customer session:", error);
+      showToast("Unable to save the session.", "error");
+      return false;
+    }
   };
 
   const togglePlanSection = (label: string) => {
@@ -3121,22 +3179,19 @@ ${recentHistory}`;
         </div>
       </section>
 
-      {!isInitializingTrainer && !evaluationMode && (
+      {!isInitializingTrainer && !evaluationMode && customerView === "home" && (
         <CustomerTrainingActions
           dogName={dogProfile.name}
-          primaryGoal={dogProfile.mainGoal}
-          hasDog={hasActiveDog}
-          hasCurrentPlan={hasCurrentPlan}
-          hasClientAccess={hasClientAccess}
-          homeworkAvailable={Boolean(customerHomework)}
-          onStartTraining={handleStartTrainingAction}
-          onCheckProgress={() => scrollToTrainingSection("training-progress-section")}
-          onAskAi={handleAskAiAction}
-          onViewHomework={() => scrollToTrainingSection("customer-homework-section")}
+          photoUrl={dogProfile.profileImageUrl}
+          trainerFocusActive={Boolean(customerHomework)}
+          onManageDog={() => setCustomerView("workspace")}
+          onGenerateSession={handleGenerateTodaySession}
+          onViewProgress={() => { setCustomerView("workspace"); window.setTimeout(() => scrollToTrainingSection("training-progress-section"), 0); }}
+          onTalkToCoach={() => { setCustomerView("workspace"); window.setTimeout(handleAskAiAction, 0); }}
         />
       )}
 
-      {!isInitializingTrainer && trainerAccess && !evaluationMode && (
+      {!isInitializingTrainer && trainerAccess && !evaluationMode && customerView !== "home" && (
         <section className="mx-auto max-w-7xl px-4 pt-6 sm:px-6">
           {isPremiumUser ? (
             <div className="rounded-xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-neutral-950 to-neutral-950 p-5 shadow-[0_16px_44px_rgba(0,0,0,0.2)] sm:p-6">
@@ -3255,7 +3310,7 @@ ${recentHistory}`;
         </section>
       )}
 
-      {!isInitializingTrainer && trainerAccess && !evaluationMode && !hasFullTrainerAccess && (
+      {!isInitializingTrainer && trainerAccess && !evaluationMode && !hasFullTrainerAccess && customerView !== "home" && (
         <section className="mx-auto max-w-7xl space-y-5 px-4 pt-5 sm:px-6">
           <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">
@@ -3429,8 +3484,22 @@ ${recentHistory}`;
             {evaluationWizardContent}
           </section>
         </section>
+      ) : customerView === "home" ? null : customerView === "session" ? (
+        <CustomerSessionWorkspace
+          dogName={dogProfile.name}
+          plan={currentPlan}
+          loading={planLoading}
+          onBack={() => setCustomerView("home")}
+          onTalkToCoach={() => { setCustomerView("workspace"); window.setTimeout(handleAskAiAction, 0); }}
+          onSaveSession={handleCustomerSaveSession}
+        />
       ) : (
         <>
+          <div className="mx-auto max-w-7xl px-4 pt-5 sm:px-6">
+            <button type="button" onClick={() => setCustomerView("home")} className="min-h-10 rounded-lg border border-neutral-700 px-3 py-2 text-sm font-semibold text-neutral-200 hover:bg-neutral-900">
+              Back to Training Home
+            </button>
+          </div>
           <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-6">
             <div className="rounded-xl border border-neutral-800 bg-black/45 p-5 shadow-[0_18px_45px_rgba(0,0,0,0.2)] sm:p-6">
               <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-center">
