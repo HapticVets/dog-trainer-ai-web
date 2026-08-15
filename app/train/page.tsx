@@ -703,6 +703,11 @@ export default function TrainPage() {
     window.setTimeout(() => document.getElementById("patriot-k9-coach-input")?.focus(), 350);
   };
 
+  const returnToCustomerHome = () => {
+    setCustomerView("home");
+    window.scrollTo({ top: 0, behavior: "auto" });
+  };
+
   const handleGenerateTodaySession = () => {
     if (!hasActiveDog) {
       handleAddDog();
@@ -721,6 +726,7 @@ export default function TrainPage() {
     wins: string;
     difficult: string;
     notes: string;
+    completedSteps: string[];
   }) => {
     if (!selectedDogId) return null;
     try {
@@ -758,20 +764,36 @@ export default function TrainPage() {
         wins: data.log.wins ?? result.wins,
         issues: data.log.issues ?? result.difficult,
       };
-      const reviewResponse = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          requestType: "session_review",
-          messages: [{ role: "user", content: `Write a concise customer-facing COACH REVIEW for the completed session below. Use exactly these headings: COACH REVIEW, WHAT I SEE, NEXT DIRECTION, WHERE YOU'RE HEADED. Base every statement on the supplied facts. Do not expose trainer-only information or claim certainty.\n\nCOMPLETED SESSION\nFocus: ${completedSession.focus}\nRating: ${result.rating}\nWhat went well: ${result.wins || "Not provided"}\nWhat was difficult: ${result.difficult || "Not provided"}\nAdditional notes: ${result.notes || "Not provided"}` }],
-          dogProfile,
-          sessionLogs: [completedSession, ...sessionLogs.slice(0, 4)],
-        }),
-      });
-      const reviewData = await reviewResponse.json();
-      const review = reviewResponse.ok ? reviewData.reply || "Coach review is not available yet." : "Coach review is not available yet.";
-      if (reviewResponse.ok) await saveOutput(review, "coach_review");
-      return review;
+      const fallbackReview = `COACH REVIEW\n\nWHAT I SEE\n${result.wins.trim() || "You completed the planned session and logged the outcome."}${result.difficult.trim() ? ` The main challenge reported was: ${result.difficult.trim()}` : ""}\n\nNEXT DIRECTION\n${result.rating === "Challenging" ? "Keep the next repetition simple, lower the difficulty, and build clear successful reps." : "Repeat the current work with the same calm structure and use the result to guide your next session."}\n\nWHERE YOU'RE HEADED\nContinue building ${dogProfile.mainGoal || "your current training goal"} through calm, consistent work.`;
+
+      try {
+        const reviewResponse = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            requestType: "session_review",
+            messages: [{ role: "user", content: `Write a concise customer-facing COACH REVIEW for the completed session below. Use exactly these headings: COACH REVIEW, WHAT I SEE, NEXT DIRECTION, WHERE YOU'RE HEADED. Base every statement on the supplied facts. Do not expose trainer-only information or claim certainty.\n\nCOMPLETED SESSION\nFocus: ${completedSession.focus}\nRating: ${result.rating}\nCompleted steps: ${result.completedSteps.join("; ") || "None marked"}\nWhat went well: ${result.wins || "Not provided"}\nWhat was difficult: ${result.difficult || "Not provided"}\nAdditional notes: ${result.notes || "Not provided"}` }],
+            dogProfile,
+            sessionLogs: [completedSession, ...sessionLogs.slice(0, 4)],
+          }),
+        });
+        const reviewData = await reviewResponse.json();
+        if (!reviewResponse.ok) {
+          console.error("Customer Coach Review request failed", { status: reviewResponse.status, error: reviewData?.error });
+          showToast("Session saved. Showing a results-based Coach Review.", "warning");
+          await saveOutput(fallbackReview, "coach_review");
+          return fallbackReview;
+        }
+
+        const review = reviewData.reply || fallbackReview;
+        await saveOutput(review, "coach_review");
+        return review;
+      } catch (error) {
+        console.error("Customer Coach Review generation failed", error);
+        showToast("Session saved. Showing a results-based Coach Review.", "warning");
+        await saveOutput(fallbackReview, "coach_review");
+        return fallbackReview;
+      }
     } catch (error) {
       console.error("Unable to save customer session:", error);
       showToast("Unable to save the session.", "error");
@@ -3519,16 +3541,16 @@ ${latestCoachReview}`;
           dogName={dogProfile.name}
           sessions={sessionLogs}
           latestReview={latestCoachReview === "No coach review has been recorded yet." ? null : latestCoachReview}
-          onBack={() => setCustomerView("home")}
+          onBack={returnToCustomerHome}
         />
       ) : customerView === "coach" ? (
-        <CustomerCoachView dogName={dogProfile.name} photoUrl={dogProfile.profileImageUrl} messages={messages} input={input} loading={loading} limited={isFreeChatLimitReached} onInputChange={setInput} onSend={() => void handleSend()} onBack={() => setCustomerView("home")} onUpgrade={handleUpgrade} />
+        <CustomerCoachView dogName={dogProfile.name} photoUrl={dogProfile.profileImageUrl} messages={messages} input={input} loading={loading} limited={isFreeChatLimitReached} onInputChange={setInput} onSend={() => void handleSend()} onBack={returnToCustomerHome} onUpgrade={handleUpgrade} />
       ) : customerView === "session" ? (
         <CustomerSessionWorkspace
           dogName={dogProfile.name}
           plan={currentPlan}
           loading={planLoading}
-          onBack={() => setCustomerView("home")}
+          onBack={returnToCustomerHome}
           onTalkToCoach={() => setCustomerView("coach")}
           onSaveSession={handleCustomerSaveSession}
         />
