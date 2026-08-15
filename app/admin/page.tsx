@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import AdminDogWorkspace from "@/components/AdminDogWorkspace";
 import { AdminAuthorizationError, requireAdmin } from "@/lib/admin";
 
@@ -13,5 +14,5 @@ export default async function AdminPage() {
     throw error;
   }
 
-  return <AdminDogWorkspace />;
+  return <><div className="mx-auto max-w-7xl px-4 pt-5 sm:px-6"><Link href="/admin/litters" className="rounded-lg border border-amber-400/35 px-3 py-2 text-sm font-semibold text-amber-100">Litters</Link></div><AdminDogWorkspace /></>;
 }
