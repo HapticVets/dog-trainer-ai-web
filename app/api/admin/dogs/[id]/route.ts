@@ -7,7 +7,53 @@ const internalRecordTypes = ["personal", "client", "breeding"];
 
 const getAuthorizationResponse = (error: unknown) => {
   if (error instanceof AdminAuthorizationError) {
-    return NextResponse.json({ error: error.message }, { status: error.status });
+    return NextResponse.json({ success: false, error: error.message }, { status: error.status });
+  }
+
+  return null;
+};
+
+const deleteRelatedRecords = async (ownerId: string, dogId: string) => {
+  const operations = [
+    {
+      label: "coaching history",
+      run: () =>
+        supabaseAdmin
+          .from("dog_chats")
+          .delete()
+          .eq("clerk_user_id", ownerId)
+          .eq("dog_profile_id", dogId),
+    },
+    {
+      label: "generated training plans",
+      run: () =>
+        supabaseAdmin
+          .from("dog_outputs")
+          .delete()
+          .eq("clerk_user_id", ownerId)
+          .eq("dog_profile_id", dogId),
+    },
+    {
+      label: "training timeline",
+      run: () =>
+        supabaseAdmin
+          .from("dog_timeline_events")
+          .delete()
+          .eq("clerk_user_id", ownerId)
+          .eq("dog_id", dogId),
+    },
+    {
+      label: "training phase",
+      run: () => supabaseAdmin.from("dog_training_phase").delete().eq("dog_id", dogId),
+    },
+  ];
+
+  for (const operation of operations) {
+    const { error } = await operation.run();
+    if (error) {
+      console.error(`Admin dog ${operation.label} cleanup error:`, error);
+      return `Unable to remove related ${operation.label}.`;
+    }
   }
 
   return null;
@@ -23,7 +69,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteContext) {
     const { id } = await params;
 
     if (!id) {
-      return NextResponse.json({ error: "Dog record id is required." }, { status: 400 });
+      return NextResponse.json({ success: false, error: "Dog record id is required." }, { status: 400 });
     }
 
     const { data: profile, error: profileError } = await supabaseAdmin
@@ -36,50 +82,32 @@ export async function DELETE(_request: NextRequest, { params }: RouteContext) {
 
     if (profileError) {
       console.error("Admin dog profile lookup error:", profileError);
-      return NextResponse.json({ error: "Unable to verify the internal dog record." }, { status: 500 });
+      return NextResponse.json({ success: false, error: "Unable to verify the internal dog record." }, { status: 500 });
     }
 
     if (!profile) {
-      return NextResponse.json({ error: "Internal dog record not found." }, { status: 404 });
+      return NextResponse.json({ success: false, error: "Internal dog record not found." }, { status: 404 });
     }
 
     // These records carry a dog id, unlike session_logs which only retain a dog name.
     // Deleting sessions by name could remove another dog's history, so they are retained.
-    const dependentDeletes = await Promise.all([
-      supabaseAdmin
-        .from("dog_chats")
-        .delete()
-        .eq("clerk_user_id", ownerId)
-        .eq("dog_profile_id", id),
-      supabaseAdmin
-        .from("dog_outputs")
-        .delete()
-        .eq("clerk_user_id", ownerId)
-        .eq("dog_profile_id", id),
-      supabaseAdmin
-        .from("dog_timeline_events")
-        .delete()
-        .eq("clerk_user_id", ownerId)
-        .eq("dog_id", id),
-      supabaseAdmin.from("dog_training_phase").delete().eq("dog_id", id),
-    ]);
-
-    const dependentDeleteError = dependentDeletes.find((result) => result.error)?.error;
-    if (dependentDeleteError) {
-      console.error("Admin dog related data cleanup error:", dependentDeleteError);
-      return NextResponse.json({ error: "Unable to remove related internal dog data." }, { status: 500 });
+    const relatedRecordError = await deleteRelatedRecords(ownerId, id);
+    if (relatedRecordError) {
+      return NextResponse.json({ success: false, error: relatedRecordError }, { status: 500 });
     }
 
-    const { error: deleteError } = await supabaseAdmin
+    const { data: deletedProfile, error: deleteError } = await supabaseAdmin
       .from("dog_profiles")
       .delete()
       .eq("id", id)
       .eq("clerk_user_id", ownerId)
-      .in("record_type", internalRecordTypes);
+      .in("record_type", internalRecordTypes)
+      .select("id")
+      .maybeSingle();
 
-    if (deleteError) {
+    if (deleteError || !deletedProfile) {
       console.error("Admin dog profile deletion error:", deleteError);
-      return NextResponse.json({ error: "Unable to delete the internal dog record." }, { status: 500 });
+      return NextResponse.json({ success: false, error: "Unable to delete the internal dog record." }, { status: 500 });
     }
 
     let photoCleanupFailed = false;
@@ -100,6 +128,6 @@ export async function DELETE(_request: NextRequest, { params }: RouteContext) {
     if (authorizationResponse) return authorizationResponse;
 
     console.error("DELETE /api/admin/dogs/[id] crashed:", error);
-    return NextResponse.json({ error: "Unable to delete the internal dog record." }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Unable to delete the internal dog record." }, { status: 500 });
   }
 }

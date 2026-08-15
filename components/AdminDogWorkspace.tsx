@@ -172,6 +172,8 @@ export default function AdminDogWorkspace() {
   const [saving, setSaving] = useState(false);
   const [dogPendingDeletion, setDogPendingDeletion] = useState<AdminDogProfile | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const deleteRequestInFlightRef = useRef(false);
+  const [deleteError, setDeleteError] = useState("");
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
 
@@ -221,18 +223,29 @@ export default function AdminDogWorkspace() {
   };
 
   const handleDelete = async () => {
-    if (!dogPendingDeletion) return;
+    if (!dogPendingDeletion || deleting || deleteRequestInFlightRef.current) return;
 
+    deleteRequestInFlightRef.current = true;
     setDeleting(true);
-    setError("");
+    setDeleteError("");
     setNotice("");
 
     try {
       const response = await fetch(`/api/admin/dogs/${encodeURIComponent(dogPendingDeletion.id)}`, {
         method: "DELETE",
       });
-      const data = (await response.json()) as { error?: string; photoCleanupFailed?: boolean };
-      if (!response.ok) throw new Error(data.error || "Unable to delete the internal dog record.");
+      const responseBody = await response.text();
+      let data: { success?: boolean; error?: string; photoCleanupFailed?: boolean } = {};
+
+      try {
+        data = responseBody ? (JSON.parse(responseBody) as typeof data) : {};
+      } catch {
+        // Non-JSON responses are unexpected, but still need a clear user-facing failure.
+      }
+
+      if (!response.ok || data.success !== true) {
+        throw new Error(data.error || "Unable to delete the internal dog record.");
+      }
 
       setDogs((currentDogs) => currentDogs.filter((dog) => dog.id !== dogPendingDeletion.id));
       setDogPendingDeletion(null);
@@ -242,8 +255,11 @@ export default function AdminDogWorkspace() {
           : "Dog record deleted.",
       );
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "Unable to delete the internal dog record.");
+      setDeleteError(
+        deleteError instanceof Error ? deleteError.message : "Unable to delete the internal dog record.",
+      );
     } finally {
+      deleteRequestInFlightRef.current = false;
       setDeleting(false);
     }
   };
@@ -344,7 +360,10 @@ export default function AdminDogWorkspace() {
                         key={dog.id}
                         dog={dog}
                         onPhotoUpdated={() => void loadDogs()}
-                        onDelete={setDogPendingDeletion}
+                        onDelete={(dog) => {
+                          setDeleteError("");
+                          setDogPendingDeletion(dog);
+                        }}
                       />
                     ))}
                   </div>
@@ -372,10 +391,18 @@ export default function AdminDogWorkspace() {
             <p id="delete-dog-description" className="mt-3 text-sm leading-6 text-neutral-300">
               This will permanently remove {dogPendingDeletion.name}&apos;s internal dog record. This action cannot be undone.
             </p>
+            {deleteError && (
+              <p className="mt-4 rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-100" role="alert">
+                {deleteError}
+              </p>
+            )}
             <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <button
                 type="button"
-                onClick={() => setDogPendingDeletion(null)}
+                onClick={() => {
+                  setDeleteError("");
+                  setDogPendingDeletion(null);
+                }}
                 disabled={deleting}
                 className="min-h-11 rounded-lg border border-neutral-700 px-4 py-2.5 text-sm font-bold text-neutral-200 transition hover:bg-neutral-900 disabled:opacity-60"
               >
