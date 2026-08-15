@@ -56,6 +56,15 @@ const deleteRelatedRecords = async (ownerId: string, dogId: string) => {
   for (const operation of operations) {
     const { error } = await operation.run();
     if (error) {
+      if (operation.label === "training timeline") {
+        console.error("Admin dog timeline cleanup failed", {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+        });
+      }
+
       if (
         operation.optionalUntilTimelineMigrationIsApplied &&
         isMissingTimelineTableError(error)
