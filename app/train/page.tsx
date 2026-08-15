@@ -7,6 +7,7 @@ import DogProfilePhotoPicker from "@/components/DogProfilePhotoPicker";
 import CustomerTrainingActions from "@/components/CustomerTrainingActions";
 import CustomerSessionWorkspace from "@/components/CustomerSessionWorkspace";
 import CustomerProgressView from "@/components/CustomerProgressView";
+import CustomerCoachView from "@/components/CustomerCoachView";
 import DogTrainingTimeline from "@/components/DogTrainingTimeline";
 import TrainingPhaseCard from "@/components/TrainingPhaseCard";
 import GoogleAdsSignUpConversion from "@/components/GoogleAdsSignUpConversion";
@@ -52,7 +53,7 @@ type SessionLog = {
 
 type SavedOutput = {
   id: string;
-  outputType: "initial_session_plan" | "next_session_plan";
+  outputType: "initial_session_plan" | "next_session_plan" | "coach_review";
   content: string;
   createdAt: string;
 };
@@ -405,7 +406,7 @@ export default function TrainPage() {
   const [toast, setToast] = useState<ToastState | null>(null);
   const [customerHomework, setCustomerHomework] = useState<CustomerHomework | null>(null);
   const [clientOnboardingStarted, setClientOnboardingStarted] = useState(false);
-  const [customerView, setCustomerView] = useState<"home" | "session" | "progress" | "workspace">("home");
+  const [customerView, setCustomerView] = useState<"home" | "session" | "progress" | "coach" | "workspace">("home");
   const toastTimeoutRef = useRef<number | null>(null);
 
   const hasActiveDog = Boolean(selectedDogId && dogProfile.name.trim());
@@ -462,6 +463,7 @@ export default function TrainPage() {
       ),
     [savedOutputs]
   );
+  const latestCoachReview = savedOutputs.find((output) => output.outputType === "coach_review")?.content ?? "No coach review has been recorded yet.";
   const savedPlanSummaries = useMemo(
     () =>
       savedPlans.map((plan) => {
@@ -720,7 +722,7 @@ export default function TrainPage() {
     difficult: string;
     notes: string;
   }) => {
-    if (!selectedDogId) return false;
+    if (!selectedDogId) return null;
     try {
       const response = await fetch("/api/session-logs", {
         method: "POST",
@@ -744,16 +746,36 @@ export default function TrainPage() {
       if (!response.ok) {
         if (data.requiresUpgrade) showUpgradePrompt(data.error || "Upgrade to continue training.");
         else showToast(data.error || "Unable to save the session.", "error");
-        return false;
+        return null;
       }
       setSessionLogs((current) => [{ id: data.log.id, date: data.log.session_date ?? "", duration: data.log.duration ? `${data.log.duration} min` : "", focus: data.log.focus ?? "", wins: data.log.wins ?? "", issues: data.log.issues ?? "" }, ...current]);
       await refreshTrainerAccess();
       showToast("Session saved.", "success");
-      return true;
+      const completedSession = {
+        date: data.log.session_date ?? new Date().toISOString().slice(0, 10),
+        duration: data.log.duration ? `${data.log.duration} min` : "15 min",
+        focus: data.log.focus ?? dogProfile.mainGoal,
+        wins: data.log.wins ?? result.wins,
+        issues: data.log.issues ?? result.difficult,
+      };
+      const reviewResponse = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          requestType: "session_review",
+          messages: [{ role: "user", content: `Write a concise customer-facing COACH REVIEW for the completed session below. Use exactly these headings: COACH REVIEW, WHAT I SEE, NEXT DIRECTION, WHERE YOU'RE HEADED. Base every statement on the supplied facts. Do not expose trainer-only information or claim certainty.\n\nCOMPLETED SESSION\nFocus: ${completedSession.focus}\nRating: ${result.rating}\nWhat went well: ${result.wins || "Not provided"}\nWhat was difficult: ${result.difficult || "Not provided"}\nAdditional notes: ${result.notes || "Not provided"}` }],
+          dogProfile,
+          sessionLogs: [completedSession, ...sessionLogs.slice(0, 4)],
+        }),
+      });
+      const reviewData = await reviewResponse.json();
+      const review = reviewResponse.ok ? reviewData.reply || "Coach review is not available yet." : "Coach review is not available yet.";
+      if (reviewResponse.ok) await saveOutput(review, "coach_review");
+      return review;
     } catch (error) {
       console.error("Unable to save customer session:", error);
       showToast("Unable to save the session.", "error");
-      return false;
+      return null;
     }
   };
 
@@ -1045,7 +1067,8 @@ export default function TrainPage() {
           .filter(
             (output: any) =>
               output.output_type === "initial_session_plan" ||
-              output.output_type === "next_session_plan"
+            output.output_type === "next_session_plan" ||
+            output.output_type === "coach_review"
           )
           .map((output: any) => ({
             id: output.id,
@@ -1146,7 +1169,7 @@ export default function TrainPage() {
 
   const saveOutput = async (
     content: string,
-    outputType: "initial_session_plan" | "next_session_plan"
+    outputType: "initial_session_plan" | "next_session_plan" | "coach_review"
   ) => {
     if (!selectedDogId || !content.trim()) return;
 
@@ -1899,7 +1922,10 @@ Wins: ${currentSession.wins}
 Issues: ${currentSession.issues}
 
 RECENT SESSION HISTORY:
-${recentHistory}`;
+${recentHistory}
+
+LATEST COACH REVIEW:
+${latestCoachReview}`;
 
     try {
       const res = await fetch("/api/chat", {
@@ -3190,7 +3216,7 @@ ${recentHistory}`;
           onGenerateSession={handleGenerateTodaySession}
           onRepeatSession={hasCurrentPlan ? () => setCustomerView("session") : undefined}
           onViewProgress={() => setCustomerView("progress")}
-          onTalkToCoach={() => { setCustomerView("workspace"); window.setTimeout(handleAskAiAction, 0); }}
+          onTalkToCoach={() => setCustomerView("coach")}
         />
       )}
 
@@ -3492,15 +3518,18 @@ ${recentHistory}`;
           dogId={selectedDogId}
           dogName={dogProfile.name}
           sessions={sessionLogs}
+          latestReview={latestCoachReview === "No coach review has been recorded yet." ? null : latestCoachReview}
           onBack={() => setCustomerView("home")}
         />
+      ) : customerView === "coach" ? (
+        <CustomerCoachView dogName={dogProfile.name} photoUrl={dogProfile.profileImageUrl} messages={messages} input={input} loading={loading} limited={isFreeChatLimitReached} onInputChange={setInput} onSend={() => void handleSend()} onBack={() => setCustomerView("home")} onUpgrade={handleUpgrade} />
       ) : customerView === "session" ? (
         <CustomerSessionWorkspace
           dogName={dogProfile.name}
           plan={currentPlan}
           loading={planLoading}
           onBack={() => setCustomerView("home")}
-          onTalkToCoach={() => { setCustomerView("workspace"); window.setTimeout(handleAskAiAction, 0); }}
+          onTalkToCoach={() => setCustomerView("coach")}
           onSaveSession={handleCustomerSaveSession}
         />
       ) : (
