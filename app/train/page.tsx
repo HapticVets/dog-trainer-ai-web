@@ -412,11 +412,12 @@ export default function TrainPage() {
   const [toast, setToast] = useState<ToastState | null>(null);
   const [customerHomework, setCustomerHomework] = useState<CustomerHomework | null>(null);
   const [clientOnboardingStarted, setClientOnboardingStarted] = useState(false);
-  const [customerView, setCustomerView] = useState<"home" | "session" | "progress" | "coach" | "plan" | "workspace">("home");
+  const [customerView, setCustomerView] = useState<"home" | "ready" | "session" | "progress" | "coach" | "plan" | "workspace">("home");
   const [outputsLoading, setOutputsLoading] = useState(false);
   const toastTimeoutRef = useRef<number | null>(null);
 
   const hasActiveDog = Boolean(selectedDogId && dogProfile.name.trim());
+  const isCustomerSimpleView = customerView !== "workspace";
   const hasNoDogProfiles = dogProfilesLoaded && dogProfiles.length === 0;
   const hasSessions = sessionLogs.length > 0;
   const trainingConsistency = useMemo(
@@ -801,7 +802,7 @@ export default function TrainPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             requestType: "session_review",
-            messages: [{ role: "user", content: `Write a concise customer-facing COACH REVIEW for the completed session below. Use exactly these headings: COACH REVIEW, WHAT I SEE, NEXT DIRECTION, WHERE YOU'RE HEADED. Base every statement on the supplied facts. Do not expose trainer-only information or claim certainty.\n\nCOMPLETED SESSION\nFocus: ${completedSession.focus}\nRating: ${result.rating}\nCompleted steps: ${result.completedSteps.join("; ") || "None marked"}\nWhat went well: ${result.wins || "Not provided"}\nWhat was difficult: ${result.difficult || "Not provided"}\nAdditional notes: ${result.notes || "Not provided"}` }],
+            messages: [{ role: "user", content: `Write a concise customer-facing COACH REVIEW for the completed session below. Use exactly these headings: COACH REVIEW, WHAT I SAW, NEXT SESSION, WHERE YOU'RE HEADED. Keep each heading to one or two short sentences. Base every statement on the supplied facts. Do not use generic praise, expose trainer-only information, or claim certainty.\n\nCOMPLETED SESSION\nFocus: ${completedSession.focus}\nRating: ${result.rating}\nCompleted steps: ${result.completedSteps.join("; ") || "None marked"}\nWhat went well: ${result.wins || "Not provided"}\nWhat was difficult: ${result.difficult || "Not provided"}\nAdditional notes: ${result.notes || "Not provided"}` }],
             dogProfile,
             sessionLogs: [completedSession, ...sessionLogs.slice(0, 4)],
           }),
@@ -1139,8 +1140,13 @@ export default function TrainPage() {
             createdAt: output.created_at,
           }));
 
+        const plans = mappedOutputs.filter(
+          (output) =>
+            output.outputType === "initial_session_plan" ||
+            output.outputType === "next_session_plan"
+        );
         setSavedOutputs(mappedOutputs);
-        setCurrentPlan(mappedOutputs[0]?.content ?? "");
+        setCurrentPlan(plans[0]?.content ?? "");
       } catch (error) {
         console.error("Failed to load dog outputs:", error);
         setSavedOutputs([]);
@@ -1458,6 +1464,7 @@ export default function TrainPage() {
       return;
     }
 
+    const wasCreatingNewDog = !selectedDogId;
     setProfileSaving(true);
     const hadPendingPhotoChange = Boolean(
       pendingProfileImage || pendingProfileImageRemoval
@@ -1522,6 +1529,7 @@ export default function TrainPage() {
 
       activateDog(saved);
       setEvaluationMode(false);
+      setCustomerView(wasCreatingNewDog ? "ready" : "home");
       setEvaluationStep(1);
       clearPersistedEvaluationDraft(user.id);
       setPreviousActiveDogId("");
@@ -1534,7 +1542,7 @@ export default function TrainPage() {
         showToast(
           hadPendingPhotoChange
             ? "Dog photo updated and case file saved."
-            : selectedDogId
+            : !wasCreatingNewDog
             ? "Case file updated."
             : "Case file saved.",
           "success"
@@ -3226,29 +3234,31 @@ ${latestCoachReview}`;
         </div>
       )}
       <section className="border-b border-neutral-800">
-        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14">
+        <div className={`mx-auto max-w-7xl px-4 sm:px-6 ${isCustomerSimpleView && !evaluationMode ? "py-5 sm:py-6" : "py-10 sm:py-14"}`}>
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
               <p className="text-sm uppercase tracking-[0.25em] text-amber-400">
                 Patriot K9 Command
               </p>
-              <h1 className="mt-4 text-3xl font-bold leading-tight sm:text-4xl md:text-6xl">
+              <h1 className={`font-bold leading-tight ${isCustomerSimpleView && !evaluationMode ? "mt-2 text-2xl sm:text-3xl" : "mt-4 text-3xl sm:text-4xl md:text-6xl"}`}>
                 {isInitializingTrainer
                   ? "Loading Training Center"
                   : evaluationMode
                   ? "Start New Dog Evaluation"
+                  : isCustomerSimpleView
+                  ? "Trainer"
                   : "Training Control Center"}
               </h1>
-              <p className="mt-6 max-w-2xl text-lg text-neutral-300">
+              {(!isCustomerSimpleView || evaluationMode || isInitializingTrainer) && <p className="mt-6 max-w-2xl text-lg text-neutral-300">
                 {isInitializingTrainer
                   ? "Checking for saved dog case files so the trainer can open the right workflow."
                   : evaluationMode
                   ? "Build a case file for this dog so the AI can create a structured Patriot K9 training plan."
                   : "Save a dog, generate the first session, log what happened, then build the next session from real results."}
-              </p>
+              </p>}
             </div>
 
-            {!evaluationMode && (
+            {!evaluationMode && !isCustomerSimpleView && (
               <div
                 className={`rounded border px-6 py-4 text-sm ${
                   hasActiveDog
@@ -3276,6 +3286,7 @@ ${latestCoachReview}`;
           photoUrl={dogProfile.profileImageUrl}
           trainerFocusActive={Boolean(customerHomework)}
           lastSessionLabel={latestSession?.focus}
+          lastSessionDate={latestSession?.date}
           onManageDog={() => setCustomerView("workspace")}
           onGenerateSession={handleGenerateTodaySession}
           onRepeatSession={hasCurrentPlan ? () => setCustomerView("session") : undefined}
@@ -3284,7 +3295,7 @@ ${latestCoachReview}`;
         />
       )}
 
-      {!isInitializingTrainer && trainerAccess && !evaluationMode && customerView !== "home" && (
+      {!isInitializingTrainer && trainerAccess && !evaluationMode && customerView === "workspace" && (
         <section className="mx-auto max-w-7xl px-4 pt-6 sm:px-6">
           {isPremiumUser ? (
             <div className="rounded-xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-neutral-950 to-neutral-950 p-5 shadow-[0_16px_44px_rgba(0,0,0,0.2)] sm:p-6">
@@ -3403,7 +3414,7 @@ ${latestCoachReview}`;
         </section>
       )}
 
-      {!isInitializingTrainer && trainerAccess && !evaluationMode && !hasFullTrainerAccess && customerView !== "home" && (
+      {!isInitializingTrainer && trainerAccess && !evaluationMode && !hasFullTrainerAccess && customerView === "workspace" && (
         <section className="mx-auto max-w-7xl space-y-5 px-4 pt-5 sm:px-6">
           <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">
@@ -3536,39 +3547,21 @@ ${latestCoachReview}`;
       ) : showClientWelcome ? (
         <section className="mx-auto max-w-2xl px-4 pb-12 pt-8 sm:px-6 sm:pb-16 sm:pt-10">
           <section className="rounded-xl border border-amber-500/25 bg-gradient-to-br from-amber-400/10 via-neutral-950 to-black p-6 shadow-[0_18px_46px_rgba(0,0,0,0.24)] sm:p-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">Patriot K9 Client Training</p>
-            <h2 className="mt-3 text-2xl font-bold text-white sm:text-3xl">Welcome to your training plan.</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">Patriot K9 Training</p>
+            <h2 className="mt-3 text-2xl font-bold text-white sm:text-3xl">Create your dog&apos;s profile to begin.</h2>
             <p className="mt-3 text-sm leading-6 text-neutral-300">
-              Build your dog&apos;s profile first. Your trainer can then connect approved in-person homework, and you can use Start Training between sessions.
+              Once your profile is created, your Patriot K9 trainer can connect your in-person training plan.
             </p>
-            <ol className="mt-6 space-y-3 text-sm text-neutral-200">
-              <li className="flex gap-3"><span className="font-bold text-amber-300">1.</span>Create your dog&apos;s profile</li>
-              <li className="flex gap-3"><span className="font-bold text-amber-300">2.</span>Your trainer can connect your in-person training plan</li>
-              <li className="flex gap-3"><span className="font-bold text-amber-300">3.</span>Use Start Training for between-session homework</li>
-            </ol>
-            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-              <button
-                type="button"
-                onClick={() => {
-                  setClientOnboardingStarted(true);
-                  handleAddDog();
-                }}
-                className="min-h-11 w-full rounded bg-amber-400 px-5 py-3 font-semibold text-black hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-200 focus:ring-offset-2 focus:ring-offset-neutral-950 sm:w-auto"
-              >
-                Create Dog Profile
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  showToast("Create your dog profile first so Patriot K9 Coach can give safe, personalized guidance.", "warning");
-                  setClientOnboardingStarted(true);
-                  handleAddDog();
-                }}
-                className="min-h-11 w-full rounded border border-neutral-700 px-5 py-3 font-semibold text-neutral-100 hover:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-amber-300 sm:w-auto"
-              >
-                Ask AI
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setClientOnboardingStarted(true);
+                handleAddDog();
+              }}
+              className="mt-7 min-h-12 w-full rounded-xl bg-amber-400 px-5 py-3 text-sm font-bold uppercase tracking-[0.08em] text-black hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-200 focus:ring-offset-2 focus:ring-offset-neutral-950 sm:w-auto"
+            >
+              Create Dog Profile
+            </button>
           </section>
         </section>
       ) : evaluationMode ? (
@@ -3576,6 +3569,25 @@ ${latestCoachReview}`;
           <section className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
             {evaluationWizardContent}
           </section>
+        </section>
+      ) : customerView === "ready" ? (
+        <section className="mx-auto max-w-xl px-4 pb-12 pt-6 sm:px-6 sm:pt-10">
+          <div className="rounded-2xl border border-amber-500/25 bg-gradient-to-br from-amber-400/10 via-neutral-950 to-black p-5 shadow-[0_18px_46px_rgba(0,0,0,0.24)] sm:p-7">
+            <div className="flex items-center gap-4">
+              <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-amber-500/30 bg-neutral-900 text-xl font-bold text-amber-300">
+                {dogProfile.profileImageUrl ? <Image src={dogProfile.profileImageUrl} alt={`${dogProfile.name} dog profile`} fill sizes="64px" className="object-cover" /> : dogProfile.name.slice(0, 1).toUpperCase() || "K9"}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">Case File Complete</p>
+                <h2 className="mt-1 truncate text-2xl font-bold text-white">{dogProfile.name} is ready.</h2>
+              </div>
+            </div>
+            <p className="mt-5 text-sm leading-6 text-neutral-300">Your trainer can now build {dogProfile.name}&apos;s first structured session.</p>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <button type="button" onClick={handleGenerateTodaySession} className="min-h-12 w-full rounded-xl bg-amber-400 px-5 py-3 text-sm font-bold uppercase tracking-[0.08em] text-black sm:w-auto">Generate First Session</button>
+              <button type="button" onClick={returnToCustomerHome} className="min-h-12 w-full rounded-xl border border-neutral-700 px-5 py-3 text-sm font-semibold text-neutral-100 hover:bg-neutral-900 sm:w-auto">Back to Trainer</button>
+            </div>
+          </div>
         </section>
       ) : customerView === "home" ? null : customerView === "progress" ? (
         <CustomerProgressView

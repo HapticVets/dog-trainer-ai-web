@@ -7,6 +7,7 @@ type CustomerTrainingActionsProps = {
   photoUrl?: string | null;
   trainerFocusActive: boolean;
   lastSessionLabel?: string;
+  lastSessionDate?: string;
   onManageDog: () => void;
   onGenerateSession: () => void;
   onRepeatSession?: () => void;
@@ -19,6 +20,7 @@ export default function CustomerTrainingActions({
   photoUrl,
   trainerFocusActive,
   lastSessionLabel,
+  lastSessionDate,
   onManageDog,
   onGenerateSession,
   onRepeatSession,
@@ -38,6 +40,11 @@ export default function CustomerTrainingActions({
             {trainerFocusActive && <span className="mt-2 inline-flex rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-200">Trainer Focus Active</span>}
             <button type="button" onClick={onManageDog} className="mt-2 block text-xs font-semibold text-amber-300 underline underline-offset-4 hover:text-amber-200">Manage dog</button>
           </div>
+        </div>
+        <div className="mt-5 rounded-xl border border-neutral-800 bg-black/30 px-4 py-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">Last Session</p>
+          <p className="mt-1 text-sm font-semibold text-white">{lastSessionLabel || "No completed session yet"}</p>
+          <p className="mt-1 text-xs text-neutral-400">{lastSessionLabel ? `Completed ${lastSessionDate || "recently"}` : "Generate your first session when you are ready"}</p>
         </div>
         <button type="button" onClick={onGenerateSession} className="mt-7 min-h-14 w-full rounded-xl bg-amber-400 px-5 py-4 text-sm font-bold uppercase tracking-[0.08em] text-black transition hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-200 focus:ring-offset-2 focus:ring-offset-neutral-950">
           Generate New Session
