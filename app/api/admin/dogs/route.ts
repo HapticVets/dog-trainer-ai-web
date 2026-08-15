@@ -12,12 +12,38 @@ const DOG_PROFILE_IMAGES_BUCKET = "dog-profile-images";
 const adminDogColumns =
   "id, name, goal_type, main_goal, reward_type, skill_level, custom_notes, profile_image_path, record_type, client_owner_name, client_owner_email, client_owner_phone, created_at, updated_at";
 
+type SupabaseErrorDetails = {
+  code?: string;
+  message?: string;
+  details?: string;
+  hint?: string;
+};
+
 const unauthorizedResponse = (error: unknown) => {
   if (error instanceof AdminAuthorizationError) {
     return NextResponse.json({ error: error.message }, { status: error.status });
   }
 
   return null;
+};
+
+const getAdminDogCreationErrorMessage = (
+  error: SupabaseErrorDetails | null,
+  recordType: string,
+) => {
+  if (error?.code === "PGRST204" || error?.code === "PGRST205" || error?.code === "42703") {
+    return "Admin dog schema is not up to date.";
+  }
+
+  if (error?.code === "23502") {
+    return "Required database field is missing.";
+  }
+
+  if (recordType === "client") {
+    return "Client dog record could not be saved.";
+  }
+
+  return "Unable to create internal dog record.";
 };
 
 const withSignedImageUrl = async (profile: AdminDogProfile) => {
@@ -97,8 +123,34 @@ export async function POST(request: Request) {
       .single();
 
     if (error || !data) {
-      console.error("Admin dog profile creation error:", error);
-      return NextResponse.json({ error: "Unable to create internal dog record." }, { status: 500 });
+      if (error) {
+        console.error("Admin dog creation failed", {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+        });
+      } else {
+        console.error("Admin dog creation failed", {
+          message: "Supabase insert returned no row and no error.",
+        });
+      }
+
+      console.info("Admin dog creation payload shape", {
+        recordType: payload.record_type,
+        hasName: Boolean(payload.name),
+        goalType: payload.goal_type,
+        hasTrainingFocus: Boolean(payload.main_goal),
+        hasClientOwnerName: Boolean(payload.client_owner_name),
+        hasClientOwnerEmail: Boolean(payload.client_owner_email),
+        hasClientOwnerPhone: Boolean(payload.client_owner_phone),
+        hasCaseFilePayload: Boolean(payload.custom_notes),
+      });
+
+      return NextResponse.json(
+        { error: getAdminDogCreationErrorMessage(error, payload.record_type) },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({ profile: await withSignedImageUrl(data as AdminDogProfile) });
