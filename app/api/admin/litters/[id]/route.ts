@@ -56,6 +56,16 @@ export async function DELETE(_request: Request, { params }: Context) {
     const { data: puppies, error: puppyLookupError } = await supabaseAdmin.from("admin_litter_puppies").select("id,profile_image_path").eq("litter_id", id);
     if (puppyLookupError) return NextResponse.json({ success: false, error: "Unable to inspect litter records." }, { status: 500 });
     const puppyIds = (puppies ?? []).map((puppy) => puppy.id);
+    if (puppyIds.length) {
+      const { data: media, error: mediaLookupError } = await supabaseAdmin.from("admin_puppy_media").select("storage_path").in("puppy_id", puppyIds);
+      if (mediaLookupError && mediaLookupError.code !== "42P01" && mediaLookupError.code !== "PGRST205") return NextResponse.json({ success: false, error: "Unable to inspect related puppy media." }, { status: 500 });
+      if (media?.length) {
+        const { error: mediaDeleteError } = await supabaseAdmin.from("admin_puppy_media").delete().in("puppy_id", puppyIds);
+        if (mediaDeleteError) return NextResponse.json({ success: false, error: "Unable to remove related puppy media." }, { status: 500 });
+        const { error: mediaStorageError } = await supabaseAdmin.storage.from("puppy-development-media").remove(media.map((item) => item.storage_path));
+        if (mediaStorageError) console.error("Admin litter media storage cleanup failed", mediaStorageError);
+      }
+    }
     for (const table of ["admin_puppy_weights", "admin_puppy_notes", "admin_puppy_evaluations"]) {
       if (!puppyIds.length) continue;
       const { error } = await supabaseAdmin.from(table).delete().in("puppy_id", puppyIds);

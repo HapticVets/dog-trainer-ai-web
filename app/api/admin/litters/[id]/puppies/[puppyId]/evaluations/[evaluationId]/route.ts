@@ -50,6 +50,11 @@ export async function DELETE(_request: Request, { params }: Context) {
     const { id: litterId, puppyId, evaluationId } = await params;
     const existing = await verifyEvaluation(litterId, puppyId, evaluationId);
     if (existing.error) return existing.error;
+    const { error: mediaError } = await supabaseAdmin.from("admin_puppy_media").update({ evaluation_id: null }).eq("evaluation_id", evaluationId).eq("puppy_id", puppyId);
+    if (mediaError && mediaError.code !== "42P01" && mediaError.code !== "PGRST205") {
+      logSupabaseError("media unlink", mediaError);
+      return NextResponse.json({ error: "Unable to preserve linked development media." }, { status: 500 });
+    }
     const { error } = await supabaseAdmin.from("admin_puppy_evaluations").delete().eq("id", evaluationId).eq("litter_id", litterId).eq("puppy_id", puppyId);
     if (error) { logSupabaseError("delete", error); return NextResponse.json({ error: "Unable to delete evaluation." }, { status: 500 }); }
     return NextResponse.json({ success: true });

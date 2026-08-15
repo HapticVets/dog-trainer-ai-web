@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ChangeEvent, FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { STANDARD_COLLAR_COLORS, collarLabel, collarSwatch } from "@/lib/admin-puppy-collars";
+import PuppyDevelopmentMedia from "@/components/PuppyDevelopmentMedia";
 
 const traitGroups = [
   {
@@ -309,6 +310,8 @@ export default function AdminPuppyCaseFile({
           </div>
         )}
       </section>
+
+      <PuppyDevelopmentMedia litterId={litterId} puppyId={puppyId} collarIdentity={collarLabel(puppy.collar_color)} evaluations={evaluations} onPromoted={(profileImageUrl) => setData((current) => current ? { ...current, profileImageUrl } : current)} />
 
       {evaluations.length > 0 && nextPuppy && <Link href={`/admin/litters/${litterId}/puppies/${nextPuppy.id}`} className="mt-6 inline-flex min-h-11 flex-col items-start justify-center rounded-lg border border-amber-400/35 px-4 py-2 font-semibold text-amber-100 hover:bg-amber-400/10"><span>Evaluate Next Puppy</span><span className="text-xs font-normal text-neutral-300">Next: {collarLabel(nextPuppy.collar_color)} · {nextPuppy.puppy_code}</span></Link>}
 
