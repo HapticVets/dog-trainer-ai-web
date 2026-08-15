@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin";
+import { normalizeCollarColor } from "@/lib/admin-puppy-collars";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 type Context = { params: Promise<{ id: string; puppyId: string }> };
@@ -30,6 +31,36 @@ export async function GET(_request: Request, { params }: Context) {
   } catch (error) {
     console.error("Admin puppy load failed", error);
     return NextResponse.json({ error: "Unable to load puppy record." }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request, { params }: Context) {
+  try {
+    await requireAdmin();
+    const { id: litterId, puppyId } = await params;
+    const { data: puppy, error: lookupError } = await findPuppy(litterId, puppyId);
+    if (lookupError || !puppy) return NextResponse.json({ error: "Puppy record not found." }, { status: 404 });
+    const body = (await request.json()) as { collar_color?: unknown };
+    const collarColor = normalizeCollarColor(body.collar_color);
+    if (collarColor === undefined) return NextResponse.json({ error: "Collar labels must be 40 characters or fewer." }, { status: 400 });
+
+    if (collarColor && !["sold", "placed"].includes(puppy.status)) {
+      const { data: duplicate, error: duplicateError } = await supabaseAdmin.from("admin_litter_puppies").select("id").eq("litter_id", litterId).ilike("collar_color", collarColor).neq("id", puppyId).not("status", "in", "(sold,placed)").maybeSingle();
+      if (duplicateError) {
+        console.error("Admin collar duplicate lookup failed", { code: duplicateError.code, message: duplicateError.message, details: duplicateError.details, hint: duplicateError.hint });
+        return NextResponse.json({ error: "Unable to verify collar assignment." }, { status: 500 });
+      }
+      if (duplicate) return NextResponse.json({ error: "That collar color is already assigned to another puppy in this litter." }, { status: 400 });
+    }
+    const { data, error } = await supabaseAdmin.from("admin_litter_puppies").update({ collar_color: collarColor, updated_at: new Date().toISOString() }).eq("id", puppyId).eq("litter_id", litterId).select("*").single();
+    if (error) {
+      console.error("Admin collar update failed", { code: error.code, message: error.message, details: error.details, hint: error.hint });
+      return NextResponse.json({ error: "Unable to update collar." }, { status: 500 });
+    }
+    return NextResponse.json({ success: true, puppy: data });
+  } catch (error) {
+    console.error("Admin collar update failed", error);
+    return NextResponse.json({ error: "Unable to update collar." }, { status: 500 });
   }
 }
 

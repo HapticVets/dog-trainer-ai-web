@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useState } from "react";
+import { STANDARD_COLLAR_COLORS, collarLabel, collarSwatch } from "@/lib/admin-puppy-collars";
 
 const traitGroups = [
   {
@@ -107,6 +108,10 @@ export default function AdminPuppyCaseFile({
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Evaluation | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [collarOpen, setCollarOpen] = useState(false);
+  const [collarValue, setCollarValue] = useState("");
+  const [customCollar, setCustomCollar] = useState("");
+  const [savingCollar, setSavingCollar] = useState(false);
 
   const evaluationUrl = `/api/admin/litters/${litterId}/puppies/${puppyId}/evaluations`;
 
@@ -140,6 +145,32 @@ export default function AdminPuppyCaseFile({
     setEditingId(null);
     setError("");
     setFormOpen(true);
+  };
+
+  const openCollarEditor = () => {
+    const current = data?.puppy.collar_color ?? "";
+    const standard = STANDARD_COLLAR_COLORS.includes(current as (typeof STANDARD_COLLAR_COLORS)[number]);
+    setCollarValue(current ? (standard ? current : "Custom") : "");
+    setCustomCollar(standard ? "" : current);
+    setError("");
+    setCollarOpen(true);
+  };
+
+  const saveCollar = async (event: FormEvent) => {
+    event.preventDefault();
+    setSavingCollar(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/admin/litters/${litterId}/puppies/${puppyId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ collar_color: collarValue === "Custom" ? customCollar : collarValue }) });
+      const body = await readResponse(response) as { puppy: Puppy };
+      setData((current) => current ? { ...current, puppy: body.puppy } : current);
+      setCollarOpen(false);
+      setNotice("Collar assignment updated.");
+    } catch (collarError) {
+      setError(collarError instanceof Error ? collarError.message : "Unable to update collar.");
+    } finally {
+      setSavingCollar(false);
+    }
   };
 
   const openEditEvaluation = (evaluation: Evaluation) => {
@@ -206,15 +237,13 @@ export default function AdminPuppyCaseFile({
       </Link>
       <header className="mt-4 flex flex-col gap-4 rounded-2xl border border-amber-400/20 bg-neutral-950 p-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-amber-300">Puppy Development</p>
-          <h1 className="mt-1 text-3xl font-bold text-white">{puppy.puppy_code}</h1>
+          <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.16em] text-white"><span aria-hidden="true" className="h-3 w-3 rounded-full border border-white/30" style={{ backgroundColor: collarSwatch(puppy.collar_color) }} />Puppy Development - {collarLabel(puppy.collar_color)}</p>
+          <h1 className="mt-1 text-3xl font-bold text-amber-200">{puppy.puppy_code}</h1>
           <p className="mt-1 text-neutral-400">
-            {puppy.temporary_name || "Temporary name pending"} · {puppy.sex || "Sex not set"} · {puppy.status}
+            {puppy.temporary_name || "Temporary name pending"} · {puppy.sex || "Sex not set"} · {puppy.status} · Litter puppy
           </p>
         </div>
-        <button type="button" onClick={openNewEvaluation} className="min-h-11 rounded-lg bg-amber-400 px-4 py-2 font-bold text-black hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-200">
-          Add Evaluation
-        </button>
+        <div className="flex flex-col gap-2 sm:flex-row"><button type="button" onClick={openCollarEditor} className="min-h-11 rounded-lg border border-amber-400/35 px-4 py-2 font-semibold text-amber-100 hover:bg-amber-400/10">Edit Collar</button><button type="button" onClick={openNewEvaluation} className="min-h-11 rounded-lg bg-amber-400 px-4 py-2 font-bold text-black hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-200">Add Evaluation</button></div>
       </header>
 
       {notice && <p className="mt-4 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200" role="status">{notice}</p>}
@@ -254,9 +283,11 @@ export default function AdminPuppyCaseFile({
         )}
       </section>
 
-      {evaluations.length > 0 && nextPuppy && <Link href={`/admin/litters/${litterId}/puppies/${nextPuppy.id}`} className="mt-6 inline-flex min-h-11 items-center justify-center rounded-lg border border-amber-400/35 px-4 py-2 font-semibold text-amber-100 hover:bg-amber-400/10">Evaluate Next Puppy: {nextPuppy.puppy_code}</Link>}
+      {evaluations.length > 0 && nextPuppy && <Link href={`/admin/litters/${litterId}/puppies/${nextPuppy.id}`} className="mt-6 inline-flex min-h-11 flex-col items-start justify-center rounded-lg border border-amber-400/35 px-4 py-2 font-semibold text-amber-100 hover:bg-amber-400/10"><span>Evaluate Next Puppy</span><span className="text-xs font-normal text-neutral-300">Next: {collarLabel(nextPuppy.collar_color)} · {nextPuppy.puppy_code}</span></Link>}
 
-      {formOpen && <div className="fixed inset-0 z-50 overflow-y-auto bg-black/75 p-4" role="dialog" aria-modal="true" aria-labelledby="evaluation-form-title"><div className="mx-auto my-4 max-w-3xl rounded-2xl border border-amber-400/25 bg-neutral-950 p-5 shadow-2xl sm:my-8"><div className="flex items-start justify-between gap-4"><div><p className="text-sm font-semibold uppercase tracking-[0.16em] text-amber-300">Puppy Development</p><h2 id="evaluation-form-title" className="mt-1 text-2xl font-bold text-white">{editingId ? "Edit Evaluation" : "Add Evaluation"}</h2></div><button type="button" onClick={() => { setFormOpen(false); setEditingId(null); }} disabled={saving} className="min-h-10 rounded-lg px-3 text-neutral-300 hover:bg-neutral-800">Close</button></div><form onSubmit={saveEvaluation} className="mt-5 space-y-6"><div className="grid gap-3 sm:grid-cols-2"><label className="text-sm text-neutral-200">Evaluation Week<input required value={draft.evaluation_week} onChange={(event) => setDraft({ ...draft, evaluation_week: event.target.value })} placeholder="Week 5" className="mt-1 min-h-11 w-full rounded-lg border border-neutral-700 bg-black px-3 text-white" /></label><label className="text-sm text-neutral-200">Evaluation Date<input required type="date" value={draft.evaluation_date} onChange={(event) => setDraft({ ...draft, evaluation_date: event.target.value })} className="mt-1 min-h-11 w-full rounded-lg border border-neutral-700 bg-black px-3 text-white" /></label></div><p className="rounded-lg border border-amber-400/20 bg-amber-400/5 p-3 text-sm leading-6 text-amber-100">1 - Very Low / Significant Support Needed · 2 - Low / Developing · 3 - Moderate / Age-Appropriate · 4 - Strong · 5 - Very Strong<br />Scores are observations, not grades. Higher is not always better for every trait or placement.</p>{traitGroups.map((group) => <fieldset key={group.title} className="rounded-xl border border-neutral-800 p-4"><legend className="px-1 text-sm font-semibold uppercase tracking-[0.12em] text-amber-300">{group.title}</legend><div className="mt-2 space-y-4">{group.traits.map(([key, label]) => <div key={key} className="flex flex-col gap-2 border-b border-neutral-800 pb-3 last:border-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"><span className="text-sm font-medium text-white">{label}</span><div className="grid grid-cols-5 gap-2" role="group" aria-label={label}>{[1,2,3,4,5].map((score) => <button key={score} type="button" onClick={() => setDraft({ ...draft, [key]: score })} aria-pressed={draft[key] === score} className={`min-h-10 min-w-10 rounded-lg border text-sm font-bold focus:outline-none focus:ring-2 focus:ring-amber-200 ${draft[key] === score ? "border-amber-300 bg-amber-400 text-black" : "border-neutral-700 bg-black text-neutral-200 hover:border-amber-400/60"}`}>{score}</button>)}</div></div>)}</div></fieldset>)}<div className="grid gap-4"><label className="text-sm text-neutral-200">Strengths Observed<textarea value={draft.strengths} onChange={(event) => setDraft({ ...draft, strengths: event.target.value })} className="mt-1 min-h-24 w-full rounded-lg border border-neutral-700 bg-black p-3 text-white" /></label><label className="text-sm text-neutral-200">Development Focus<textarea value={draft.development_focus} onChange={(event) => setDraft({ ...draft, development_focus: event.target.value })} className="mt-1 min-h-24 w-full rounded-lg border border-neutral-700 bg-black p-3 text-white" /></label><label className="text-sm text-neutral-200">Overall Trainer Notes<textarea value={draft.overall_notes} onChange={(event) => setDraft({ ...draft, overall_notes: event.target.value })} className="mt-1 min-h-24 w-full rounded-lg border border-neutral-700 bg-black p-3 text-white" /></label></div>{error && <p className="rounded-lg border border-red-400/30 bg-red-400/10 px-3 py-2 text-sm text-red-200" role="alert">{error}</p>}<div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" disabled={saving} onClick={() => { setFormOpen(false); setEditingId(null); }} className="min-h-11 rounded-lg border border-neutral-700 px-4 py-2 font-semibold text-white">Cancel</button><button disabled={saving} className="min-h-11 rounded-lg bg-amber-400 px-4 py-2 font-bold text-black disabled:cursor-not-allowed disabled:opacity-70">{saving ? "Saving..." : "Save Evaluation"}</button></div></form></div></div>}
+      {formOpen && <div className="fixed inset-0 z-50 overflow-y-auto bg-black/75 p-4" role="dialog" aria-modal="true" aria-labelledby="evaluation-form-title"><div className="mx-auto my-4 max-w-3xl rounded-2xl border border-amber-400/25 bg-neutral-950 p-5 shadow-2xl sm:my-8"><div className="flex items-start justify-between gap-4"><div><p className="text-sm font-semibold uppercase tracking-[0.16em] text-amber-300">Puppy Development - {collarLabel(puppy.collar_color)}</p><h2 id="evaluation-form-title" className="mt-1 text-2xl font-bold text-white">{editingId ? "Edit Evaluation" : `Add Evaluation - ${collarLabel(puppy.collar_color)}`}</h2><p className="mt-1 text-sm text-neutral-400">{puppy.puppy_code}</p></div><button type="button" onClick={() => { setFormOpen(false); setEditingId(null); }} disabled={saving} className="min-h-10 rounded-lg px-3 text-neutral-300 hover:bg-neutral-800">Close</button></div><form onSubmit={saveEvaluation} className="mt-5 space-y-6"><div className="grid gap-3 sm:grid-cols-2"><label className="text-sm text-neutral-200">Evaluation Week<input required value={draft.evaluation_week} onChange={(event) => setDraft({ ...draft, evaluation_week: event.target.value })} placeholder="Week 5" className="mt-1 min-h-11 w-full rounded-lg border border-neutral-700 bg-black px-3 text-white" /></label><label className="text-sm text-neutral-200">Evaluation Date<input required type="date" value={draft.evaluation_date} onChange={(event) => setDraft({ ...draft, evaluation_date: event.target.value })} className="mt-1 min-h-11 w-full rounded-lg border border-neutral-700 bg-black px-3 text-white" /></label></div><p className="rounded-lg border border-amber-400/20 bg-amber-400/5 p-3 text-sm leading-6 text-amber-100">1 - Very Low / Significant Support Needed · 2 - Low / Developing · 3 - Moderate / Age-Appropriate · 4 - Strong · 5 - Very Strong<br />Scores are observations, not grades. Higher is not always better for every trait or placement.</p>{traitGroups.map((group) => <fieldset key={group.title} className="rounded-xl border border-neutral-800 p-4"><legend className="px-1 text-sm font-semibold uppercase tracking-[0.12em] text-amber-300">{group.title}</legend><div className="mt-2 space-y-4">{group.traits.map(([key, label]) => <div key={key} className="flex flex-col gap-2 border-b border-neutral-800 pb-3 last:border-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"><span className="text-sm font-medium text-white">{label}</span><div className="grid grid-cols-5 gap-2" role="group" aria-label={label}>{[1,2,3,4,5].map((score) => <button key={score} type="button" onClick={() => setDraft({ ...draft, [key]: score })} aria-pressed={draft[key] === score} className={`min-h-10 min-w-10 rounded-lg border text-sm font-bold focus:outline-none focus:ring-2 focus:ring-amber-200 ${draft[key] === score ? "border-amber-300 bg-amber-400 text-black" : "border-neutral-700 bg-black text-neutral-200 hover:border-amber-400/60"}`}>{score}</button>)}</div></div>)}</div></fieldset>)}<div className="grid gap-4"><label className="text-sm text-neutral-200">Strengths Observed<textarea value={draft.strengths} onChange={(event) => setDraft({ ...draft, strengths: event.target.value })} className="mt-1 min-h-24 w-full rounded-lg border border-neutral-700 bg-black p-3 text-white" /></label><label className="text-sm text-neutral-200">Development Focus<textarea value={draft.development_focus} onChange={(event) => setDraft({ ...draft, development_focus: event.target.value })} className="mt-1 min-h-24 w-full rounded-lg border border-neutral-700 bg-black p-3 text-white" /></label><label className="text-sm text-neutral-200">Overall Trainer Notes<textarea value={draft.overall_notes} onChange={(event) => setDraft({ ...draft, overall_notes: event.target.value })} className="mt-1 min-h-24 w-full rounded-lg border border-neutral-700 bg-black p-3 text-white" /></label></div>{error && <p className="rounded-lg border border-red-400/30 bg-red-400/10 px-3 py-2 text-sm text-red-200" role="alert">{error}</p>}<div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" disabled={saving} onClick={() => { setFormOpen(false); setEditingId(null); }} className="min-h-11 rounded-lg border border-neutral-700 px-4 py-2 font-semibold text-white">Cancel</button><button disabled={saving} className="min-h-11 rounded-lg bg-amber-400 px-4 py-2 font-bold text-black disabled:cursor-not-allowed disabled:opacity-70">{saving ? "Saving..." : "Save Evaluation"}</button></div></form></div></div>}
+
+      {collarOpen && <div className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-4" role="dialog" aria-modal="true" aria-labelledby="collar-editor-title"><form onSubmit={saveCollar} className="w-full max-w-md rounded-2xl border border-amber-400/25 bg-neutral-950 p-5 shadow-2xl"><p className="text-sm font-semibold uppercase tracking-[0.16em] text-amber-300">{puppy.puppy_code}</p><h2 id="collar-editor-title" className="mt-1 text-xl font-bold text-white">Edit Collar</h2><label className="mt-5 block text-sm text-neutral-200">Collar color<select value={collarValue} onChange={(event) => setCollarValue(event.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-neutral-700 bg-black px-3 text-white"><option value="">No collar assigned</option>{STANDARD_COLLAR_COLORS.map((color) => <option key={color} value={color}>{color}</option>)}<option value="Custom">Custom</option></select></label>{collarValue === "Custom" && <label className="mt-4 block text-sm text-neutral-200">Custom collar label<input required maxLength={40} value={customCollar} onChange={(event) => setCustomCollar(event.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-neutral-700 bg-black px-3 text-white" /></label>}{error && <p className="mt-4 rounded-lg border border-red-400/30 bg-red-400/10 px-3 py-2 text-sm text-red-200" role="alert">{error}</p>}<div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" disabled={savingCollar} onClick={() => setCollarOpen(false)} className="min-h-11 rounded-lg border border-neutral-700 px-4 py-2 font-semibold text-white">Cancel</button><button disabled={savingCollar} className="min-h-11 rounded-lg bg-amber-400 px-4 py-2 font-bold text-black">{savingCollar ? "Saving..." : "Save Collar"}</button></div></form></div>}
 
       {deleteTarget && <div className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-4" role="dialog" aria-modal="true" aria-labelledby="delete-evaluation-title"><div className="w-full max-w-md rounded-2xl border border-red-400/25 bg-neutral-950 p-5 shadow-2xl"><h2 id="delete-evaluation-title" className="text-xl font-bold text-white">Delete this evaluation?</h2><p className="mt-2 text-sm leading-6 text-neutral-300">This will permanently remove this evaluation record. The puppy record will remain.</p>{error && <p className="mt-4 rounded-lg border border-red-400/30 bg-red-400/10 px-3 py-2 text-sm text-red-200" role="alert">{error}</p>}<div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" disabled={deleting} onClick={() => setDeleteTarget(null)} className="min-h-11 rounded-lg border border-neutral-700 px-4 py-2 font-semibold text-white">Cancel</button><button type="button" disabled={deleting} onClick={() => void deleteEvaluation()} className="min-h-11 rounded-lg bg-red-500 px-4 py-2 font-bold text-white disabled:cursor-not-allowed disabled:opacity-70">{deleting ? "Deleting..." : "Delete Evaluation"}</button></div></div></div>}
     </main>
