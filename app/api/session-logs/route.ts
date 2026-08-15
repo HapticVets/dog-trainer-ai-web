@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
   }
 
   const dogName = request.nextUrl.searchParams.get('dog_name')
+  const dogProfileId = request.nextUrl.searchParams.get('dog_profile_id')
   const customerDogIds = await getOwnedCustomerDogIds(userId)
 
   if (customerDogIds.length === 0) {
@@ -28,6 +29,13 @@ export async function GET(request: NextRequest) {
 
   if (dogName) {
     query = query.eq('dog_name', dogName)
+  }
+
+  if (dogProfileId) {
+    if (!await getOwnedCustomerDog(userId, dogProfileId)) {
+      return NextResponse.json({ error: 'Dog profile not found' }, { status: 404 })
+    }
+    query = query.eq('dog_profile_id', dogProfileId)
   }
 
   const { data, error } = await query

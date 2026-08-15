@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import Image from "next/image";
 import DogProfilePhotoPicker from "@/components/DogProfilePhotoPicker";
+import CustomerTrainingActions from "@/components/CustomerTrainingActions";
 import DogTrainingTimeline from "@/components/DogTrainingTimeline";
 import TrainingPhaseCard from "@/components/TrainingPhaseCard";
 import GoogleAdsSignUpConversion from "@/components/GoogleAdsSignUpConversion";
@@ -95,6 +96,12 @@ type UpgradeModalState = {
 type ToastState = {
   message: string;
   variant: "success" | "warning" | "error";
+};
+
+type CustomerHomework = {
+  homework_focus: string;
+  homework_notes: string | null;
+  created_at: string;
 };
 
 type MissionAction = {
@@ -394,6 +401,8 @@ export default function TrainPage() {
   const [upgradeCheckoutLoading, setUpgradeCheckoutLoading] = useState(false);
   const [upgradeCheckoutError, setUpgradeCheckoutError] = useState("");
   const [toast, setToast] = useState<ToastState | null>(null);
+  const [customerHomework, setCustomerHomework] = useState<CustomerHomework | null>(null);
+  const [clientOnboardingStarted, setClientOnboardingStarted] = useState(false);
   const toastTimeoutRef = useRef<number | null>(null);
 
   const hasActiveDog = Boolean(selectedDogId && dogProfile.name.trim());
@@ -408,6 +417,8 @@ export default function TrainPage() {
   const isPremiumUser = trainerAccess?.premium === true;
   const hasClientAccess = trainerAccess?.clientAccess === true;
   const hasFullTrainerAccess = trainerAccess?.hasFullTrainerAccess === true;
+  const showClientWelcome =
+    evaluationMode && hasNoDogProfiles && hasClientAccess && !clientOnboardingStarted;
   const freeMessagesUsed = trainerAccess?.aiChatMessagesUsed ?? 0;
   const freeMessagesRemaining = trainerAccess?.aiChatMessagesRemaining ?? 0;
   const freeMessageLimit = Math.max(
@@ -658,6 +669,35 @@ export default function TrainPage() {
     });
   };
 
+  const scrollToTrainingSection = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const handleStartTrainingAction = () => {
+    if (!hasActiveDog) {
+      handleAddDog();
+      return;
+    }
+
+    if (!hasCurrentPlan) {
+      void handleGenerateFirstSession();
+      return;
+    }
+
+    scrollToTrainingSection("current-plan-section");
+  };
+
+  const handleAskAiAction = () => {
+    if (!hasActiveDog) {
+      showToast("Create a dog profile before starting a coaching conversation.", "warning");
+      handleAddDog();
+      return;
+    }
+
+    scrollToTrainingSection("patriot-k9-coach");
+    window.setTimeout(() => document.getElementById("patriot-k9-coach-input")?.focus(), 350);
+  };
+
   const togglePlanSection = (label: string) => {
     setOpenPlanSections((openSections) =>
       openSections.includes(label)
@@ -857,7 +897,7 @@ export default function TrainPage() {
     const loadSessionLogs = async () => {
       try {
         const res = await fetch(
-          `/api/session-logs?dog_name=${encodeURIComponent(dogProfile.name)}`,
+          `/api/session-logs?dog_profile_id=${encodeURIComponent(selectedDogId)}`,
           {
             method: "GET",
             cache: "no-store",
@@ -980,6 +1020,29 @@ export default function TrainPage() {
       setOnboardingStep("done");
     }
   }, [hasActiveDog, sessionLogs.length, currentPlan]);
+
+  useEffect(() => {
+    if (!user || !selectedDogId || !hasClientAccess) {
+      setCustomerHomework(null);
+      return;
+    }
+
+    const loadCustomerHomework = async () => {
+      try {
+        const response = await fetch(
+          `/api/customer-homework?dog_profile_id=${encodeURIComponent(selectedDogId)}`,
+          { cache: "no-store" },
+        );
+        const data = await response.json();
+        setCustomerHomework(response.ok ? data.homework ?? null : null);
+      } catch (error) {
+        console.error("Unable to load customer homework:", error);
+        setCustomerHomework(null);
+      }
+    };
+
+    void loadCustomerHomework();
+  }, [user, selectedDogId, hasClientAccess]);
 
   useEffect(() => {
     if (!messages.length) return;
@@ -1627,6 +1690,8 @@ CRITICAL RULES:
 - Use the dog profile as the starting point.
 - Do not pretend prior work happened.
 - Build a realistic first working session based on current skill level, goal, and reward type.
+- This is a customer homework session, not an internal trainer session: keep it to 10-20 minutes with 3-4 clear working steps.
+- Include simple equipment guidance, a calm finish, and concrete criteria without exposing trainer-only detail.
 - Be specific and executable.
 - The selected goal may be an owner-stated problem, not a command.
 - Translate the selected problem into structured Patriot K9 Command training steps.
@@ -1745,6 +1810,8 @@ CRITICAL RULES:
 - Do not give generic advice.
 - The selected goal may be an owner-stated problem, not a command.
 - Translate the selected problem into structured Patriot K9 Command training steps.
+- This is a customer homework session, not an internal trainer session: keep it to 10-20 minutes with 3-4 clear working steps.
+- Use plain owner-facing instructions, include a calm finish, and do not add trainer-only detail.
 
 Use this exact format:
 
@@ -3054,6 +3121,21 @@ ${recentHistory}`;
         </div>
       </section>
 
+      {!isInitializingTrainer && !evaluationMode && (
+        <CustomerTrainingActions
+          dogName={dogProfile.name}
+          primaryGoal={dogProfile.mainGoal}
+          hasDog={hasActiveDog}
+          hasCurrentPlan={hasCurrentPlan}
+          hasClientAccess={hasClientAccess}
+          homeworkAvailable={Boolean(customerHomework)}
+          onStartTraining={handleStartTrainingAction}
+          onCheckProgress={() => scrollToTrainingSection("training-progress-section")}
+          onAskAi={handleAskAiAction}
+          onViewHomework={() => scrollToTrainingSection("customer-homework-section")}
+        />
+      )}
+
       {!isInitializingTrainer && trainerAccess && !evaluationMode && (
         <section className="mx-auto max-w-7xl px-4 pt-6 sm:px-6">
           {isPremiumUser ? (
@@ -3303,6 +3385,44 @@ ${recentHistory}`;
             </p>
           </section>
         </section>
+      ) : showClientWelcome ? (
+        <section className="mx-auto max-w-2xl px-4 pb-12 pt-8 sm:px-6 sm:pb-16 sm:pt-10">
+          <section className="rounded-xl border border-amber-500/25 bg-gradient-to-br from-amber-400/10 via-neutral-950 to-black p-6 shadow-[0_18px_46px_rgba(0,0,0,0.24)] sm:p-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">Patriot K9 Client Training</p>
+            <h2 className="mt-3 text-2xl font-bold text-white sm:text-3xl">Welcome to your training plan.</h2>
+            <p className="mt-3 text-sm leading-6 text-neutral-300">
+              Build your dog&apos;s profile first. Your trainer can then connect approved in-person homework, and you can use Start Training between sessions.
+            </p>
+            <ol className="mt-6 space-y-3 text-sm text-neutral-200">
+              <li className="flex gap-3"><span className="font-bold text-amber-300">1.</span>Create your dog&apos;s profile</li>
+              <li className="flex gap-3"><span className="font-bold text-amber-300">2.</span>Your trainer can connect your in-person training plan</li>
+              <li className="flex gap-3"><span className="font-bold text-amber-300">3.</span>Use Start Training for between-session homework</li>
+            </ol>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <button
+                type="button"
+                onClick={() => {
+                  setClientOnboardingStarted(true);
+                  handleAddDog();
+                }}
+                className="min-h-11 w-full rounded bg-amber-400 px-5 py-3 font-semibold text-black hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-200 focus:ring-offset-2 focus:ring-offset-neutral-950 sm:w-auto"
+              >
+                Create Dog Profile
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  showToast("Create your dog profile first so Patriot K9 Coach can give safe, personalized guidance.", "warning");
+                  setClientOnboardingStarted(true);
+                  handleAddDog();
+                }}
+                className="min-h-11 w-full rounded border border-neutral-700 px-5 py-3 font-semibold text-neutral-100 hover:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-amber-300 sm:w-auto"
+              >
+                Ask AI
+              </button>
+            </div>
+          </section>
+        </section>
       ) : evaluationMode ? (
         <section className="mx-auto max-w-7xl px-4 pb-12 pt-8 sm:px-6 sm:pb-16 sm:pt-10">
           <section className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
@@ -3431,7 +3551,46 @@ ${recentHistory}`;
             </div>
           </section>
 
-          <section className="mx-auto max-w-7xl px-4 pb-2 sm:px-6 sm:pb-3">
+          {hasClientAccess && hasActiveDog && (
+            <section id="customer-homework-section" className="mx-auto max-w-7xl px-4 pb-2 sm:px-6 sm:pb-3">
+              <div className="rounded-xl border border-amber-500/25 bg-neutral-950 p-5 shadow-[0_14px_36px_rgba(0,0,0,0.18)] sm:p-6">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">Patriot K9 Homework</p>
+                {customerHomework ? (
+                  <div className="mt-3 grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+                    <div className="min-w-0">
+                      <p className="text-sm text-neutral-400">Current focus</p>
+                      <h2 className="mt-1 text-xl font-bold text-white sm:text-2xl">{customerHomework.homework_focus}</h2>
+                      <p className="mt-3 max-w-3xl whitespace-pre-wrap text-sm leading-6 text-neutral-300">
+                        {customerHomework.homework_notes || "Follow this focus between professional sessions. Keep work short, clear, and consistent."}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleStartTrainingAction}
+                      className="min-h-11 w-full rounded bg-amber-400 px-5 py-3 font-semibold text-black hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-200 focus:ring-offset-2 focus:ring-offset-neutral-950 lg:w-auto"
+                    >
+                      Start Homework Session
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="max-w-3xl text-sm leading-6 text-neutral-300">
+                      No new trainer homework has been assigned yet. You can still start a regular training session for {dogProfile.name}.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleStartTrainingAction}
+                      className="min-h-11 w-full rounded border border-amber-500/40 px-5 py-3 text-sm font-semibold text-amber-200 hover:bg-amber-400/10 focus:outline-none focus:ring-2 focus:ring-amber-200 focus:ring-offset-2 focus:ring-offset-neutral-950 sm:w-auto"
+                    >
+                      Start Training
+                    </button>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+          <section id="training-progress-section" className="mx-auto max-w-7xl px-4 pb-2 sm:px-6 sm:pb-3">
             <div className="rounded-xl border border-neutral-800 bg-black/45 p-5 shadow-[0_18px_45px_rgba(0,0,0,0.16)] sm:p-6">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
@@ -3760,7 +3919,7 @@ ${recentHistory}`;
                     disabled={!hasActiveDog}
                     className="w-full rounded bg-amber-400 px-5 py-3 font-semibold text-black disabled:opacity-50"
                   >
-                    Log Session
+                    Complete Session
                   </button>
                 </div>
               </section>
