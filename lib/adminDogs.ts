@@ -2,7 +2,7 @@ import {
   emptyDogCaseFile,
   serializeDogCaseFile,
 } from "@/lib/dogCaseFile";
-import { getDefaultMainGoal, normalizeGoalType } from "@/lib/dogGoals";
+import { normalizeGoalType } from "@/lib/dogGoals";
 
 export const dogRecordTypes = ["personal", "client", "breeding"] as const;
 
@@ -49,15 +49,15 @@ export const dogRecordTypeLabel: Record<DogRecordType, string> = {
 
 export const buildAdminDogPayload = (userId: string, input: CreateAdminDogInput) => {
   const goalType = normalizeGoalType(input.goalType);
-  const mainGoal = input.mainGoal?.trim() || getDefaultMainGoal(goalType);
+  const mainGoal = input.mainGoal?.trim() || null;
   const caseFile = {
     ...emptyDogCaseFile,
     name: input.name.trim(),
     breed: input.breed?.trim() ?? "",
     age: input.age?.trim() ?? "",
     goalType,
-    mainGoal,
-    selectedGoals: [mainGoal],
+    mainGoal: mainGoal ?? "",
+    selectedGoals: mainGoal ? [mainGoal] : [],
   };
 
   return {

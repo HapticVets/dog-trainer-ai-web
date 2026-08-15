@@ -107,10 +107,12 @@ function DogRecordCard({ dog, onPhotoUpdated }: { dog: AdminDogProfile; onPhotoU
         </div>
       </div>
 
-      <div className="mt-5 border-t border-neutral-800 pt-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">Training focus</p>
-        <p className="mt-1 text-sm text-neutral-200">{dog.main_goal || "Not set"}</p>
-      </div>
+      {dog.main_goal?.trim() && (
+        <div className="mt-5 border-t border-neutral-800 pt-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">Training focus</p>
+          <p className="mt-1 text-sm text-neutral-200">{dog.main_goal}</p>
+        </div>
+      )}
 
       {dog.record_type === "client" && (
         <div className="mt-4 rounded-xl border border-neutral-800 bg-black/30 p-3 text-sm text-neutral-300">
@@ -249,8 +251,8 @@ export default function AdminDogWorkspace() {
               <input value={form.goalType} onChange={(event) => updateForm("goalType", event.target.value)} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white outline-none transition focus:border-amber-400" />
             </label>
             <label className="text-sm font-semibold text-neutral-200">
-              Primary focus
-              <input value={form.mainGoal} onChange={(event) => updateForm("mainGoal", event.target.value)} placeholder="Optional" className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white placeholder:text-neutral-500 outline-none transition focus:border-amber-400" />
+              Training focus (optional)
+              <input value={form.mainGoal} onChange={(event) => updateForm("mainGoal", event.target.value)} placeholder="Select training focus (optional)" className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white placeholder:text-neutral-500 outline-none transition focus:border-amber-400" />
             </label>
 
             {form.recordType === "client" && (
