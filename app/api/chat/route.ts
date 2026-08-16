@@ -18,6 +18,14 @@ const openai = new OpenAI({
 
 const patriotK9Doctrine = buildPatriotK9DoctrinePrompt();
 
+type SessionLogContext = {
+  date?: string | null;
+  duration?: string | number | null;
+  focus?: string | null;
+  wins?: string | null;
+  issues?: string | null;
+};
+
 export async function POST(req: Request) {
   try {
     const { userId } = await auth();
@@ -156,7 +164,7 @@ No session logged yet.`;
         ? sessionLogs
             .slice(0, 5)
             .map(
-              (log: any, index: number) =>
+              (log: SessionLogContext, index: number) =>
                 `Session ${index + 1}
 Date: ${log.date || "unknown"}
 Duration: ${log.duration || "not provided"}

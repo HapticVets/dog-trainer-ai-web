@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton, useUser } from "@clerk/nextjs";
@@ -43,11 +43,13 @@ export default function GlobalNavbar() {
   const { isLoaded, isSignedIn, user } = useUser();
   const [isDesktopDropdownOpen, setIsDesktopDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [menuPathname, setMenuPathname] = useState(pathname);
 
-  useEffect(() => {
+  if (menuPathname !== pathname) {
+    setMenuPathname(pathname);
     setIsDesktopDropdownOpen(false);
     setIsMobileMenuOpen(false);
-  }, [pathname]);
+  }
 
   const isMarketingPage = marketingPagePrefixes.some((prefix) =>
     prefix === "/" ? pathname === "/" : pathname.startsWith(prefix)

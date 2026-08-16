@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function CancelPage() {
   return (
     <main className="min-h-screen bg-[#0b0f17] text-white flex items-center justify-center px-6">
@@ -6,12 +8,12 @@ export default function CancelPage() {
         <p className="text-lg text-slate-400 mb-6">
           No charge was made. You can upgrade any time.
         </p>
-        <a
+        <Link
           href="/"
           className="inline-block rounded-xl border border-white/20 px-6 py-3 font-semibold text-white hover:bg-white/10"
         >
           Back Home
-        </a>
+        </Link>
       </div>
     </main>
   );

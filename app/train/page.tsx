@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import Image from "next/image";
 import DogProfilePhotoPicker from "@/components/DogProfilePhotoPicker";
@@ -60,7 +60,6 @@ type SavedOutput = {
   createdAt: string;
 };
 
-type OnboardingStep = "create" | "generate" | "log" | "done";
 type EvaluationStep = 1 | 2 | 3 | 4 | 5 | 6;
 type TrainingWorkflowState =
   | "no_dog"
@@ -119,6 +118,32 @@ type EvaluationDraft = {
   step: EvaluationStep;
   profile: DogCaseFile;
   previousActiveDogId: string;
+};
+
+type DogProfileRow = Parameters<typeof hydrateDogCaseFile>[0];
+
+type SessionLogRow = {
+  id: string;
+  session_date?: string | null;
+  duration?: number | null;
+  focus?: string | null;
+  wins?: string | null;
+  issues?: string | null;
+  created_at?: string;
+};
+
+type ChatRow = {
+  id: string;
+  role: ChatMessage["role"];
+  content: string;
+  created_at?: string;
+};
+
+type SavedOutputRow = {
+  id: string;
+  output_type: SavedOutput["outputType"];
+  content: string;
+  created_at: string;
 };
 
 const StatusIcon = ({ complete, current }: { complete: boolean; current?: boolean }) => (
@@ -395,7 +420,6 @@ export default function TrainPage() {
     "Objective",
     "Working Reps",
   ]);
-  const [onboardingStep, setOnboardingStep] = useState<OnboardingStep>("create");
   const [profileCollapsed, setProfileCollapsed] = useState(false);
   const [showOlderMissionReports, setShowOlderMissionReports] = useState(false);
   const [coachHistoryOpen, setCoachHistoryOpen] = useState(false);
@@ -682,7 +706,7 @@ export default function TrainPage() {
     return window.localStorage.getItem(ACTIVE_DOG_STORAGE_KEY) ?? "";
   };
 
-  const activateDog = (dog: DogCaseFile | null) => {
+  const activateDog = useCallback((dog: DogCaseFile | null) => {
     if (!dog?.id) {
       setSelectedDogId("");
       setDogProfile(emptyDogCaseFile);
@@ -693,7 +717,7 @@ export default function TrainPage() {
     setSelectedDogId(dog.id);
     setDogProfile(dog);
     persistActiveDogId(dog.id);
-  };
+  }, []);
 
   const showToast = (message: string, variant: ToastState["variant"]) => {
     if (toastTimeoutRef.current) window.clearTimeout(toastTimeoutRef.current);
@@ -729,17 +753,6 @@ export default function TrainPage() {
     }
 
     scrollToTrainingSection("current-plan-section");
-  };
-
-  const handleAskAiAction = () => {
-    if (!hasActiveDog) {
-      showToast("Create a dog profile before starting a coaching conversation.", "warning");
-      handleAddDog();
-      return;
-    }
-
-    scrollToTrainingSection("patriot-k9-coach");
-    window.setTimeout(() => document.getElementById("patriot-k9-coach-input")?.focus(), 350);
   };
 
   const returnToCustomerHome = () => {
@@ -854,7 +867,7 @@ export default function TrainPage() {
     );
   };
 
-  const refreshTrainerAccess = async () => {
+  const refreshTrainerAccess = useCallback(async () => {
     if (!user) {
       setTrainerAccess(null);
       return;
@@ -877,7 +890,7 @@ export default function TrainPage() {
     } catch (error) {
       console.error("Failed to load trainer access:", error);
     }
-  };
+  }, [user]);
 
   const handleUpgrade = async () => {
     setUpgradeCheckoutLoading(true);
@@ -944,7 +957,7 @@ export default function TrainPage() {
           return;
         }
 
-        const mapped: DogCaseFile[] = (data.profiles || []).map((profile: any) =>
+        const mapped: DogCaseFile[] = (data.profiles || []).map((profile: DogProfileRow) =>
           hydrateDogCaseFile(profile)
         );
 
@@ -1006,7 +1019,7 @@ export default function TrainPage() {
     };
 
     loadDogProfiles();
-  }, [user, requestedDogId, requestedView, routeIntentLoaded]);
+  }, [user, requestedDogId, requestedView, routeIntentLoaded, activateDog]);
 
   useEffect(() => {
     if (!user) {
@@ -1015,7 +1028,7 @@ export default function TrainPage() {
     }
 
     refreshTrainerAccess();
-  }, [user]);
+  }, [user, refreshTrainerAccess]);
 
   useEffect(() => {
     if (!user || !evaluationMode) return;
@@ -1069,7 +1082,7 @@ export default function TrainPage() {
           return;
         }
 
-        const mappedLogs: SessionLog[] = (data.logs || []).map((log: any) => ({
+        const mappedLogs: SessionLog[] = (data.logs || []).map((log: SessionLogRow) => ({
           id: log.id,
           date: log.session_date ?? "",
           duration:
@@ -1107,7 +1120,7 @@ export default function TrainPage() {
           return;
         }
 
-        const mappedMessages: ChatMessage[] = (data.chats || []).map((chat: any) => ({
+        const mappedMessages: ChatMessage[] = (data.chats || []).map((chat: ChatRow) => ({
           id: chat.id,
           role: chat.role,
           content: chat.content,
@@ -1143,12 +1156,12 @@ export default function TrainPage() {
 
         const mappedOutputs: SavedOutput[] = (data.outputs || [])
           .filter(
-            (output: any) =>
+            (output: SavedOutputRow) =>
               output.output_type === "initial_session_plan" ||
             output.output_type === "next_session_plan" ||
             output.output_type === "coach_review"
           )
-          .map((output: any) => ({
+          .map((output: SavedOutputRow) => ({
             id: output.id,
             outputType: output.output_type,
             content: output.content,
@@ -1175,18 +1188,6 @@ export default function TrainPage() {
     loadChats();
     loadOutputs();
   }, [user, selectedDogId, dogProfile.name]);
-
-  useEffect(() => {
-    if (!hasActiveDog) {
-      setOnboardingStep("create");
-    } else if (sessionLogs.length === 0 && !currentPlan) {
-      setOnboardingStep("generate");
-    } else if (currentPlan && sessionLogs.length === 0) {
-      setOnboardingStep("log");
-    } else {
-      setOnboardingStep("done");
-    }
-  }, [hasActiveDog, sessionLogs.length, currentPlan]);
 
   useEffect(() => {
     if (!user || !selectedDogId || !hasClientAccess) {
@@ -4012,7 +4013,7 @@ ${latestCoachReview}`;
                     Start Your First Dog Evaluation
                   </h3>
                   <p className="mt-3 text-neutral-300">
-                    Build the first case file with your dog's basics, main concerns, severity, and home context so the AI can coach from a real training picture.
+                    Build the first case file with your dog&apos;s basics, main concerns, severity, and home context so the AI can coach from a real training picture.
                   </p>
                 </div>
               )}
@@ -4024,7 +4025,7 @@ ${latestCoachReview}`;
 
             {(workflowState === "plan_ready_to_log" || workflowState === "progressing") && (
               <section id="session-log-section" className="rounded-lg border border-neutral-800 bg-neutral-950 p-5 sm:p-6">
-                <h2 className="text-2xl font-bold sm:text-3xl">Log Today's Training Session</h2>
+                <h2 className="text-2xl font-bold sm:text-3xl">Log Today&apos;s Training Session</h2>
                 <p className="mt-3 text-neutral-400">
                   Record what actually happened so the next session is built from real performance.
                 </p>
@@ -4181,7 +4182,7 @@ ${latestCoachReview}`;
                   Case File Complete
                 </p>
                 <h2 className="mt-3 text-2xl font-bold sm:text-3xl">
-                  {dogProfile.name}'s case file is ready
+                  {dogProfile.name}&apos;s case file is ready
                 </h2>
                 <p className="mt-3 text-neutral-300">
                   Review the current case summary, then generate the first structured training session.

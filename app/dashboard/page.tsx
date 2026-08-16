@@ -75,6 +75,27 @@ type SavedOutput = {
   createdAt: string;
 };
 
+type DogProfileRow = Parameters<typeof hydrateDogCaseFile>[0] & {
+  created_at?: string;
+};
+
+type SessionLogRow = {
+  id: string;
+  session_date?: string | null;
+  duration?: number | null;
+  focus?: string | null;
+  wins?: string | null;
+  issues?: string | null;
+  created_at?: string;
+};
+
+type SavedOutputRow = {
+  id: string;
+  output_type: SavedOutput["outputType"];
+  content: string;
+  created_at: string;
+};
+
 type TimelineEvent = {
   id: string;
   type: "case-file" | "plan" | "session" | "report" | "coach";
@@ -180,7 +201,6 @@ const DashboardIcon = ({ type }: { type: "dog" | "phase" | "sessions" | "focus" 
 
 export default function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [loading, setLoading] = useState(true);
   const [portalLoading, setPortalLoading] = useState(false);
 
   const [dogProfiles, setDogProfiles] = useState<DashboardDogProfile[]>([]);
@@ -249,8 +269,6 @@ export default function DashboardPage() {
       } catch (error) {
         console.error("Failed to load dashboard summary:", error);
         setSummary(null);
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -272,7 +290,7 @@ export default function DashboardPage() {
           return;
         }
 
-        const mapped: DashboardDogProfile[] = (data.profiles || []).map((profile: any) => ({
+        const mapped: DashboardDogProfile[] = (data.profiles || []).map((profile: DogProfileRow) => ({
           ...hydrateDogCaseFile(profile),
           createdAt: profile.created_at,
         }));
@@ -318,7 +336,7 @@ export default function DashboardPage() {
           return;
         }
 
-        const mappedLogs: SessionLog[] = (data.logs || []).map((log: any) => ({
+        const mappedLogs: SessionLog[] = (data.logs || []).map((log: SessionLogRow) => ({
           id: log.id,
           date: log.session_date ?? "",
           duration:
@@ -357,7 +375,7 @@ export default function DashboardPage() {
           return;
         }
 
-        const mappedOutputs: SavedOutput[] = (data.outputs || []).map((output: any) => ({
+        const mappedOutputs: SavedOutput[] = (data.outputs || []).map((output: SavedOutputRow) => ({
           id: output.id,
           outputType: output.output_type,
           content: output.content,
