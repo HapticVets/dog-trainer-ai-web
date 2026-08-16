@@ -43,7 +43,11 @@ export async function GET() {
     if (data?.signedUrl) coverByLitter.set(item.litter_id, data.signedUrl);
   }
 
-  return NextResponse.json({ litters: publishedLitters.map((litter) => {
+  const visibleLitters = publishedLitters.filter((litter) => {
+    const publicPuppyCount = (puppiesByLitter.get(litter.id) ?? []).length;
+    return publicPuppyCount > 0 || ["planned", "expected"].includes(litter.public_status?.toLowerCase() ?? "");
+  });
+  return NextResponse.json({ litters: visibleLitters.map((litter) => {
     const puppiesForLitter = puppiesByLitter.get(litter.id) ?? [];
     return {
       slug: litter.public_slug,
@@ -54,6 +58,7 @@ export async function GET() {
       birthDate: litter.birth_date,
       expectedGoHomeDate: litter.expected_go_home_date,
       puppyCount: puppiesForLitter.length,
+      publicPuppyCount: puppiesForLitter.length,
       availableCount: puppiesForLitter.filter((puppy) => puppy.public_status?.toLowerCase() === "available").length,
       coverImage: coverByLitter.get(litter.id) ?? null,
       summary: litter.public_summary || null,
