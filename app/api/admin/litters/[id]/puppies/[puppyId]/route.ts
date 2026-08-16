@@ -4,6 +4,7 @@ import { normalizeCollarColor } from "@/lib/admin-puppy-collars";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 type Context = { params: Promise<{ id: string; puppyId: string }> };
+const publicPuppyStatuses = new Set(["Available", "Reserved", "Retained", "Placed", "Not Yet Available"]);
 
 async function findPuppy(litterId: string, puppyId: string) {
   return supabaseAdmin.from("admin_litter_puppies").select("*").eq("id", puppyId).eq("litter_id", litterId).maybeSingle();
@@ -44,7 +45,8 @@ export async function PATCH(request: Request, { params }: Context) {
     const { data: puppy, error: lookupError } = await findPuppy(litterId, puppyId);
     if (lookupError || !puppy) return NextResponse.json({ error: "Puppy record not found." }, { status: 404 });
     const body = (await request.json()) as Record<string, unknown>;
-    if (Object.keys(body).some((key) => !["collar_color", "is_public", "public_name", "public_summary", "public_status", "public_price", "public_color"].includes(key))) return NextResponse.json({ error: "Unsupported puppy update." }, { status: 400 });
+    const unsupportedField = Object.keys(body).find((key) => !["collar_color", "is_public", "public_name", "public_summary", "public_status", "public_price", "public_color"].includes(key));
+    if (unsupportedField) return NextResponse.json({ error: `Unsupported puppy field: ${unsupportedField}.` }, { status: 400 });
     const isPublicUpdate = Object.keys(body).some((key) => key !== "collar_color");
     if (isPublicUpdate) {
       const update: Record<string, unknown> = {};
@@ -58,6 +60,7 @@ export async function PATCH(request: Request, { params }: Context) {
           update[key] = typeof body[key] === "string" ? body[key].trim() || null : null;
         }
       }
+      if (typeof update.public_status === "string" && !publicPuppyStatuses.has(update.public_status)) return NextResponse.json({ error: "Public status must be Available, Reserved, Retained, Placed, or Not Yet Available." }, { status: 400 });
       if (typeof body.public_price !== "undefined") {
         if (body.public_price === null || body.public_price === "") update.public_price = null;
         else if (typeof body.public_price === "number" && Number.isFinite(body.public_price) && body.public_price >= 0) update.public_price = body.public_price;
