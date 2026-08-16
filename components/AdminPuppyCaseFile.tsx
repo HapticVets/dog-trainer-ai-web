@@ -5,6 +5,7 @@ import Image from "next/image";
 import { ChangeEvent, FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { STANDARD_COLLAR_COLORS, collarLabel, collarSwatch } from "@/lib/admin-puppy-collars";
 import PuppyDevelopmentMedia from "@/components/PuppyDevelopmentMedia";
+import AdminPuppyPublicListing from "@/components/AdminPuppyPublicListing";
 
 const traitGroups = [
   {
@@ -67,6 +68,12 @@ type Puppy = {
   collar_color: string | null;
   profile_image_path: string | null;
   status: string;
+  is_public?: boolean;
+  public_name?: string | null;
+  public_summary?: string | null;
+  public_status?: string | null;
+  public_price?: number | null;
+  public_color?: string | null;
 };
 type PuppyData = { puppy: Puppy; nextPuppy: Puppy | null; profileImageUrl: string | null };
 type Draft = Record<TraitKey, number | null> & {
@@ -273,6 +280,8 @@ export default function AdminPuppyCaseFile({
         </div>
         <div className="flex flex-col gap-2 sm:flex-row"><input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadPhoto} className="sr-only" /><button type="button" disabled={uploadingPhoto} onClick={() => photoInputRef.current?.click()} className="min-h-11 rounded-lg border border-neutral-700 px-4 py-2 font-semibold text-white hover:bg-neutral-800">{uploadingPhoto ? "Uploading..." : data.profileImageUrl ? "Replace Photo" : "Upload Photo"}</button><button type="button" onClick={openCollarEditor} className="min-h-11 rounded-lg border border-amber-400/35 px-4 py-2 font-semibold text-amber-100 hover:bg-amber-400/10">Edit Collar</button><button type="button" onClick={openNewEvaluation} className="min-h-11 rounded-lg bg-amber-400 px-4 py-2 font-bold text-black hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-200">Add Evaluation</button></div>
       </header>
+
+      <AdminPuppyPublicListing litterId={litterId} puppyId={puppyId} puppy={puppy} onSaved={(updatedPuppy) => setData((current) => current ? { ...current, puppy: { ...current.puppy, ...updatedPuppy } } : current)} />
 
       {notice && <p className="mt-4 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200" role="status">{notice}</p>}
       {error && !formOpen && !deleteTarget && <p className="mt-4 rounded-lg border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-200" role="alert">{error}</p>}

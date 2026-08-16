@@ -40,8 +40,17 @@ export async function PATCH(request: Request, { params }: Context) {
   try {
     await requireAdmin();
     const { id } = await params;
-    const body = await request.json();
-    const { data, error } = await supabaseAdmin.from("admin_litters").update({ ...body, updated_at: new Date().toISOString() }).eq("id", id).select("*").maybeSingle();
+    const body = await request.json() as Record<string, unknown>;
+    const publicFields = ["is_public", "public_slug", "public_title", "public_summary", "public_status"];
+    const update = Object.fromEntries(Object.entries(body).filter(([key]) => publicFields.includes(key)));
+    if (!Object.keys(update).length) return NextResponse.json({ error: "No supported litter fields were provided." }, { status: 400 });
+    if (typeof update.is_public !== "undefined" && typeof update.is_public !== "boolean") return NextResponse.json({ error: "Publication status must be a boolean." }, { status: 400 });
+    for (const key of ["public_slug", "public_title", "public_summary", "public_status"]) {
+      if (typeof update[key] !== "undefined" && update[key] !== null && typeof update[key] !== "string") return NextResponse.json({ error: "Public listing fields must be text." }, { status: 400 });
+      if (typeof update[key] === "string") update[key] = update[key].trim() || null;
+    }
+    const now = new Date().toISOString();
+    const { data, error } = await supabaseAdmin.from("admin_litters").update({ ...update, public_updated_at: now, updated_at: now }).eq("id", id).select("*").maybeSingle();
     if (error || !data) return NextResponse.json({ error: "Unable to update litter." }, { status: 500 });
     return NextResponse.json({ litter: data });
   } catch {

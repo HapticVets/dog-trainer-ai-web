@@ -43,7 +43,34 @@ export async function PATCH(request: Request, { params }: Context) {
     const { id: litterId, puppyId } = await params;
     const { data: puppy, error: lookupError } = await findPuppy(litterId, puppyId);
     if (lookupError || !puppy) return NextResponse.json({ error: "Puppy record not found." }, { status: 404 });
-    const body = (await request.json()) as { collar_color?: unknown };
+    const body = (await request.json()) as Record<string, unknown>;
+    if (Object.keys(body).some((key) => !["collar_color", "is_public", "public_name", "public_summary", "public_status", "public_price", "public_color"].includes(key))) return NextResponse.json({ error: "Unsupported puppy update." }, { status: 400 });
+    const isPublicUpdate = Object.keys(body).some((key) => key !== "collar_color");
+    if (isPublicUpdate) {
+      const update: Record<string, unknown> = {};
+      if (typeof body.is_public !== "undefined") {
+        if (typeof body.is_public !== "boolean") return NextResponse.json({ error: "Public listing status must be a boolean." }, { status: 400 });
+        update.is_public = body.is_public;
+      }
+      for (const key of ["public_name", "public_summary", "public_status", "public_color"]) {
+        if (typeof body[key] !== "undefined") {
+          if (body[key] !== null && typeof body[key] !== "string") return NextResponse.json({ error: "Public listing text fields must be text." }, { status: 400 });
+          update[key] = typeof body[key] === "string" ? body[key].trim() || null : null;
+        }
+      }
+      if (typeof body.public_price !== "undefined") {
+        if (body.public_price === null || body.public_price === "") update.public_price = null;
+        else if (typeof body.public_price === "number" && Number.isFinite(body.public_price) && body.public_price >= 0) update.public_price = body.public_price;
+        else return NextResponse.json({ error: "Public price must be a non-negative number." }, { status: 400 });
+      }
+      const now = new Date().toISOString();
+      const { data, error } = await supabaseAdmin.from("admin_litter_puppies").update({ ...update, public_updated_at: now, updated_at: now }).eq("id", puppyId).eq("litter_id", litterId).select("*").single();
+      if (error) {
+        console.error("Admin puppy public listing update failed", { code: error.code, message: error.message, details: error.details, hint: error.hint });
+        return NextResponse.json({ error: "Unable to update public puppy listing." }, { status: 500 });
+      }
+      return NextResponse.json({ success: true, puppy: data });
+    }
     const collarColor = normalizeCollarColor(body.collar_color);
     if (collarColor === undefined) return NextResponse.json({ error: "Collar labels must be 40 characters or fewer." }, { status: 400 });
 

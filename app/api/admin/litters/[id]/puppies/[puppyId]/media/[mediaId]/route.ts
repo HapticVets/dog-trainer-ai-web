@@ -16,11 +16,35 @@ export async function PATCH(request: Request, { params }: Context) {
     const { id: litterId, puppyId, mediaId } = await params;
     const { data: media } = await findMedia(litterId, puppyId, mediaId);
     if (!media) return NextResponse.json({ error: "Media item not found." }, { status: 404 });
-    const body = await request.json() as { development_week?: unknown; category?: unknown; caption?: unknown };
-    const developmentWeek = Number(body.development_week);
-    const category = typeof body.category === "string" ? body.category : "";
-    if (!Number.isInteger(developmentWeek) || developmentWeek < 1 || !categories.has(category)) return NextResponse.json({ error: "Provide a valid development week and category." }, { status: 400 });
-    const { data, error } = await supabaseAdmin.from("admin_puppy_media").update({ development_week: developmentWeek, category, caption: typeof body.caption === "string" && body.caption.trim() ? body.caption.trim() : null }).eq("id", mediaId).select("*").single();
+    const body = await request.json() as Record<string, unknown>;
+    const update: Record<string, unknown> = {};
+    if (typeof body.development_week !== "undefined" || typeof body.category !== "undefined") {
+      const developmentWeek = Number(body.development_week);
+      const category = typeof body.category === "string" ? body.category : "";
+      if (!Number.isInteger(developmentWeek) || developmentWeek < 1 || !categories.has(category)) return NextResponse.json({ error: "Provide a valid development week and category." }, { status: 400 });
+      update.development_week = developmentWeek;
+      update.category = category;
+      update.caption = typeof body.caption === "string" && body.caption.trim() ? body.caption.trim() : null;
+    }
+    if (typeof body.is_public !== "undefined") {
+      if (typeof body.is_public !== "boolean") return NextResponse.json({ error: "Public media status must be a boolean." }, { status: 400 });
+      update.is_public = body.is_public;
+      if (!body.is_public) update.is_public_primary = false;
+    }
+    if (typeof body.public_caption !== "undefined") {
+      if (body.public_caption !== null && typeof body.public_caption !== "string") return NextResponse.json({ error: "Public caption must be text." }, { status: 400 });
+      update.public_caption = typeof body.public_caption === "string" ? body.public_caption.trim() || null : null;
+    }
+    if (typeof body.is_public_primary !== "undefined") {
+      if (body.is_public_primary !== true || media.media_type !== "photo") return NextResponse.json({ error: "Only an approved public photo can be primary." }, { status: 400 });
+      const { error: clearError } = await supabaseAdmin.from("admin_puppy_media").update({ is_public_primary: false, updated_at: new Date().toISOString() }).eq("puppy_id", puppyId);
+      if (clearError) return NextResponse.json({ error: "Unable to select the primary public photo." }, { status: 500 });
+      update.is_public = true;
+      update.is_public_primary = true;
+    }
+    if (!Object.keys(update).length) return NextResponse.json({ error: "No supported media fields were provided." }, { status: 400 });
+    update.public_updated_at = new Date().toISOString();
+    const { data, error } = await supabaseAdmin.from("admin_puppy_media").update(update).eq("id", mediaId).select("*").single();
     if (error) return NextResponse.json({ error: "Unable to update media." }, { status: 500 });
     const signedUrl = (await supabaseAdmin.storage.from(bucket).createSignedUrl(data.storage_path, 60 * 60)).data?.signedUrl ?? null;
     return NextResponse.json({ success: true, media: { ...data, signedUrl } });
