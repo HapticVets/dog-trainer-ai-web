@@ -57,6 +57,11 @@ const deleteRelatedRecords = async (dogId: string) => {
       run: () => supabaseAdmin.from("admin_dog_notes").delete().eq("dog_id", dogId),
     },
     {
+      label: "client evaluations",
+      optionalUntilTimelineMigrationIsApplied: true,
+      run: () => supabaseAdmin.from("admin_dog_evaluations").delete().eq("dog_id", dogId),
+    },
+    {
       label: "linked session logs",
       optionalUntilTimelineMigrationIsApplied: true,
       run: () => supabaseAdmin.from("session_logs").delete().eq("dog_profile_id", dogId),
