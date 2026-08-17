@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 type Context = { params: Promise<{ slug: string }> };
-const cacheHeaders = { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" };
+// Availability changes must be visible to the breeding site on its next request.
+export const dynamic = "force-dynamic";
+const cacheHeaders = { "Cache-Control": "no-store, max-age=0" };
 const mediaBucket = "puppy-development-media";
 const profileBucket = "dog-profile-images";
 const slugify = (value: string) => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");

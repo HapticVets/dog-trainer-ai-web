@@ -14,6 +14,13 @@ type Puppy = {
 type Litter = { litter_code: string; name: string; status: string; birth_date: string | null; estimated_due_date: string | null; is_public?: boolean; public_slug?: string | null; public_title?: string | null; public_summary?: string | null; public_status?: string | null };
 type Data = { litter: Litter; puppies: Puppy[] };
 
+async function loadLitter(litterId: string) {
+  const response = await fetch(`/api/admin/litters/${litterId}`, { cache: "no-store" });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(body.error || "Unable to refresh litter records.");
+  return body as Data;
+}
+
 export default function AdminLitterCaseFile({ litterId }: { litterId: string }) {
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState("");
@@ -21,7 +28,7 @@ export default function AdminLitterCaseFile({ litterId }: { litterId: string }) 
   const [notice, setNotice] = useState("");
   const [togglingPuppyId, setTogglingPuppyId] = useState<string | null>(null);
 
-  useEffect(() => { void (async () => { const response = await fetch(`/api/admin/litters/${litterId}`); const body = await response.json(); if (!response.ok) { setError(body.error); return; } setData(body); })(); }, [litterId]);
+  useEffect(() => { void loadLitter(litterId).then(setData).catch((loadError) => setError(loadError instanceof Error ? loadError.message : "Unable to load litter.")); }, [litterId]);
 
   const add = async (event: FormEvent) => {
     event.preventDefault(); setError("");
@@ -38,8 +45,12 @@ export default function AdminLitterCaseFile({ litterId }: { litterId: string }) 
       const response = await fetch(`/api/admin/litters/${litterId}/puppies/${puppy.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ is_public: !puppy.is_public }) });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error || "Unable to update puppy publication.");
-      setData((current) => current ? { ...current, puppies: current.puppies.map((candidate) => candidate.id === puppy.id ? { ...candidate, ...body.puppy } : candidate) } : current);
-      setNotice(body.puppy.is_public ? `${collarLabel(puppy.collar_color)} is now public.` : `${collarLabel(puppy.collar_color)} is now private.`);
+      if (!body.puppy || body.puppy.is_public !== !puppy.is_public) throw new Error("Could not confirm the puppy publication update.");
+      const refreshed = await loadLitter(litterId);
+      const refreshedPuppy = refreshed.puppies.find((candidate) => candidate.id === puppy.id);
+      if (!refreshedPuppy || refreshedPuppy.is_public !== !puppy.is_public) throw new Error("Could not confirm the puppy publication update.");
+      setData(refreshed);
+      setNotice(refreshedPuppy.is_public ? `${collarLabel(puppy.collar_color)} is now public.` : `${collarLabel(puppy.collar_color)} is now private.`);
     } catch (toggleError) { setError(toggleError instanceof Error ? toggleError.message : "Unable to update puppy publication."); } finally { setTogglingPuppyId(null); }
   };
 
