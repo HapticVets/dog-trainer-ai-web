@@ -13,7 +13,7 @@ async function evaluationForClientDog(dogId: string, evaluationId: string) {
 }
 
 export async function GET(_request: Request, { params }: Context) {
-  try { await requireAdmin(); const { id, evaluationId } = await params; const evaluation = await evaluationForClientDog(id, evaluationId); if (!evaluation) return NextResponse.json({ error: "Client evaluation not found." }, { status: 404 }); return NextResponse.json({ evaluation }); }
+  try { await requireAdmin(); const { id, evaluationId } = await params; const evaluation = await evaluationForClientDog(id, evaluationId); if (!evaluation) return NextResponse.json({ error: "Client evaluation not found." }, { status: 404 }); const { data: dog } = await supabaseAdmin.from("dog_profiles").select("client_owner_email").eq("id", id).eq("record_type", "client").maybeSingle(); return NextResponse.json({ evaluation, defaultRecipient: dog?.client_owner_email?.trim() || "" }); }
   catch (error) { console.error("Admin client evaluation load failed", error); return NextResponse.json({ error: "Unable to load client evaluation." }, { status: 500 }); }
 }
 
