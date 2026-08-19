@@ -2,12 +2,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { FormEvent, useEffect, useEffectEvent, useState } from "react";
+import { FormEvent, useEffect, useEffectEvent, useRef, useState } from "react";
 import { dogRecordTypeLabel, type AdminDogProfile } from "@/lib/adminDogs";
 import { hydrateDogCaseFile } from "@/lib/dogCaseFile";
 import AdminClientAccess from "@/components/AdminClientAccess";
 import AdminHomeworkSyncControls, { type HomeworkSyncValue } from "@/components/AdminHomeworkSyncControls";
 import AdminClientEvaluations from "@/components/AdminClientEvaluations";
+import AdminSessionCompletionForm, { hasAdminSessionDraft, type AdminSessionLogDraft } from "@/components/AdminSessionCompletionForm";
 
 type AdminNote = {
   id: string;
@@ -89,6 +90,7 @@ export default function AdminDogCaseFile({ dogId }: { dogId: string }) {
   const [sessionToComplete, setSessionToComplete] = useState<AdminTrainingSession | null>(null);
   const [completingSession, setCompletingSession] = useState(false);
   const [homeworkSync, setHomeworkSync] = useState<HomeworkSyncValue>({ enabled: false, focus: "", notes: "" });
+  const restoredDraftForDog = useRef<string | null>(null);
 
   const loadCaseFile = useEffectEvent(async () => {
     setLoading(true);
@@ -115,6 +117,13 @@ export default function AdminDogCaseFile({ dogId }: { dogId: string }) {
   useEffect(() => {
     void loadCaseFile();
   }, [dogId]);
+
+  useEffect(() => {
+    if (!caseFile || restoredDraftForDog.current === dogId) return;
+    restoredDraftForDog.current = dogId;
+    const incompleteSession = caseFile.adminSessions.find((session) => session.status !== "completed");
+    if (incompleteSession && hasAdminSessionDraft(dogId, incompleteSession.id)) setSessionToComplete(incompleteSession);
+  }, [caseFile, dogId]);
 
   const addNote = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -189,19 +198,18 @@ export default function AdminDogCaseFile({ dogId }: { dogId: string }) {
     finally { setSavingSession(false); }
   };
 
-  const completeSession = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault(); if (!sessionToComplete) return;
-    const form = new FormData(event.currentTarget);
+  const completeSession = async (values: AdminSessionLogDraft) => {
+    if (!sessionToComplete) throw new Error("No session is selected for completion.");
     setCompletingSession(true); setError("");
     try {
-      const body = { ...Object.fromEntries(form.entries()), share_homework: homeworkSync.enabled, homework_focus: homeworkSync.focus, homework_notes: homeworkSync.notes };
+      const body = { ...values, share_homework: homeworkSync.enabled, homework_focus: homeworkSync.focus, homework_notes: homeworkSync.notes };
       const response = await fetch(`/api/admin/dogs/${encodeURIComponent(dogId)}/sessions/${encodeURIComponent(sessionToComplete.id)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const data = await response.json() as { session?: AdminTrainingSession; error?: string };
       if (!response.ok || !data.session) throw new Error(data.error || "Unable to complete the training session.");
       setCaseFile((current) => current ? { ...current, adminSessions: current.adminSessions.map((session) => session.id === data.session?.id ? data.session as AdminTrainingSession : session) } : current);
       setSessionToComplete(null); setNotice("Training session completed.");
       setHomeworkSync({ enabled: false, focus: "", notes: "" });
-    } catch (sessionError) { setError(sessionError instanceof Error ? sessionError.message : "Unable to complete the training session."); }
+    } catch (sessionError) { setError(sessionError instanceof Error ? sessionError.message : "Unable to complete the training session."); throw sessionError; }
     finally { setCompletingSession(false); }
   };
 
@@ -257,7 +265,7 @@ export default function AdminDogCaseFile({ dogId }: { dogId: string }) {
       </div>
 
       {notePendingDeletion && <div className="fixed inset-0 z-[60] flex items-end bg-black/70 p-4 sm:items-center sm:justify-center"><div role="dialog" aria-modal="true" aria-labelledby="delete-note-title" className="w-full max-w-md rounded-2xl border border-red-500/30 bg-neutral-950 p-6 shadow-[0_24px_70px_rgba(0,0,0,0.6)]"><p className="text-xs font-bold uppercase tracking-[0.2em] text-red-300">Permanent action</p><h2 id="delete-note-title" className="mt-3 text-xl font-bold text-white">Delete this note?</h2><p className="mt-3 text-sm leading-6 text-neutral-300">This internal trainer note will be permanently removed.</p><div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><button type="button" onClick={() => setNotePendingDeletion(null)} disabled={deletingNote} className="min-h-11 rounded-lg border border-neutral-700 px-4 py-2.5 text-sm font-bold text-neutral-200">Cancel</button><button type="button" onClick={() => void deleteNote()} disabled={deletingNote} className="min-h-11 rounded-lg bg-red-500 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60">{deletingNote ? "Deleting..." : "Delete Note"}</button></div></div></div>}
-      {sessionToComplete && <div className="fixed inset-0 z-[60] overflow-y-auto bg-black/70 p-4"><form onSubmit={completeSession} className="mx-auto my-4 w-full max-w-xl rounded-2xl border border-amber-400/25 bg-neutral-950 p-6 shadow-[0_24px_70px_rgba(0,0,0,0.6)]"><p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-300">Complete Session {sessionToComplete.session_number}</p><h2 className="mt-2 text-2xl font-bold text-white">Log training results</h2><div className="mt-5 space-y-3">{[["what_went_well", "What went well?"], ["challenges", "Challenges"], ["recovery_notes", "Recovery / Stability"], ["homework", "Homework"], ["additional_notes", "Additional Trainer Notes"]].map(([name, label]) => <label key={name} className="block text-sm font-semibold text-neutral-200">{label}<textarea name={name} rows={3} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white" /></label>)}<label className="block text-sm font-semibold text-neutral-200">Outcome<select name="outcome" defaultValue="improving" className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white"><option value="strong">Strong</option><option value="improving">Improving</option><option value="needs_work">Needs Work</option><option value="regression_concern">Regression / Concern</option></select></label></div><div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><button type="button" onClick={() => setSessionToComplete(null)} disabled={completingSession} className="min-h-11 rounded-lg border border-neutral-700 px-4 py-2.5 text-sm font-bold text-neutral-200">Cancel</button><button type="submit" disabled={completingSession} className="min-h-11 rounded-lg bg-amber-400 px-4 py-2.5 text-sm font-bold text-black disabled:opacity-60">{completingSession ? "Completing..." : "Complete Session"}</button></div></form></div>}
+      {sessionToComplete && <AdminSessionCompletionForm dogId={dogId} session={sessionToComplete} saving={completingSession} onCancel={() => setSessionToComplete(null)} onSubmit={completeSession} />}
     </main>
   );
 }
