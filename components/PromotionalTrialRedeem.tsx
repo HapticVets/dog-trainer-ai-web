@@ -10,7 +10,6 @@ type TrialState =
   | "revoked"
   | "claimed"
   | "account_used"
-  | "buyer_email_mismatch"
   | "already_has_access"
   | "active"
   | "success"
@@ -26,25 +25,19 @@ export default function PromotionalTrialRedeem({ code }: { code: string }) {
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [activating, setActivating] = useState(false);
-  const [trialType, setTrialType] = useState<"general" | "puppy_buyer">("general");
-  const [puppyLabel, setPuppyLabel] = useState<string | null>(null);
-  const [buyerEmailMasked, setBuyerEmailMasked] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     const load = async () => {
       try {
         const response = await fetch(`/api/promotional-trials/${encodeURIComponent(code)}`, { cache: "no-store" });
-        const data = await response.json() as { authenticated?: boolean; state?: TrialState; expiresAt?: string; error?: string; trialType?: "general" | "puppy_buyer"; puppyLabel?: string | null; buyerEmailMasked?: string | null };
+        const data = await response.json() as { authenticated?: boolean; state?: TrialState; expiresAt?: string; error?: string };
         if (!active) return;
         if (!response.ok) {
           setState("error");
           setMessage(data.error || "Unable to check this complimentary trial right now.");
           return;
         }
-        setTrialType(data.trialType ?? "general");
-        setPuppyLabel(data.puppyLabel ?? null);
-        setBuyerEmailMasked(data.buyerEmailMasked ?? null);
         if (!data.authenticated) {
           setState("available");
           setMessage("signin");
@@ -87,8 +80,7 @@ export default function PromotionalTrialRedeem({ code }: { code: string }) {
 
   const signInTarget = `/sign-in?redirect_url=${encodeURIComponent(`/redeem/${code}`)}`;
   const signUpTarget = `/sign-up?redirect_url=${encodeURIComponent(`/redeem/${code}`)}`;
-  const isPuppyBuyerTrial = trialType === "puppy_buyer";
-  const heading = state === "success" ? "Your 30-Day Trial Is Active" : isPuppyBuyerTrial ? "Your Puppy Includes 30 Days of AI Training" : "30 Days of AI Training Included";
+  const heading = state === "success" ? "Your 30-Day Trial Is Active" : "30 Days of AI Training Included";
 
   return (
     <main className="min-h-screen bg-[#080a08] px-4 py-10 text-white sm:px-6 sm:py-16">
@@ -100,13 +92,11 @@ export default function PromotionalTrialRedeem({ code }: { code: string }) {
         ) : state === "success" || state === "active" ? (
           <>
             <p className="mt-4 text-lg leading-7 text-neutral-200">Your Patriot K9 AI Trainer access is active through <span className="font-semibold text-amber-200">{formatDate(expiresAt)}</span>.</p>
-            {puppyLabel && <p className="mt-3 text-sm text-neutral-400">Included with: {puppyLabel}</p>}
             <Link href="/train" className="mt-7 inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-amber-400 px-5 py-3 text-sm font-bold text-black transition hover:bg-amber-300 sm:w-auto">Start Training</Link>
           </>
         ) : message === "signin" ? (
           <>
-            <p className="mt-4 text-lg leading-7 text-neutral-200">{isPuppyBuyerTrial ? "This complimentary month is included with your Patriot K9 puppy." : "You&apos;ve received a complimentary 30-day trial of the Patriot K9 AI Trainer."} No credit card required.</p>
-            {puppyLabel && <p className="mt-3 text-sm text-neutral-400">Included with: {puppyLabel}</p>}
+            <p className="mt-4 text-lg leading-7 text-neutral-200">You&apos;ve received a complimentary 30-day trial of the Patriot K9 AI Trainer. No credit card required.</p>
             <div className="mt-7 grid gap-3 sm:grid-cols-2">
               <Link href={signUpTarget} className="inline-flex min-h-12 items-center justify-center rounded-lg bg-amber-400 px-5 py-3 text-sm font-bold text-black transition hover:bg-amber-300">Create Account</Link>
               <Link href={signInTarget} className="inline-flex min-h-12 items-center justify-center rounded-lg border border-neutral-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-neutral-900">Sign In</Link>
@@ -115,12 +105,11 @@ export default function PromotionalTrialRedeem({ code }: { code: string }) {
         ) : state === "available" ? (
           <>
             <p className="mt-4 text-lg leading-7 text-neutral-200">Your Free Month of Patriot K9 AI Training is ready. Your 30-day trial begins when you activate it. No credit card required.</p>
-            {puppyLabel && <p className="mt-3 text-sm text-neutral-400">Included with: {puppyLabel}</p>}
             <button type="button" onClick={() => void activate()} disabled={activating} className="mt-7 inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-amber-400 px-5 py-3 text-sm font-bold text-black transition hover:bg-amber-300 disabled:cursor-wait disabled:opacity-60 sm:w-auto">{activating ? "Activating..." : "Activate My Free Month"}</button>
           </>
         ) : (
           <>
-            <p className="mt-4 text-lg leading-7 text-neutral-200" role="alert">{message || (state === "claimed" ? "This complimentary trial has already been claimed." : state === "revoked" ? "This complimentary trial is no longer available." : state === "account_used" ? "This account has already used a complimentary Patriot K9 trial." : state === "already_has_access" ? "Your account already has Premium training access." : state === "buyer_email_mismatch" ? `This complimentary puppy trial was issued to a different email address.${buyerEmailMasked ? ` Expected email: ${buyerEmailMasked}` : ""}` : "This complimentary trial is not available.")}</p>
+            <p className="mt-4 text-lg leading-7 text-neutral-200" role="alert">{message || (state === "claimed" ? "This complimentary trial has already been claimed." : state === "revoked" ? "This complimentary trial is no longer available." : state === "account_used" ? "This account has already used a complimentary Patriot K9 trial." : state === "already_has_access" ? "Your account already has Premium training access." : "This complimentary trial is not available.")}</p>
             <Link href="/train" className="mt-7 inline-flex min-h-12 items-center justify-center rounded-lg border border-amber-400/40 px-5 py-3 text-sm font-bold text-amber-100 transition hover:bg-amber-400/10">Back to AI Trainer</Link>
           </>
         )}

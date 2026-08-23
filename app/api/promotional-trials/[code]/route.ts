@@ -2,20 +2,13 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import {
   hasRedeemedPromotionalTrial,
-  maskPromotionalTrialEmail,
   normalizePromotionalTrialCode,
   normalizePromotionalTrialEmail,
-  getPuppyTrialLabels,
 } from "@/lib/promotionalTrials";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
-type RedemptionResult = "redeemed" | "not_found" | "revoked" | "claimed" | "account_used" | "buyer_email_mismatch";
 type TrialStatus = {
   state: "invalid" | "available" | "revoked" | "claimed";
-  trialType?: "general" | "puppy_buyer";
-  buyerEmail?: string | null;
-  buyerEmailMasked?: string | null;
-  puppyLabel?: string | null;
   redeemedBy?: string | null;
   expiresAt?: string | null;
 };
@@ -40,23 +33,17 @@ const getAccountAccessState = async (userId: string) => {
 const getTrialStatus = async (code: string): Promise<TrialStatus> => {
   const { data, error } = await supabaseAdmin
     .from("promotional_trial_codes")
-    .select("status, trial_type, buyer_email, puppy_id, redeemed_by_clerk_user_id, expires_at, revoked_at")
+    .select("status, redeemed_by_clerk_user_id, expires_at, revoked_at")
     .eq("code", code)
     .maybeSingle();
 
   if (error) throw error;
   if (!data) return { state: "invalid" as const };
-  const puppyLabels = data.puppy_id ? await getPuppyTrialLabels([data.puppy_id]) : new Map<string, string>();
-  const details = {
-    trialType: data.trial_type as "general" | "puppy_buyer",
-    buyerEmailMasked: data.trial_type === "puppy_buyer" && data.buyer_email ? maskPromotionalTrialEmail(data.buyer_email) : null,
-    puppyLabel: data.puppy_id ? puppyLabels.get(data.puppy_id) ?? null : null,
-  };
-  if (data.revoked_at || data.status === "revoked") return { state: "revoked" as const, ...details };
+  if (data.revoked_at || data.status === "revoked") return { state: "revoked" as const };
   if (data.status !== "available" || data.redeemed_by_clerk_user_id) {
-    return { state: "claimed" as const, redeemedBy: data.redeemed_by_clerk_user_id, expiresAt: data.expires_at, ...details };
+    return { state: "claimed" as const, redeemedBy: data.redeemed_by_clerk_user_id, expiresAt: data.expires_at };
   }
-  return { state: "available" as const, ...details, buyerEmail: data.buyer_email };
+  return { state: "available" as const };
 };
 
 export async function GET(
@@ -69,27 +56,20 @@ export async function GET(
     const status = await getTrialStatus(code);
     const { userId } = await auth();
 
-    if (!userId) {
-      const safeStatus = { ...status };
-      delete safeStatus.buyerEmail;
-      return NextResponse.json({ authenticated: false, ...safeStatus });
-    }
+    if (!userId) return NextResponse.json({ authenticated: false, ...status });
     if (status.state === "claimed" && status.redeemedBy === userId) {
-      return NextResponse.json({ authenticated: true, state: "active", expiresAt: status.expiresAt, trialType: status.trialType, puppyLabel: status.puppyLabel });
+      return NextResponse.json({ authenticated: true, state: "active", expiresAt: status.expiresAt });
     }
-    if (status.state !== "available") return NextResponse.json({ authenticated: true, state: status.state, trialType: status.trialType, puppyLabel: status.puppyLabel });
+    if (status.state !== "available") return NextResponse.json({ authenticated: true, state: status.state });
 
     const account = await getAccountAccessState(userId);
     if (account.hasEquivalentAccess) {
-      return NextResponse.json({ authenticated: true, state: "already_has_access", trialType: status.trialType, puppyLabel: status.puppyLabel });
+      return NextResponse.json({ authenticated: true, state: "already_has_access" });
     }
     if (await hasRedeemedPromotionalTrial(userId)) {
-      return NextResponse.json({ authenticated: true, state: "account_used", trialType: status.trialType, puppyLabel: status.puppyLabel });
+      return NextResponse.json({ authenticated: true, state: "account_used" });
     }
-    if (status.trialType === "puppy_buyer" && (!status.buyerEmail || !account.verifiedEmails.includes(normalizePromotionalTrialEmail(status.buyerEmail)))) {
-      return NextResponse.json({ authenticated: true, state: "buyer_email_mismatch", trialType: status.trialType, puppyLabel: status.puppyLabel, buyerEmailMasked: status.buyerEmailMasked });
-    }
-    return NextResponse.json({ authenticated: true, state: "available", trialType: status.trialType, puppyLabel: status.puppyLabel });
+    return NextResponse.json({ authenticated: true, state: "available" });
   } catch (error) {
     console.error("Promotional trial availability check failed", error);
     return NextResponse.json({ error: "Unable to check this complimentary trial right now." }, { status: 500 });
@@ -123,17 +103,16 @@ export async function POST(
       return NextResponse.json({ error: "Unable to activate this complimentary trial right now." }, { status: 500 });
     }
 
-    const result = (data?.[0] ?? null) as { result?: RedemptionResult; trial_expires_at?: string | null } | null;
+    const result = (data?.[0] ?? null) as { result?: string; trial_expires_at?: string | null } | null;
     if (result?.result !== "redeemed" || !result.trial_expires_at) {
-      const messages: Record<Exclude<RedemptionResult, "redeemed">, string> = {
+      const messages: Record<string, string> = {
         not_found: "This complimentary trial is not available.",
         revoked: "This complimentary trial is no longer available.",
         claimed: "This complimentary trial has already been claimed.",
         account_used: "This account has already used a complimentary Patriot K9 trial.",
-        buyer_email_mismatch: "This complimentary puppy trial was issued to a different email address.",
       };
       const state = result?.result && result.result !== "redeemed" ? result.result : "not_found";
-      return NextResponse.json({ error: messages[state], state }, { status: 409 });
+      return NextResponse.json({ error: messages[state] ?? "This complimentary trial is not available.", state }, { status: 409 });
     }
 
     return NextResponse.json({ success: true, expiresAt: result.trial_expires_at });

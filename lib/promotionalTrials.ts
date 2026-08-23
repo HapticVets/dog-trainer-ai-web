@@ -46,28 +46,6 @@ export const getPromotionalTrialUrl = (code: string) =>
 export const isMissingPromotionalTrialsTable = (error: { code?: string } | null) =>
   Boolean(error?.code && missingRelationCodes.has(error.code));
 
-export const maskPromotionalTrialEmail = (value: string) => {
-  const [localPart, domain] = normalizePromotionalTrialEmail(value).split("@");
-  if (!localPart || !domain) return "";
-  return `${localPart.slice(0, 1)}***@${domain}`;
-};
-
-export async function getPuppyTrialLabels(puppyIds: string[]) {
-  const uniqueIds = [...new Set(puppyIds.filter(Boolean))];
-  if (uniqueIds.length === 0) return new Map<string, string>();
-
-  const { data, error } = await supabaseAdmin
-    .from("admin_litter_puppies")
-    .select("id, collar_color, public_name, puppy_code")
-    .in("id", uniqueIds);
-
-  if (error) throw new Error(error.message);
-  return new Map((data ?? []).map((puppy) => [
-    puppy.id,
-    puppy.public_name?.trim() || (puppy.collar_color?.trim() ? `${puppy.collar_color.trim()} Collar Puppy` : puppy.puppy_code),
-  ]));
-}
-
 export async function getActivePromotionalTrial(
   userId: string,
 ): Promise<ActivePromotionalTrial | null> {
