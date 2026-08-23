@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AdminAuthorizationError, requireAdminWorkspace } from "@/lib/admin";
 import type { AdminDogProfile } from "@/lib/adminDogs";
-import { normalizeBreedingDogSex } from "@/lib/breedingDogs";
 import { hydrateDogCaseFile, serializeDogCaseFile } from "@/lib/dogCaseFile";
+import { getAvailableMainGoals, normalizeGoalType } from "@/lib/dogGoals";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 const DOG_PROFILE_IMAGES_BUCKET = "dog-profile-images";
@@ -176,42 +176,79 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   try {
     await requireAdminWorkspace();
     const { id } = await params;
-    const body = await request.json() as { sex?: unknown };
-    const normalizedSex = normalizeBreedingDogSex(typeof body.sex === "string" ? body.sex : null);
-
-    if (!normalizedSex) {
-      return NextResponse.json({ error: "Choose Male or Female for a breeding dog." }, { status: 400 });
-    }
+    const body = await request.json() as Record<string, unknown>;
 
     const { data: profile, error: profileError } = await supabaseAdmin
       .from("dog_profiles")
       .select(adminDogColumns)
       .eq("id", id)
-      .eq("record_type", "breeding")
+      .in("record_type", internalRecordTypes)
       .maybeSingle();
 
     if (profileError) {
-      console.error("Admin breeding dog sex lookup error:", profileError);
-      return NextResponse.json({ error: "Unable to load the breeding dog record." }, { status: 500 });
+      console.error("Admin dog profile update lookup error:", profileError);
+      return NextResponse.json({ error: "Unable to load the internal dog record." }, { status: 500 });
     }
-    if (!profile) return NextResponse.json({ error: "Breeding dog record not found." }, { status: 404 });
+    if (!profile) return NextResponse.json({ error: "Internal dog record not found." }, { status: 404 });
 
+    const text = (key: string, maxLength: number, required = false) => {
+      const value = body[key];
+      if (typeof value !== "string") return null;
+      const trimmed = value.trim();
+      if (required && !trimmed) return null;
+      return trimmed.slice(0, maxLength);
+    };
+    const name = text("name", 120, true);
+    const breed = text("breed", 120);
+    const age = text("age", 80);
+    const goalTypeInput = text("goalType", 80, true);
+    const mainGoal = text("mainGoal", 160, true);
+    const sex = body.sex;
+
+    if (!name || breed === null || age === null || !goalTypeInput || !mainGoal) {
+      return NextResponse.json({ error: "Name, breed, age, training category, and training focus must be valid text." }, { status: 400 });
+    }
+
+    const goalType = normalizeGoalType(goalTypeInput);
+    if (goalType !== goalTypeInput) {
+      return NextResponse.json({ error: "Choose a valid training category." }, { status: 400 });
+    }
     const caseFile = hydrateDogCaseFile(profile);
+    if (!getAvailableMainGoals(goalType, caseFile.mainGoal).includes(mainGoal)) {
+      return NextResponse.json({ error: "Choose a valid training focus for the selected category." }, { status: 400 });
+    }
+    if (profile.record_type === "breeding" && sex !== "Male" && sex !== "Female") {
+      return NextResponse.json({ error: "Choose Male or Female for a breeding dog." }, { status: 400 });
+    }
+    const breedingSex = sex === "Male" || sex === "Female" ? sex : null;
+
     const updatedCaseFile = {
       ...caseFile,
-      sex: normalizedSex === "male" ? "Male" : "Female",
+      name,
+      breed,
+      age,
+      sex: profile.record_type === "breeding" && breedingSex ? breedingSex : caseFile.sex,
+      goalType,
+      mainGoal,
+      selectedGoals: [mainGoal],
     };
     const { data, error } = await supabaseAdmin
       .from("dog_profiles")
-      .update({ custom_notes: serializeDogCaseFile(updatedCaseFile), updated_at: new Date().toISOString() })
+      .update({
+        name,
+        goal_type: goalType,
+        main_goal: mainGoal,
+        custom_notes: serializeDogCaseFile(updatedCaseFile),
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", id)
-      .eq("record_type", "breeding")
+      .eq("record_type", profile.record_type)
       .select(adminDogColumns)
       .maybeSingle();
 
     if (error || !data) {
-      console.error("Admin breeding dog sex update error:", error);
-      return NextResponse.json({ error: "Unable to update breeding dog sex." }, { status: 500 });
+      console.error("Admin dog profile update error:", error);
+      return NextResponse.json({ error: "Unable to update the internal dog profile." }, { status: 500 });
     }
 
     return NextResponse.json({ profile: await withSignedImageUrl(data as AdminDogProfile) });
@@ -220,7 +257,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     if (authorizationResponse) return authorizationResponse;
 
     console.error("PATCH /api/admin/dogs/[id] crashed:", error);
-    return NextResponse.json({ error: "Unable to update breeding dog sex." }, { status: 500 });
+    return NextResponse.json({ error: "Unable to update the internal dog profile." }, { status: 500 });
   }
 }
 
