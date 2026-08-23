@@ -87,7 +87,7 @@ function DogRecordCard({
     formData.append("image", file);
 
     try {
-      const response = await fetch("/api/dog-profile/photo", { method: "POST", body: formData });
+      const response = await fetch(`/api/admin/dogs/${encodeURIComponent(dog.id)}/photo`, { method: "POST", body: formData });
       const data = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(data.error || "Unable to save dog photo.");
       onPhotoUpdated();
