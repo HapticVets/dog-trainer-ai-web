@@ -3,7 +3,7 @@ import { AdminAuthorizationError, requireAdminWorkspace } from "@/lib/admin";
 import type { AdminDogProfile } from "@/lib/adminDogs";
 import { hydrateDogCaseFile, serializeDogCaseFile } from "@/lib/dogCaseFile";
 import { normalizeDogSex } from "@/lib/dogSex";
-import { getAvailableMainGoals, normalizeGoalType } from "@/lib/dogGoals";
+import { isKennelBreedingManagementGoalType, getAvailableMainGoals, normalizeGoalType } from "@/lib/dogGoals";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 const DOG_PROFILE_IMAGES_BUCKET = "dog-profile-images";
@@ -206,16 +206,20 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     const mainGoal = text("mainGoal", 160, true);
     const sex = normalizeDogSex(body.sex);
 
-    if (!name || breed === null || age === null || !goalTypeInput || !mainGoal) {
-      return NextResponse.json({ error: "Name, breed, age, training category, and training focus must be valid text." }, { status: 400 });
+    if (!name || breed === null || age === null || !goalTypeInput || mainGoal === null) {
+      return NextResponse.json({ error: "Name, breed, age, and training category must be valid text." }, { status: 400 });
     }
 
     const goalType = normalizeGoalType(goalTypeInput);
-    if (goalType !== goalTypeInput) {
+    const isKennelManagement = profile.record_type === "breeding" && isKennelBreedingManagementGoalType(goalType);
+    if (goalType !== goalTypeInput || (isKennelBreedingManagementGoalType(goalType) && !isKennelManagement)) {
       return NextResponse.json({ error: "Choose a valid training category." }, { status: 400 });
     }
     const caseFile = hydrateDogCaseFile(profile);
-    if (!getAvailableMainGoals(goalType, caseFile.mainGoal).includes(mainGoal)) {
+    if (isKennelManagement && mainGoal) {
+      return NextResponse.json({ error: "Training focus must be blank for kennel management." }, { status: 400 });
+    }
+    if (!isKennelManagement && (!mainGoal || !getAvailableMainGoals(goalType, caseFile.mainGoal).includes(mainGoal))) {
       return NextResponse.json({ error: "Choose a valid training focus for the selected category." }, { status: 400 });
     }
     if (!sex) return NextResponse.json({ error: "Choose Male or Female for this dog." }, { status: 400 });

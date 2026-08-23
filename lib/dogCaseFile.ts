@@ -250,7 +250,8 @@ const normalizeSelectedGoals = (
   const merged = dedupe([...(selectedGoals ?? []), fallbackGoal]).slice(0, 3);
 
   if (merged.length === 0) {
-    return [getDefaultMainGoal(goalType)];
+    const defaultGoal = getDefaultMainGoal(goalType);
+    return defaultGoal ? [defaultGoal] : [];
   }
 
   return merged.map((goal) => (availableGoals.includes(goal) ? goal : goal));

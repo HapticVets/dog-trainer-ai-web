@@ -2,7 +2,13 @@ import {
   emptyDogCaseFile,
   serializeDogCaseFile,
 } from "@/lib/dogCaseFile";
-import { normalizeGoalType } from "@/lib/dogGoals";
+import {
+  getAvailableMainGoals,
+  isKennelBreedingManagementGoalType,
+  kennelBreedingManagementGoalType,
+  normalizeGoalType,
+  goalTypeOptions,
+} from "@/lib/dogGoals";
 
 export const dogRecordTypes = ["personal", "client", "breeding"] as const;
 
@@ -51,9 +57,33 @@ export const dogRecordTypeLabel: Record<DogRecordType, string> = {
   breeding: "Breeding / Kennel Dog",
 };
 
+export const getAdminDogGoalTypeOptions = (recordType: DogRecordType) =>
+  recordType === "breeding"
+    ? [...goalTypeOptions, kennelBreedingManagementGoalType]
+    : [...goalTypeOptions];
+
+export const normalizeAdminDogGoalType = (goalType: string | undefined, recordType: DogRecordType) => {
+  if (recordType === "breeding" && isKennelBreedingManagementGoalType(goalType)) {
+    return kennelBreedingManagementGoalType;
+  }
+
+  return normalizeGoalType(goalType);
+};
+
+export const isValidAdminDogGoalType = (goalType: string | undefined, recordType: DogRecordType) =>
+  Boolean(goalType) && getAdminDogGoalTypeOptions(recordType).includes(goalType as never);
+
+export const isValidAdminDogMainGoal = (goalType: string, mainGoal: string | undefined) => {
+  if (isKennelBreedingManagementGoalType(goalType)) return !mainGoal?.trim();
+  if (!mainGoal?.trim()) return true;
+  return getAvailableMainGoals(goalType).includes(mainGoal.trim());
+};
+
 export const buildAdminDogPayload = (userId: string, input: CreateAdminDogInput) => {
-  const goalType = normalizeGoalType(input.goalType);
-  const mainGoal = input.mainGoal?.trim() || null;
+  const goalType = normalizeAdminDogGoalType(input.goalType, input.recordType);
+  const mainGoal = isKennelBreedingManagementGoalType(goalType)
+    ? null
+    : input.mainGoal?.trim() || null;
   const caseFile = {
     ...emptyDogCaseFile,
     name: input.name.trim(),

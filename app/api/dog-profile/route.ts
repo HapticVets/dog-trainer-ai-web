@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
-import { getDefaultMainGoal, normalizeGoalType } from '@/lib/dogGoals'
+import { getDefaultMainGoal, isKennelBreedingManagementGoalType, normalizeGoalType } from '@/lib/dogGoals'
 import { getTrainerAccess } from '@/app/lib/trainer-access'
 import { hydrateDogCaseFile, serializeDogCaseFile } from '@/lib/dogCaseFile'
 import { createDogTimelineEvent } from '@/lib/dogTimeline'
@@ -75,6 +75,9 @@ export async function POST(request: Request) {
 
     const body = await request.json()
     const normalizedGoalType = normalizeGoalType(body.goalType)
+    if (isKennelBreedingManagementGoalType(normalizedGoalType)) {
+      return NextResponse.json({ error: 'Choose a valid training category' }, { status: 400 })
+    }
     const normalizedSex = normalizeDogSex(body.sex)
 
     if (!normalizedSex) {

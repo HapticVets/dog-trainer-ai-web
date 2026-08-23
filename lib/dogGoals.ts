@@ -5,7 +5,16 @@ export const goalTypeOptions = [
   "Advanced Training",
 ] as const;
 
-export const mainGoalOptions: Record<(typeof goalTypeOptions)[number], string[]> = {
+// This internal-only category is intentionally excluded from customer onboarding options.
+export const kennelBreedingManagementGoalType = "Kennel / Breeding Management" as const;
+
+export const isKennelBreedingManagementGoalType = (value?: string | null) =>
+  value === kennelBreedingManagementGoalType;
+
+type StandardGoalType = (typeof goalTypeOptions)[number];
+export type GoalType = StandardGoalType | typeof kennelBreedingManagementGoalType;
+
+export const mainGoalOptions: Record<StandardGoalType, string[]> = {
   "Puppy Foundation": [
     "Puppy biting",
     "Potty training",
@@ -83,13 +92,17 @@ const legacyMainGoalMap: Record<string, { goalType: (typeof goalTypeOptions)[num
   "Crate training": { goalType: "Puppy Foundation", goal: "Crate training" },
 };
 
-export const normalizeGoalType = (goalType?: string | null) => {
+export const normalizeGoalType = (goalType?: string | null): GoalType => {
   if (!goalType) {
     return "Behavior Problems" as const;
   }
 
   if ((goalTypeOptions as readonly string[]).includes(goalType)) {
-    return goalType as (typeof goalTypeOptions)[number];
+    return goalType as StandardGoalType;
+  }
+
+  if (isKennelBreedingManagementGoalType(goalType)) {
+    return kennelBreedingManagementGoalType;
   }
 
   return legacyGoalTypeMap[goalType] ?? ("Behavior Problems" as const);
@@ -97,6 +110,14 @@ export const normalizeGoalType = (goalType?: string | null) => {
 
 export const normalizeMainGoal = (goalType: string, mainGoal?: string | null) => {
   const normalizedGoalType = normalizeGoalType(goalType);
+
+  if (isKennelBreedingManagementGoalType(normalizedGoalType)) {
+    return {
+      goalType: normalizedGoalType,
+      goal: mainGoal?.trim() ?? "",
+      isLegacy: false,
+    };
+  }
 
   if (!mainGoal) {
     return {
@@ -133,11 +154,15 @@ export const normalizeMainGoal = (goalType: string, mainGoal?: string | null) =>
 
 export const getDefaultMainGoal = (goalType: string) => {
   const normalizedGoalType = normalizeGoalType(goalType);
+  if (isKennelBreedingManagementGoalType(normalizedGoalType)) return "";
   return mainGoalOptions[normalizedGoalType][0];
 };
 
 export const getAvailableMainGoals = (goalType: string, currentMainGoal?: string) => {
   const normalizedGoalType = normalizeGoalType(goalType);
+  if (isKennelBreedingManagementGoalType(normalizedGoalType)) {
+    return currentMainGoal?.trim() ? [currentMainGoal] : [];
+  }
   const options = [...mainGoalOptions[normalizedGoalType]];
 
   if (currentMainGoal && !options.includes(currentMainGoal)) {

@@ -6,10 +6,12 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import {
   dogRecordTypeLabel,
   dogRecordTypes,
+  getAdminDogGoalTypeOptions,
   type AdminDogProfile,
   type DogRecordType,
 } from "@/lib/adminDogs";
 import { hydrateDogCaseFile } from "@/lib/dogCaseFile";
+import { isKennelBreedingManagementGoalType } from "@/lib/dogGoals";
 
 type NewDogForm = {
   name: string;
@@ -306,7 +308,15 @@ export default function AdminDogWorkspace() {
             </label>
             <label className="text-sm font-semibold text-neutral-200">
               Record type
-              <select value={form.recordType} onChange={(event) => updateForm("recordType", event.target.value as DogRecordType)} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white outline-none transition focus:border-amber-400">
+              <select value={form.recordType} onChange={(event) => {
+                const recordType = event.target.value as DogRecordType;
+                setForm((current) => ({
+                  ...current,
+                  recordType,
+                  goalType: recordType === "breeding" || !isKennelBreedingManagementGoalType(current.goalType) ? current.goalType : "Behavior Problems",
+                  mainGoal: recordType === "breeding" ? current.mainGoal : "",
+                }));
+              }} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white outline-none transition focus:border-amber-400">
                 {dogRecordTypes.map((type) => <option key={type} value={type}>{dogRecordTypeLabel[type]}</option>)}
               </select>
             </label>
@@ -328,11 +338,14 @@ export default function AdminDogWorkspace() {
             </label>
             <label className="text-sm font-semibold text-neutral-200">
               Training category
-              <input value={form.goalType} onChange={(event) => updateForm("goalType", event.target.value)} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white outline-none transition focus:border-amber-400" />
+              <select value={form.goalType} onChange={(event) => { const goalType = event.target.value; setForm((current) => ({ ...current, goalType, mainGoal: isKennelBreedingManagementGoalType(goalType) ? "" : current.mainGoal })); }} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white outline-none transition focus:border-amber-400">
+                {getAdminDogGoalTypeOptions(form.recordType).map((option) => <option key={option} value={option}>{option}</option>)}
+              </select>
             </label>
             <label className="text-sm font-semibold text-neutral-200">
               Training focus (optional)
-              <input value={form.mainGoal} onChange={(event) => updateForm("mainGoal", event.target.value)} placeholder="Select training focus (optional)" className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white placeholder:text-neutral-500 outline-none transition focus:border-amber-400" />
+              <input value={isKennelBreedingManagementGoalType(form.goalType) ? "" : form.mainGoal} onChange={(event) => updateForm("mainGoal", event.target.value)} disabled={isKennelBreedingManagementGoalType(form.goalType)} placeholder={isKennelBreedingManagementGoalType(form.goalType) ? "Not set for kennel management" : "Select training focus (optional)"} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white placeholder:text-neutral-500 outline-none transition focus:border-amber-400 disabled:cursor-not-allowed disabled:opacity-60" />
+              {isKennelBreedingManagementGoalType(form.goalType) && <span className="mt-1 block text-xs font-normal text-neutral-500">Kennel management records do not require an active training focus.</span>}
             </label>
 
             {form.recordType === "client" && (

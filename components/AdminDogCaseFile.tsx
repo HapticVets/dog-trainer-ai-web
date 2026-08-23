@@ -3,9 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useEffect, useEffectEvent, useRef, useState } from "react";
-import { dogRecordTypeLabel, type AdminDogProfile } from "@/lib/adminDogs";
+import { dogRecordTypeLabel, getAdminDogGoalTypeOptions, type AdminDogProfile } from "@/lib/adminDogs";
 import { hydrateDogCaseFile } from "@/lib/dogCaseFile";
-import { getAvailableMainGoals, goalTypeOptions } from "@/lib/dogGoals";
+import { getAvailableMainGoals, isKennelBreedingManagementGoalType } from "@/lib/dogGoals";
 import AdminClientAccess from "@/components/AdminClientAccess";
 import AdminHomeworkSyncControls, { type HomeworkSyncValue } from "@/components/AdminHomeworkSyncControls";
 import AdminClientEvaluations from "@/components/AdminClientEvaluations";
@@ -68,6 +68,18 @@ type ProfileDraft = {
 
 const emptyProfileDraft: ProfileDraft = { name: "", breed: "", age: "", goalType: "Behavior Problems", mainGoal: "", sex: "" };
 
+const profileToDraft = (profile: AdminDogProfile): ProfileDraft => {
+  const savedProfile = hydrateDogCaseFile(profile);
+  return {
+    name: savedProfile.name,
+    breed: savedProfile.breed,
+    age: savedProfile.age,
+    goalType: savedProfile.goalType,
+    mainGoal: savedProfile.mainGoal,
+    sex: savedProfile.sex === "Male" || savedProfile.sex === "Female" ? savedProfile.sex : "",
+  };
+};
+
 const formatDate = (value: string | null) =>
   value
     ? new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value))
@@ -103,6 +115,7 @@ export default function AdminDogCaseFile({ dogId }: { dogId: string }) {
   const [completingSession, setCompletingSession] = useState(false);
   const [profileDraft, setProfileDraft] = useState<ProfileDraft>(emptyProfileDraft);
   const [savingProfile, setSavingProfile] = useState(false);
+  const [editingProfile, setEditingProfile] = useState(false);
   const [homeworkSync, setHomeworkSync] = useState<HomeworkSyncValue>({ enabled: false, focus: "", notes: "" });
   const restoredDraftForDog = useRef<string | null>(null);
 
@@ -120,15 +133,8 @@ export default function AdminDogCaseFile({ dogId }: { dogId: string }) {
       if (!notesResponse.ok) throw new Error(notesData.error || "Unable to load internal notes.");
 
       setCaseFile(caseData);
-      const savedProfile = hydrateDogCaseFile(caseData.profile);
-      setProfileDraft({
-        name: savedProfile.name,
-        breed: savedProfile.breed,
-        age: savedProfile.age,
-        goalType: savedProfile.goalType,
-        mainGoal: savedProfile.mainGoal,
-        sex: savedProfile.sex === "Male" || savedProfile.sex === "Female" ? savedProfile.sex : "",
-      });
+      setProfileDraft(profileToDraft(caseData.profile));
+      setEditingProfile(false);
       setNotes(notesData.notes ?? []);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Unable to load the internal dog record.");
@@ -219,6 +225,8 @@ export default function AdminDogCaseFile({ dogId }: { dogId: string }) {
       const data = await response.json() as { profile?: AdminDogProfile; error?: string };
       if (!response.ok || !data.profile) throw new Error(data.error || "Unable to update the internal dog profile.");
       setCaseFile((current) => current ? { ...current, profile: data.profile as AdminDogProfile } : current);
+      setProfileDraft(profileToDraft(data.profile as AdminDogProfile));
+      setEditingProfile(false);
       setNotice("Dog profile updated.");
     } catch (profileError) {
       setError(profileError instanceof Error ? profileError.message : "Unable to update the internal dog profile.");
@@ -276,6 +284,8 @@ export default function AdminDogCaseFile({ dogId }: { dogId: string }) {
     ["Breed", dog.breed],
     ["Age", dog.age],
     ["Sex", dog.sex],
+    ["Training category", profile.goal_type || "Not set"],
+    ["Training focus", profile.main_goal?.trim() || "Not set"],
     ["Training level", dog.skillLevel],
   ].filter(([, value]) => Boolean(value));
 
@@ -304,18 +314,16 @@ export default function AdminDogCaseFile({ dogId }: { dogId: string }) {
           <section className="rounded-2xl border border-neutral-800 bg-neutral-950/80 p-5 sm:p-6"><p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-300">Overview</p><h2 className="mt-2 text-2xl font-bold text-white">Training profile</h2><div className="mt-5 grid gap-3 sm:grid-cols-2">{detailItems.map(([label, value]) => <div key={label as string} className="rounded-xl border border-neutral-800 bg-black/30 p-3"><p className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-500">{label}</p><p className="mt-1 text-sm text-neutral-100">{value}</p></div>)}</div></section>
 
           <section className="rounded-2xl border border-neutral-800 bg-neutral-950/80 p-5 sm:p-6">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-300">Profile Details</p>
-            <h2 className="mt-2 text-2xl font-bold text-white">Edit saved profile</h2>
-            <p className="mt-2 text-sm leading-6 text-neutral-400">Update this internal dog profile. Record type and profile photo are managed separately.</p>
-            <form onSubmit={saveProfile} className="mt-5 grid gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-300">Profile Details</p><h2 className="mt-2 text-2xl font-bold text-white">Saved profile</h2><p className="mt-2 text-sm leading-6 text-neutral-400">Record type and profile photo are managed separately.</p></div>{!editingProfile && <button type="button" onClick={() => { setError(""); setProfileDraft(profileToDraft(profile)); setEditingProfile(true); }} className="min-h-11 rounded-lg border border-amber-400/35 px-4 py-2.5 text-sm font-bold text-amber-100 transition hover:bg-amber-400/10">Edit Profile</button>}</div>
+            {editingProfile && <form onSubmit={saveProfile} className="mt-5 grid gap-4 border-t border-neutral-800 pt-5 sm:grid-cols-2">
               <label className="text-sm font-semibold text-neutral-200">Dog name<input required maxLength={120} value={profileDraft.name} onChange={(event) => setProfileDraft((current) => ({ ...current, name: event.target.value }))} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white outline-none focus:border-amber-400" /></label>
               <label className="text-sm font-semibold text-neutral-200">Breed<input maxLength={120} value={profileDraft.breed} onChange={(event) => setProfileDraft((current) => ({ ...current, breed: event.target.value }))} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white outline-none focus:border-amber-400" /></label>
               <label className="text-sm font-semibold text-neutral-200">Age<input maxLength={80} value={profileDraft.age} onChange={(event) => setProfileDraft((current) => ({ ...current, age: event.target.value }))} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white outline-none focus:border-amber-400" /></label>
               <label className="text-sm font-semibold text-neutral-200">Sex<select required value={profileDraft.sex} onChange={(event) => setProfileDraft((current) => ({ ...current, sex: event.target.value as ProfileDraft["sex"] }))} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white outline-none focus:border-amber-400"><option value="">Select sex</option><option value="Male">Male</option><option value="Female">Female</option></select>{profile.record_type === "breeding" && <span className="mt-1 block text-xs font-normal text-neutral-500">Controls sire/dam eligibility in litter records.</span>}</label>
-              <label className="text-sm font-semibold text-neutral-200">Training category<select value={profileDraft.goalType} onChange={(event) => { const goalType = event.target.value; setProfileDraft((current) => ({ ...current, goalType, mainGoal: getAvailableMainGoals(goalType)[0] })); }} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white outline-none focus:border-amber-400">{goalTypeOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
-              <label className="text-sm font-semibold text-neutral-200">Training focus<select value={profileDraft.mainGoal} onChange={(event) => setProfileDraft((current) => ({ ...current, mainGoal: event.target.value }))} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white outline-none focus:border-amber-400">{getAvailableMainGoals(profileDraft.goalType, profileDraft.mainGoal).map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
-              <div className="sm:col-span-2"><button type="submit" disabled={savingProfile} className="min-h-11 rounded-lg bg-amber-400 px-4 py-2.5 text-sm font-bold text-black disabled:cursor-wait disabled:opacity-60">{savingProfile ? "Saving..." : "Save profile"}</button></div>
-            </form>
+              <label className="text-sm font-semibold text-neutral-200">Training category<select value={profileDraft.goalType} onChange={(event) => { const goalType = event.target.value; setProfileDraft((current) => ({ ...current, goalType, mainGoal: isKennelBreedingManagementGoalType(goalType) ? "" : getAvailableMainGoals(goalType)[0] ?? "" })); }} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white outline-none focus:border-amber-400">{getAdminDogGoalTypeOptions(profile.record_type).map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
+              <label className="text-sm font-semibold text-neutral-200">Training focus<select value={profileDraft.mainGoal} onChange={(event) => setProfileDraft((current) => ({ ...current, mainGoal: event.target.value }))} disabled={isKennelBreedingManagementGoalType(profileDraft.goalType)} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white outline-none focus:border-amber-400 disabled:cursor-not-allowed disabled:opacity-60"><option value="">Not set</option>{getAvailableMainGoals(profileDraft.goalType, profileDraft.mainGoal).map((option) => <option key={option} value={option}>{option}</option>)}</select>{isKennelBreedingManagementGoalType(profileDraft.goalType) && <span className="mt-1 block text-xs font-normal text-neutral-500">Not set for kennel management.</span>}</label>
+              <div className="flex flex-col-reverse gap-3 sm:col-span-2 sm:flex-row"><button type="button" onClick={() => { setError(""); setProfileDraft(profileToDraft(profile)); setEditingProfile(false); }} disabled={savingProfile} className="min-h-11 rounded-lg border border-neutral-700 px-4 py-2.5 text-sm font-bold text-neutral-200">Cancel</button><button type="submit" disabled={savingProfile} className="min-h-11 rounded-lg bg-amber-400 px-4 py-2.5 text-sm font-bold text-black disabled:cursor-wait disabled:opacity-60">{savingProfile ? "Saving..." : "Save Profile"}</button></div>
+            </form>}
           </section>
 
           <section className="rounded-2xl border border-neutral-800 bg-neutral-950/80 p-5 sm:p-6"><p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-300">Current Training Plan</p><div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><h2 className="text-2xl font-bold text-white">Next session</h2><button type="button" onClick={() => void generateSession()} disabled={generatingSession} className="min-h-11 rounded-lg bg-amber-400 px-4 py-2.5 text-sm font-bold text-black disabled:opacity-60">{generatingSession ? "Generating..." : draft ? "Regenerate" : "Generate Next Session"}</button></div>{currentPlan && !draft && <div className="mt-5 rounded-xl border border-amber-400/20 bg-amber-400/5 p-4"><p className="font-bold text-white">Session {currentPlan.session_number} - {currentPlan.title}</p><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-neutral-200">{currentPlan.training_plan}</p><button type="button" onClick={() => setSessionToComplete(currentPlan)} className="mt-4 min-h-11 rounded-lg border border-emerald-400/40 px-4 py-2 text-sm font-bold text-emerald-100 hover:bg-emerald-400/10">Complete Session</button></div>}{draft && <div className="mt-5 space-y-3"><label className="block text-sm font-semibold text-neutral-200">Title<input value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white" /></label><label className="block text-sm font-semibold text-neutral-200">Objectives<textarea rows={3} value={draft.objectives} onChange={(event) => setDraft({ ...draft, objectives: event.target.value })} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white" /></label><label className="block text-sm font-semibold text-neutral-200">Training Plan<textarea rows={8} value={draft.training_plan} onChange={(event) => setDraft({ ...draft, training_plan: event.target.value })} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white" /></label><label className="block text-sm font-semibold text-neutral-200">Trainer Focus<textarea rows={2} value={draft.trainer_focus ?? ""} onChange={(event) => setDraft({ ...draft, trainer_focus: event.target.value })} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white" /></label><label className="block text-sm font-semibold text-neutral-200">Progression Goal<textarea rows={2} value={draft.progression_goal ?? ""} onChange={(event) => setDraft({ ...draft, progression_goal: event.target.value })} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white" /></label><button type="button" onClick={() => void saveSession()} disabled={savingSession} className="min-h-11 rounded-lg bg-amber-400 px-4 py-2.5 text-sm font-bold text-black disabled:opacity-60">{savingSession ? "Saving..." : "Save Session"}</button></div>}</section>

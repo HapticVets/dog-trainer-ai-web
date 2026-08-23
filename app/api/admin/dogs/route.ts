@@ -3,7 +3,10 @@ import { AdminAuthorizationError, requireAdminWorkspace } from "@/lib/admin";
 import { normalizeDogSex } from "@/lib/dogSex";
 import {
   buildAdminDogPayload,
+  isValidAdminDogGoalType,
+  isValidAdminDogMainGoal,
   isDogRecordType,
+  normalizeAdminDogGoalType,
   type AdminDogProfile,
   type CreateAdminDogInput,
 } from "@/lib/adminDogs";
@@ -109,6 +112,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Choose a valid dog record type." }, { status: 400 });
     }
 
+    if (!isValidAdminDogGoalType(body.goalType, body.recordType)) {
+      return NextResponse.json({ error: "Choose a valid training category." }, { status: 400 });
+    }
+
+    const goalType = normalizeAdminDogGoalType(body.goalType, body.recordType);
+    if (!isValidAdminDogMainGoal(goalType, body.mainGoal)) {
+      return NextResponse.json({ error: "Choose a valid training focus, or leave it blank for kennel management." }, { status: 400 });
+    }
+
     const normalizedSex = normalizeDogSex(body.sex);
     if (!normalizedSex) {
       return NextResponse.json({ error: "Choose Male or Female for this dog." }, { status: 400 });
@@ -119,7 +131,7 @@ export async function POST(request: Request) {
       breed: body.breed,
       age: body.age,
       sex: normalizedSex,
-      goalType: body.goalType,
+      goalType,
       mainGoal: body.mainGoal,
       recordType: body.recordType,
       clientOwnerName: body.clientOwnerName,
