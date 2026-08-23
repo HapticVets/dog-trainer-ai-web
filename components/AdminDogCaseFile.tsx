@@ -203,8 +203,8 @@ export default function AdminDogCaseFile({ dogId }: { dogId: string }) {
       setError("Enter the dog's name.");
       return;
     }
-    if (caseFile?.profile.record_type === "breeding" && !profileDraft.sex) {
-      setError("Choose Male or Female for this breeding dog.");
+    if (!profileDraft.sex) {
+      setError("Choose Male or Female for this dog.");
       return;
     }
 
@@ -275,7 +275,7 @@ export default function AdminDogCaseFile({ dogId }: { dogId: string }) {
   const detailItems = [
     ["Breed", dog.breed],
     ["Age", dog.age],
-    ["Sex", profile.record_type === "breeding" ? dog.sex : dog.sex !== "Not set" ? dog.sex : ""],
+    ["Sex", dog.sex],
     ["Training level", dog.skillLevel],
   ].filter(([, value]) => Boolean(value));
 
@@ -311,7 +311,7 @@ export default function AdminDogCaseFile({ dogId }: { dogId: string }) {
               <label className="text-sm font-semibold text-neutral-200">Dog name<input required maxLength={120} value={profileDraft.name} onChange={(event) => setProfileDraft((current) => ({ ...current, name: event.target.value }))} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white outline-none focus:border-amber-400" /></label>
               <label className="text-sm font-semibold text-neutral-200">Breed<input maxLength={120} value={profileDraft.breed} onChange={(event) => setProfileDraft((current) => ({ ...current, breed: event.target.value }))} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white outline-none focus:border-amber-400" /></label>
               <label className="text-sm font-semibold text-neutral-200">Age<input maxLength={80} value={profileDraft.age} onChange={(event) => setProfileDraft((current) => ({ ...current, age: event.target.value }))} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white outline-none focus:border-amber-400" /></label>
-              {profile.record_type === "breeding" && <label className="text-sm font-semibold text-neutral-200">Sex<select required value={profileDraft.sex} onChange={(event) => setProfileDraft((current) => ({ ...current, sex: event.target.value as ProfileDraft["sex"] }))} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white outline-none focus:border-amber-400"><option value="">Select sex</option><option value="Male">Male</option><option value="Female">Female</option></select><span className="mt-1 block text-xs font-normal text-neutral-500">Controls sire/dam eligibility in litter records.</span></label>}
+              <label className="text-sm font-semibold text-neutral-200">Sex<select required value={profileDraft.sex} onChange={(event) => setProfileDraft((current) => ({ ...current, sex: event.target.value as ProfileDraft["sex"] }))} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white outline-none focus:border-amber-400"><option value="">Select sex</option><option value="Male">Male</option><option value="Female">Female</option></select>{profile.record_type === "breeding" && <span className="mt-1 block text-xs font-normal text-neutral-500">Controls sire/dam eligibility in litter records.</span>}</label>
               <label className="text-sm font-semibold text-neutral-200">Training category<select value={profileDraft.goalType} onChange={(event) => { const goalType = event.target.value; setProfileDraft((current) => ({ ...current, goalType, mainGoal: getAvailableMainGoals(goalType)[0] })); }} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white outline-none focus:border-amber-400">{goalTypeOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
               <label className="text-sm font-semibold text-neutral-200">Training focus<select value={profileDraft.mainGoal} onChange={(event) => setProfileDraft((current) => ({ ...current, mainGoal: event.target.value }))} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white outline-none focus:border-amber-400">{getAvailableMainGoals(profileDraft.goalType, profileDraft.mainGoal).map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
               <div className="sm:col-span-2"><button type="submit" disabled={savingProfile} className="min-h-11 rounded-lg bg-amber-400 px-4 py-2.5 text-sm font-bold text-black disabled:cursor-wait disabled:opacity-60">{savingProfile ? "Saving..." : "Save profile"}</button></div>

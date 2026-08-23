@@ -72,7 +72,7 @@ export const equipmentOptions = [
   "None",
 ] as const;
 
-export const sexOptions = ["Not set", "Male", "Female"] as const;
+export const sexOptions = ["Male", "Female"] as const;
 
 export const homeEnvironmentOptions = [
   "Not set",
@@ -139,7 +139,7 @@ export const emptyDogCaseFile: DogCaseFile = {
   name: "",
   breed: "",
   age: "",
-  sex: "Not set",
+  sex: "",
   weight: "",
   goalType: "Behavior Problems",
   mainGoal: "Pulling on leash",

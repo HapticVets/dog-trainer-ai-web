@@ -59,7 +59,7 @@ export const buildAdminDogPayload = (userId: string, input: CreateAdminDogInput)
     name: input.name.trim(),
     breed: input.breed?.trim() ?? "",
     age: input.age?.trim() ?? "",
-    sex: input.recordType === "breeding" ? input.sex ?? "Not set" : "Not set",
+    sex: input.sex ?? "Not set",
     goalType,
     mainGoal: mainGoal ?? "",
     selectedGoals: mainGoal ? [mainGoal] : [],

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { AdminAuthorizationError, requireAdminWorkspace } from "@/lib/admin";
 import type { AdminDogProfile } from "@/lib/adminDogs";
 import { hydrateDogCaseFile, serializeDogCaseFile } from "@/lib/dogCaseFile";
+import { normalizeDogSex } from "@/lib/dogSex";
 import { getAvailableMainGoals, normalizeGoalType } from "@/lib/dogGoals";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
@@ -203,7 +204,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     const age = text("age", 80);
     const goalTypeInput = text("goalType", 80, true);
     const mainGoal = text("mainGoal", 160, true);
-    const sex = body.sex;
+    const sex = normalizeDogSex(body.sex);
 
     if (!name || breed === null || age === null || !goalTypeInput || !mainGoal) {
       return NextResponse.json({ error: "Name, breed, age, training category, and training focus must be valid text." }, { status: 400 });
@@ -217,17 +218,14 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     if (!getAvailableMainGoals(goalType, caseFile.mainGoal).includes(mainGoal)) {
       return NextResponse.json({ error: "Choose a valid training focus for the selected category." }, { status: 400 });
     }
-    if (profile.record_type === "breeding" && sex !== "Male" && sex !== "Female") {
-      return NextResponse.json({ error: "Choose Male or Female for a breeding dog." }, { status: 400 });
-    }
-    const breedingSex = sex === "Male" || sex === "Female" ? sex : null;
+    if (!sex) return NextResponse.json({ error: "Choose Male or Female for this dog." }, { status: 400 });
 
     const updatedCaseFile = {
       ...caseFile,
       name,
       breed,
       age,
-      sex: profile.record_type === "breeding" && breedingSex ? breedingSex : caseFile.sex,
+      sex,
       goalType,
       mainGoal,
       selectedGoals: [mainGoal],

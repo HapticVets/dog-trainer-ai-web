@@ -1,4 +1,5 @@
 import { hydrateDogCaseFile } from "@/lib/dogCaseFile";
+import { normalizeDogSex } from "@/lib/dogSex";
 
 type BreedingDogSexSource = {
   id: string;
@@ -13,10 +14,8 @@ export type BreedingDogOption = {
 };
 
 export const normalizeBreedingDogSex = (value: string | null | undefined) => {
-  const normalized = value?.trim().toLowerCase();
-  if (normalized === "male") return "male" as const;
-  if (normalized === "female") return "female" as const;
-  return null;
+  const sex = normalizeDogSex(value);
+  return sex ? sex.toLowerCase() as "male" | "female" : null;
 };
 
 export const toBreedingDogOption = (dog: BreedingDogSexSource): BreedingDogOption | null => {

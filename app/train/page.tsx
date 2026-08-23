@@ -1485,6 +1485,11 @@ export default function TrainPage() {
       return;
     }
 
+    if (dogProfile.sex !== "Male" && dogProfile.sex !== "Female") {
+      showToast("Choose Male or Female for your dog.", "warning");
+      return;
+    }
+
     const wasCreatingNewDog = !selectedDogId;
     setProfileSaving(true);
     const hadPendingPhotoChange = Boolean(
@@ -2076,6 +2081,11 @@ ${latestCoachReview}`;
   };
 
   const goToNextEvaluationStep = () => {
+    if (evaluationStep === 1 && dogProfile.sex !== "Male" && dogProfile.sex !== "Female") {
+      showToast("Choose Male or Female for your dog before continuing.", "warning");
+      return;
+    }
+
     setEvaluationStep((current) => (current < 6 ? ((current + 1) as EvaluationStep) : current));
   };
 
@@ -2085,6 +2095,7 @@ ${latestCoachReview}`;
       label: "Breed / age",
       value: [dogProfile.breed, dogProfile.age].filter(Boolean).join(" / ") || "Not set",
     },
+    { label: "Sex", value: dogProfile.sex || "Not set" },
     { label: "Primary priority", value: dogProfile.mainGoal || "Not set" },
     {
       label: "Selected goals",
@@ -2223,10 +2234,11 @@ ${latestCoachReview}`;
             <div>
               <label className="mb-2 block text-sm text-white">Sex</label>
               <select
-                value={dogProfile.sex}
+                value={dogProfile.sex === "Not set" ? "" : dogProfile.sex}
                 onChange={(e) => setDogProfile({ ...dogProfile, sex: e.target.value })}
                 className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
               >
+                <option value="">Select sex</option>
                 {sexOptions.map((option) => (
                   <option key={option} value={option}>
                     {option}
@@ -2766,10 +2778,11 @@ ${latestCoachReview}`;
               <div>
                 <label className="mb-2 block text-sm text-white">Sex</label>
                 <select
-                  value={dogProfile.sex}
+                  value={dogProfile.sex === "Not set" ? "" : dogProfile.sex}
                   onChange={(e) => setDogProfile({ ...dogProfile, sex: e.target.value })}
                   className="w-full rounded border border-neutral-700 bg-neutral-900 px-4 py-3 text-white outline-none"
                 >
+                  <option value="">Select sex</option>
                   {sexOptions.map((option) => (
                     <option key={option} value={option}>
                       {option}

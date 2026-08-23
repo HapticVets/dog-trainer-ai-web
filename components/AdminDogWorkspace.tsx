@@ -112,9 +112,7 @@ function DogRecordCard({
           <p className="mt-1 text-sm text-neutral-400">
             {[caseFile.breed, caseFile.age].filter(Boolean).join(" · ") || "Profile details not set"}
           </p>
-          {dog.record_type === "breeding" && caseFile.sex !== "Not set" && (
-            <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400">{caseFile.sex}</p>
-          )}
+          <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-neutral-400">Sex: {caseFile.sex}</p>
           {dog.record_type === "client" && dog.client_owner_name && (
             <p className="mt-2 text-sm text-amber-100">Client: {dog.client_owner_name}</p>
           )}
@@ -320,16 +318,14 @@ export default function AdminDogWorkspace() {
               Age
               <input value={form.age} onChange={(event) => updateForm("age", event.target.value)} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white outline-none transition focus:border-amber-400" />
             </label>
-            {form.recordType === "breeding" && (
-              <label className="text-sm font-semibold text-neutral-200">
-                Sex
-                <select required value={form.sex} onChange={(event) => updateForm("sex", event.target.value as NewDogForm["sex"])} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white outline-none transition focus:border-amber-400">
-                  <option value="">Select sex</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                </select>
-              </label>
-            )}
+            <label className="text-sm font-semibold text-neutral-200">
+              Sex
+              <select required value={form.sex} onChange={(event) => updateForm("sex", event.target.value as NewDogForm["sex"])} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white outline-none transition focus:border-amber-400">
+                <option value="">Select sex</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
+            </label>
             <label className="text-sm font-semibold text-neutral-200">
               Training category
               <input value={form.goalType} onChange={(event) => updateForm("goalType", event.target.value)} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white outline-none transition focus:border-amber-400" />

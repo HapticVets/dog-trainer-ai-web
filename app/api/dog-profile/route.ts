@@ -3,8 +3,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getDefaultMainGoal, normalizeGoalType } from '@/lib/dogGoals'
 import { getTrainerAccess } from '@/app/lib/trainer-access'
-import { hydrateDogCaseFile } from '@/lib/dogCaseFile'
+import { hydrateDogCaseFile, serializeDogCaseFile } from '@/lib/dogCaseFile'
 import { createDogTimelineEvent } from '@/lib/dogTimeline'
+import { normalizeDogSex } from '@/lib/dogSex'
 
 const DOG_PROFILE_IMAGES_BUCKET = 'dog-profile-images'
 const customerDogProfileColumns =
@@ -74,6 +75,26 @@ export async function POST(request: Request) {
 
     const body = await request.json()
     const normalizedGoalType = normalizeGoalType(body.goalType)
+    const normalizedSex = normalizeDogSex(body.sex)
+
+    if (!normalizedSex) {
+      return NextResponse.json({ error: 'Choose Male or Female for this dog' }, { status: 400 })
+    }
+
+    const serializedCaseFile = serializeDogCaseFile({
+      ...hydrateDogCaseFile({
+        name: typeof body.name === 'string' ? body.name : '',
+        goal_type: normalizedGoalType,
+        main_goal:
+          typeof body.mainGoal === 'string'
+            ? body.mainGoal
+            : getDefaultMainGoal(normalizedGoalType),
+        reward_type: typeof body.rewardType === 'string' ? body.rewardType : 'Food',
+        skill_level: typeof body.skillLevel === 'string' ? body.skillLevel : 'Beginner',
+        custom_notes: typeof body.customNotes === 'string' ? body.customNotes : '',
+      }),
+      sex: normalizedSex,
+    })
 
     const payload = {
       clerk_user_id: userId,
@@ -82,7 +103,7 @@ export async function POST(request: Request) {
       main_goal: body.mainGoal ?? getDefaultMainGoal(normalizedGoalType),
       reward_type: body.rewardType ?? 'Food',
       skill_level: body.skillLevel ?? 'Beginner',
-      custom_notes: body.customNotes ?? '',
+      custom_notes: serializedCaseFile,
       record_type: null,
       updated_at: new Date().toISOString(),
     }
