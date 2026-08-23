@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { AdminAuthorizationError, requireAdminWorkspace } from "@/lib/admin";
+import { normalizeBreedingDogSex } from "@/lib/breedingDogs";
 import {
   buildAdminDogPayload,
   isDogRecordType,
@@ -108,10 +109,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Choose a valid dog record type." }, { status: 400 });
     }
 
+    const normalizedSex = normalizeBreedingDogSex(typeof body.sex === "string" ? body.sex : null);
+    if (body.recordType === "breeding" && !normalizedSex) {
+      return NextResponse.json({ error: "Choose Male or Female for a breeding dog." }, { status: 400 });
+    }
+
     const payload = buildAdminDogPayload(ownerId, {
       name: body.name,
       breed: body.breed,
       age: body.age,
+      sex: normalizedSex === "male" ? "Male" : normalizedSex === "female" ? "Female" : undefined,
       goalType: body.goalType,
       mainGoal: body.mainGoal,
       recordType: body.recordType,

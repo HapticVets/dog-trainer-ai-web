@@ -30,6 +30,7 @@ export type CreateAdminDogInput = {
   name: string;
   breed?: string;
   age?: string;
+  sex?: "Male" | "Female";
   goalType?: string;
   mainGoal?: string;
   recordType: DogRecordType;
@@ -58,6 +59,7 @@ export const buildAdminDogPayload = (userId: string, input: CreateAdminDogInput)
     name: input.name.trim(),
     breed: input.breed?.trim() ?? "",
     age: input.age?.trim() ?? "",
+    sex: input.recordType === "breeding" ? input.sex ?? "Not set" : "Not set",
     goalType,
     mainGoal: mainGoal ?? "",
     selectedGoals: mainGoal ? [mainGoal] : [],

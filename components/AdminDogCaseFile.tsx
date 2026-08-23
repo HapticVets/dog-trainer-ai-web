@@ -89,6 +89,8 @@ export default function AdminDogCaseFile({ dogId }: { dogId: string }) {
   const [savingSession, setSavingSession] = useState(false);
   const [sessionToComplete, setSessionToComplete] = useState<AdminTrainingSession | null>(null);
   const [completingSession, setCompletingSession] = useState(false);
+  const [sexDraft, setSexDraft] = useState<"" | "Male" | "Female">("");
+  const [savingSex, setSavingSex] = useState(false);
   const [homeworkSync, setHomeworkSync] = useState<HomeworkSyncValue>({ enabled: false, focus: "", notes: "" });
   const restoredDraftForDog = useRef<string | null>(null);
 
@@ -106,6 +108,8 @@ export default function AdminDogCaseFile({ dogId }: { dogId: string }) {
       if (!notesResponse.ok) throw new Error(notesData.error || "Unable to load internal notes.");
 
       setCaseFile(caseData);
+      const savedSex = hydrateDogCaseFile(caseData.profile).sex;
+      setSexDraft(savedSex === "Male" || savedSex === "Female" ? savedSex : "");
       setNotes(notesData.notes ?? []);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Unable to load the internal dog record.");
@@ -174,6 +178,31 @@ export default function AdminDogCaseFile({ dogId }: { dogId: string }) {
     }
   };
 
+  const saveBreedingSex = async () => {
+    if (!sexDraft) {
+      setError("Choose Male or Female for this breeding dog.");
+      return;
+    }
+
+    setSavingSex(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/admin/dogs/${encodeURIComponent(dogId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sex: sexDraft }),
+      });
+      const data = await response.json() as { profile?: AdminDogProfile; error?: string };
+      if (!response.ok || !data.profile) throw new Error(data.error || "Unable to update breeding dog sex.");
+      setCaseFile((current) => current ? { ...current, profile: data.profile as AdminDogProfile } : current);
+      setNotice("Breeding dog sex updated.");
+    } catch (sexError) {
+      setError(sexError instanceof Error ? sexError.message : "Unable to update breeding dog sex.");
+    } finally {
+      setSavingSex(false);
+    }
+  };
+
   const generateSession = async () => {
     setGeneratingSession(true); setError("");
     try {
@@ -222,7 +251,7 @@ export default function AdminDogCaseFile({ dogId }: { dogId: string }) {
   const detailItems = [
     ["Breed", dog.breed],
     ["Age", dog.age],
-    ["Sex", dog.sex !== "Not set" ? dog.sex : ""],
+    ["Sex", profile.record_type === "breeding" ? dog.sex : dog.sex !== "Not set" ? dog.sex : ""],
     ["Training level", dog.skillLevel],
   ].filter(([, value]) => Boolean(value));
 
@@ -249,6 +278,8 @@ export default function AdminDogCaseFile({ dogId }: { dogId: string }) {
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,0.8fr)]">
         <div className="space-y-6">
           <section className="rounded-2xl border border-neutral-800 bg-neutral-950/80 p-5 sm:p-6"><p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-300">Overview</p><h2 className="mt-2 text-2xl font-bold text-white">Training profile</h2><div className="mt-5 grid gap-3 sm:grid-cols-2">{detailItems.map(([label, value]) => <div key={label as string} className="rounded-xl border border-neutral-800 bg-black/30 p-3"><p className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-500">{label}</p><p className="mt-1 text-sm text-neutral-100">{value}</p></div>)}</div></section>
+
+          {profile.record_type === "breeding" && <section className="rounded-2xl border border-neutral-800 bg-neutral-950/80 p-5 sm:p-6"><p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-300">Breeding Details</p><h2 className="mt-2 text-2xl font-bold text-white">Sex</h2><p className="mt-2 text-sm leading-6 text-neutral-400">Set the sex used to make this dog eligible as a sire or dam in litter records.</p><div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end"><label className="text-sm font-semibold text-neutral-200 sm:min-w-52">Sex<select value={sexDraft} onChange={(event) => setSexDraft(event.target.value as "" | "Male" | "Female")} className="mt-2 min-h-11 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white outline-none focus:border-amber-400"><option value="">Not set</option><option value="Male">Male</option><option value="Female">Female</option></select></label><button type="button" onClick={() => void saveBreedingSex()} disabled={savingSex || !sexDraft} className="min-h-11 rounded-lg bg-amber-400 px-4 py-2.5 text-sm font-bold text-black disabled:cursor-not-allowed disabled:opacity-60">{savingSex ? "Saving..." : "Save Sex"}</button></div></section>}
 
           <section className="rounded-2xl border border-neutral-800 bg-neutral-950/80 p-5 sm:p-6"><p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-300">Current Training Plan</p><div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><h2 className="text-2xl font-bold text-white">Next session</h2><button type="button" onClick={() => void generateSession()} disabled={generatingSession} className="min-h-11 rounded-lg bg-amber-400 px-4 py-2.5 text-sm font-bold text-black disabled:opacity-60">{generatingSession ? "Generating..." : draft ? "Regenerate" : "Generate Next Session"}</button></div>{currentPlan && !draft && <div className="mt-5 rounded-xl border border-amber-400/20 bg-amber-400/5 p-4"><p className="font-bold text-white">Session {currentPlan.session_number} - {currentPlan.title}</p><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-neutral-200">{currentPlan.training_plan}</p><button type="button" onClick={() => setSessionToComplete(currentPlan)} className="mt-4 min-h-11 rounded-lg border border-emerald-400/40 px-4 py-2 text-sm font-bold text-emerald-100 hover:bg-emerald-400/10">Complete Session</button></div>}{draft && <div className="mt-5 space-y-3"><label className="block text-sm font-semibold text-neutral-200">Title<input value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white" /></label><label className="block text-sm font-semibold text-neutral-200">Objectives<textarea rows={3} value={draft.objectives} onChange={(event) => setDraft({ ...draft, objectives: event.target.value })} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white" /></label><label className="block text-sm font-semibold text-neutral-200">Training Plan<textarea rows={8} value={draft.training_plan} onChange={(event) => setDraft({ ...draft, training_plan: event.target.value })} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white" /></label><label className="block text-sm font-semibold text-neutral-200">Trainer Focus<textarea rows={2} value={draft.trainer_focus ?? ""} onChange={(event) => setDraft({ ...draft, trainer_focus: event.target.value })} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white" /></label><label className="block text-sm font-semibold text-neutral-200">Progression Goal<textarea rows={2} value={draft.progression_goal ?? ""} onChange={(event) => setDraft({ ...draft, progression_goal: event.target.value })} className="mt-2 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 py-2.5 text-white" /></label><button type="button" onClick={() => void saveSession()} disabled={savingSession} className="min-h-11 rounded-lg bg-amber-400 px-4 py-2.5 text-sm font-bold text-black disabled:opacity-60">{savingSession ? "Saving..." : "Save Session"}</button></div>}</section>
 
