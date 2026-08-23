@@ -75,6 +75,10 @@ type PlanSection = {
 type TrainerAccessState = {
   premium: boolean;
   clientAccess: boolean;
+  promotionalTrial: {
+    expiresAt: string;
+    daysRemaining: number;
+  } | null;
   hasFullTrainerAccess: boolean;
   freeMessagesUsed: number;
   freeMessagesRemaining: number;
@@ -462,6 +466,7 @@ export default function TrainPage() {
   const isInitializingTrainer = !dogProfilesLoaded && !evaluationMode;
   const isPremiumUser = trainerAccess?.premium === true;
   const hasClientAccess = trainerAccess?.clientAccess === true;
+  const promotionalTrial = trainerAccess?.promotionalTrial ?? null;
   const hasFullTrainerAccess = trainerAccess?.hasFullTrainerAccess === true;
   const showClientWelcome =
     evaluationMode && hasNoDogProfiles && hasClientAccess && !clientOnboardingStarted;
@@ -3369,6 +3374,15 @@ ${latestCoachReview}`;
               <h2 className="mt-3 text-2xl font-bold text-white">Patriot K9 Client Access</h2>
               <p className="mt-2 text-sm leading-6 text-neutral-300">Included with your in-person Patriot K9 training. Your linked dog can use ongoing coaching, sessions, and homework guidance.</p>
             </div>
+          ) : promotionalTrial ? (
+            <div className="rounded-xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-neutral-950 to-neutral-950 p-5 shadow-[0_16px_44px_rgba(0,0,0,0.2)] sm:p-6">
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">Complimentary Access</p>
+                <span className="rounded-full border border-emerald-500/35 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-100">Trial Active</span>
+              </div>
+              <h2 className="mt-3 text-2xl font-bold text-white">Patriot K9 Complimentary Trial</h2>
+              <p className="mt-2 text-sm leading-6 text-neutral-300">Your full Patriot K9 AI Trainer access is active for {promotionalTrial.daysRemaining} more {promotionalTrial.daysRemaining === 1 ? "day" : "days"}.</p>
+            </div>
           ) : (
             <div className="rounded-xl border border-amber-500/25 bg-gradient-to-br from-amber-400/10 via-neutral-950 to-neutral-950 p-5 shadow-[0_16px_44px_rgba(0,0,0,0.2)] sm:p-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -3832,7 +3846,7 @@ ${latestCoachReview}`;
                 </div>
                 {hasFullTrainerAccess && (
                   <span className="w-fit rounded border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm font-semibold text-emerald-200">
-                    {hasClientAccess ? "Client Access Included" : "Premium Active"}
+                    {hasClientAccess ? "Client Access Included" : promotionalTrial ? "Complimentary Trial" : "Premium Active"}
                   </span>
                 )}
               </div>
@@ -4415,7 +4429,7 @@ ${latestCoachReview}`;
                         </span>
                         {hasFullTrainerAccess ? (
                           <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-200">
-                            {hasClientAccess ? "Client Access Included" : "Premium Active"}
+                            {hasClientAccess ? "Client Access Included" : promotionalTrial ? "Complimentary Trial" : "Premium Active"}
                           </span>
                         ) : (
                           <button
@@ -4677,7 +4691,7 @@ ${latestCoachReview}`;
                       </div>
                       {hasFullTrainerAccess && (
                         <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm font-semibold text-emerald-200">
-                          {hasClientAccess ? "Client Access Included" : "Premium Active"}
+                          {hasClientAccess ? "Client Access Included" : promotionalTrial ? "Complimentary Trial" : "Premium Active"}
                         </span>
                       )}
                     </div>

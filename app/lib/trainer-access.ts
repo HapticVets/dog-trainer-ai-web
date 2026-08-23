@@ -1,6 +1,7 @@
 import { clerkClient } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getOwnedCustomerDogIds } from "@/lib/customerDogProfiles";
+import { getActivePromotionalTrial, type ActivePromotionalTrial } from "@/lib/promotionalTrials";
 
 export const FREE_AI_CHAT_LIMIT = 3;
 export const FREE_FIRST_SESSION_LIMIT = 1;
@@ -11,6 +12,7 @@ export type TrainerAccess = {
   admin: boolean;
   premium: boolean;
   clientAccess: boolean;
+  promotionalTrial: ActivePromotionalTrial | null;
   hasFullTrainerAccess: boolean;
   freeMessagesUsed: number;
   freeMessagesRemaining: number;
@@ -34,7 +36,7 @@ export async function getTrainerAccess(userId: string): Promise<TrainerAccess> {
   const admin = user.publicMetadata?.role === "admin";
   const premium = user.publicMetadata?.premium === true;
   const clientAccess = user.publicMetadata?.clientAccess === true;
-  const hasFullTrainerAccess = admin || premium || clientAccess;
+  const promotionalTrialPromise = getActivePromotionalTrial(userId);
   const customerDogIds = await getOwnedCustomerDogIds(userId);
   // An empty PostgREST `in` filter is invalid, so use a non-existent UUID to count zero rows.
   const customerDogIdsForQueries = customerDogIds.length
@@ -47,6 +49,7 @@ export async function getTrainerAccess(userId: string): Promise<TrainerAccess> {
     nextSessionCountResult,
     sessionLogCountResult,
     dogProfileCountResult,
+    promotionalTrial,
   ] = await Promise.all([
     supabaseAdmin
       .from("dog_chats")
@@ -76,6 +79,7 @@ export async function getTrainerAccess(userId: string): Promise<TrainerAccess> {
       .select("*", { count: "exact", head: true })
       .eq("clerk_user_id", userId)
       .is("record_type", null),
+    promotionalTrialPromise,
   ]);
 
   if (chatCountResult.error) throw new Error(chatCountResult.error.message);
@@ -89,6 +93,7 @@ export async function getTrainerAccess(userId: string): Promise<TrainerAccess> {
   const nextSessionsGenerated = nextSessionCountResult.count ?? 0;
   const sessionLogsUsed = sessionLogCountResult.count ?? 0;
   const dogProfilesUsed = dogProfileCountResult.count ?? 0;
+  const hasFullTrainerAccess = admin || premium || clientAccess || Boolean(promotionalTrial);
 
   const aiChatMessagesRemaining = Math.max(FREE_AI_CHAT_LIMIT - aiChatMessagesUsed, 0);
 
@@ -96,6 +101,7 @@ export async function getTrainerAccess(userId: string): Promise<TrainerAccess> {
     admin,
     premium,
     clientAccess,
+    promotionalTrial,
     hasFullTrainerAccess,
     freeMessagesUsed: aiChatMessagesUsed,
     freeMessagesRemaining: aiChatMessagesRemaining,

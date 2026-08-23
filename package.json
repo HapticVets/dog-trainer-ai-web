@@ -12,8 +12,10 @@
     "@clerk/nextjs": "^7.0.7",
     "@stripe/stripe-js": "^9.0.0",
     "@supabase/supabase-js": "^2.100.1",
+    "@types/qrcode": "^1.5.6",
     "next": "16.2.1",
     "openai": "^6.33.0",
+    "qrcode": "^1.5.4",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "stripe": "^21.0.1"
