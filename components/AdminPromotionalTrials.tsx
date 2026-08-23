@@ -82,6 +82,27 @@ export default function AdminPromotionalTrials() {
   const [expandedQrId, setExpandedQrId] = useState<string | null>(null);
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [selectedTrialIds, setSelectedTrialIds] = useState<string[]>([]);
+
+  const isPrintableTrial = (trial: Trial) =>
+    trial.trial_type === "general" && trial.status === "available" && !trial.revoked_at;
+
+  const openPrintableSheet = (trialIds: string[]) => {
+    const uniqueIds = [...new Set(trialIds)];
+    if (!uniqueIds.length) return;
+
+    const searchParams = new URLSearchParams();
+    uniqueIds.forEach((id) => searchParams.append("id", id));
+    window.open(`/admin/trials/print?${searchParams.toString()}`, "_blank", "noopener");
+  };
+
+  const toggleTrialSelection = (trialId: string) => {
+    setSelectedTrialIds((current) =>
+      current.includes(trialId)
+        ? current.filter((id) => id !== trialId)
+        : [...current, trialId],
+    );
+  };
 
   const loadTrials = async () => {
     setLoading(true);
@@ -115,6 +136,7 @@ export default function AdminPromotionalTrials() {
       const generated = data.trials ?? [];
       setTrials((current) => [...generated, ...current]);
       setExpandedQrId(generated.length === 1 ? generated[0].id : null);
+      setSelectedTrialIds(generated.filter(isPrintableTrial).map((trial) => trial.id));
       setNotice(`${generated.length} unique 30-day trial ${generated.length === 1 ? "code was" : "codes were"} generated.`);
     } catch (generationError) {
       setError(generationError instanceof Error ? generationError.message : "Unable to generate trial QR codes.");
@@ -136,6 +158,7 @@ export default function AdminPromotionalTrials() {
       const data = await response.json() as { error?: string };
       if (!response.ok) throw new Error(data.error || "Unable to revoke trial code.");
       setTrials((current) => current.map((item) => item.id === trial.id ? { ...item, status: "revoked", revoked_at: new Date().toISOString() } : item));
+      setSelectedTrialIds((current) => current.filter((id) => id !== trial.id));
       setNotice("Trial code revoked.");
     } catch (revokeError) {
       setError(revokeError instanceof Error ? revokeError.message : "Unable to revoke trial code.");
@@ -153,6 +176,7 @@ export default function AdminPromotionalTrials() {
       const data = await response.json() as { error?: string };
       if (!response.ok) throw new Error(data.error || "Unable to delete revoked trial record.");
       setTrials((current) => current.filter((item) => item.id !== trial.id));
+      setSelectedTrialIds((current) => current.filter((id) => id !== trial.id));
       setExpandedQrId((current) => current === trial.id ? null : current);
       setNotice("Revoked trial record deleted.");
     } catch (deleteError) {
@@ -184,7 +208,7 @@ export default function AdminPromotionalTrials() {
       {(error || notice) && <p className={`mt-4 rounded-lg border px-4 py-3 text-sm ${error ? "border-red-500/35 bg-red-500/10 text-red-200" : "border-emerald-500/30 bg-emerald-500/10 text-emerald-100"}`} role={error ? "alert" : "status"}>{error || notice}</p>}
 
       <section className="mt-7"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-300">Trial History</p><h2 className="mt-2 text-2xl font-bold text-white">Generated invitations</h2></div><span className="rounded-full border border-neutral-700 px-3 py-1 text-xs text-neutral-300">{trials.length} total</span></div>
-        {loading ? <p className="mt-5 text-sm text-neutral-400">Loading trial QR codes...</p> : trials.length === 0 ? <p className="mt-5 rounded-xl border border-dashed border-neutral-700 p-5 text-sm text-neutral-400">No promotional trial codes have been generated yet.</p> : <div className="mt-5 grid gap-4">{trials.map((trial) => { const active = trial.status === "redeemed" && !trial.revoked_at && Boolean(trial.expires_at) && new Date(trial.expires_at!).getTime() > Date.now(); const revoked = trial.status === "revoked" || Boolean(trial.revoked_at); return <article key={trial.id} className="rounded-xl border border-neutral-800 bg-neutral-950 p-4 sm:p-5"><div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><p className="font-mono text-sm font-bold text-white">{trial.code}</p><span className={`rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] ${trial.status === "available" ? "border-amber-400/30 bg-amber-400/10 text-amber-100" : revoked ? "border-red-500/30 bg-red-500/10 text-red-200" : "border-emerald-500/30 bg-emerald-500/10 text-emerald-100"}`}>{active ? "Active" : revoked ? "revoked" : trial.status}</span></div><p className="mt-2 text-sm text-neutral-300">{trial.campaign_name || "General invitation"}{trial.organization_name ? ` · ${trial.organization_name}` : ""}</p><p className="mt-1 text-xs text-neutral-500">Created {formatDate(trial.created_at)}{trial.redeemed_at ? ` · Redeemed ${formatDate(trial.redeemed_at)}` : ""}{active ? ` · ${daysRemaining(trial.expires_at)} days remaining` : ""}</p>{trial.redeemed_by_email && <p className="mt-1 text-xs text-neutral-400">Redeemed by {trial.redeemed_by_email}</p>}</div><div className="flex shrink-0 flex-wrap gap-2"><button type="button" onClick={() => setExpandedQrId((value) => value === trial.id ? null : trial.id)} className="rounded-lg border border-neutral-700 px-3 py-2 text-xs font-semibold text-neutral-100 hover:bg-neutral-900">{expandedQrId === trial.id ? "Hide QR" : "View QR"}</button>{revoked ? <button type="button" onClick={() => void deleteRevoked(trial)} disabled={deletingId === trial.id} className="rounded-lg border border-red-500/30 px-3 py-2 text-xs font-semibold text-red-200 hover:bg-red-500/10 disabled:opacity-60">{deletingId === trial.id ? "Deleting..." : "Delete"}</button> : <button type="button" onClick={() => void revoke(trial)} disabled={revokingId === trial.id} className="rounded-lg border border-red-500/30 px-3 py-2 text-xs font-semibold text-red-200 hover:bg-red-500/10 disabled:opacity-60">{revokingId === trial.id ? "Revoking..." : "Revoke"}</button>}</div></div>{expandedQrId === trial.id && <div className="mt-4 border-t border-neutral-800 pt-4"><TrialQr trial={trial} /></div>}</article>; })}</div>}
+        {loading ? <p className="mt-5 text-sm text-neutral-400">Loading trial QR codes...</p> : trials.length === 0 ? <p className="mt-5 rounded-xl border border-dashed border-neutral-700 p-5 text-sm text-neutral-400">No promotional trial codes have been generated yet.</p> : <><div className="mt-5 flex flex-col gap-3 rounded-xl border border-neutral-800 bg-black/30 p-3 sm:flex-row sm:items-center sm:justify-between"><div className="flex flex-wrap items-center gap-2"><button type="button" onClick={() => setSelectedTrialIds(trials.filter(isPrintableTrial).map((trial) => trial.id))} className="rounded-lg border border-neutral-700 px-3 py-2 text-xs font-semibold text-neutral-100 hover:bg-neutral-900">Select All Printable</button><button type="button" onClick={() => setSelectedTrialIds([])} disabled={!selectedTrialIds.length} className="rounded-lg border border-neutral-700 px-3 py-2 text-xs font-semibold text-neutral-300 hover:bg-neutral-900 disabled:cursor-not-allowed disabled:opacity-45">Clear Selection</button><span className="text-xs text-neutral-400">{selectedTrialIds.length} selected</span></div><button type="button" onClick={() => openPrintableSheet(selectedTrialIds)} disabled={!selectedTrialIds.length} className="min-h-10 rounded-lg bg-amber-400 px-4 py-2 text-xs font-bold text-black hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-45">Open Printable Sheet</button></div><div className="mt-5 grid gap-4">{trials.map((trial) => { const active = trial.status === "redeemed" && !trial.revoked_at && Boolean(trial.expires_at) && new Date(trial.expires_at!).getTime() > Date.now(); const revoked = trial.status === "revoked" || Boolean(trial.revoked_at); const printable = isPrintableTrial(trial); return <article key={trial.id} className="rounded-xl border border-neutral-800 bg-neutral-950 p-4 sm:p-5"><div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2">{printable && <label className="flex min-h-8 cursor-pointer items-center gap-2 rounded-lg border border-amber-400/25 bg-amber-400/5 px-2 text-xs font-semibold text-amber-100"><input type="checkbox" checked={selectedTrialIds.includes(trial.id)} onChange={() => toggleTrialSelection(trial.id)} className="h-4 w-4 accent-amber-400" aria-label={`Select ${trial.code} for printing`} />Print</label>}<p className="font-mono text-sm font-bold text-white">{trial.code}</p><span className={`rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] ${trial.status === "available" ? "border-amber-400/30 bg-amber-400/10 text-amber-100" : revoked ? "border-red-500/30 bg-red-500/10 text-red-200" : "border-emerald-500/30 bg-emerald-500/10 text-emerald-100"}`}>{active ? "Active" : revoked ? "revoked" : trial.status}</span></div><p className="mt-2 text-sm text-neutral-300">{trial.campaign_name || "General invitation"}{trial.organization_name ? ` · ${trial.organization_name}` : ""}</p><p className="mt-1 text-xs text-neutral-500">Created {formatDate(trial.created_at)}{trial.redeemed_at ? ` · Redeemed ${formatDate(trial.redeemed_at)}` : ""}{active ? ` · ${daysRemaining(trial.expires_at)} days remaining` : ""}</p>{trial.redeemed_by_email && <p className="mt-1 text-xs text-neutral-400">Redeemed by {trial.redeemed_by_email}</p>}</div><div className="flex shrink-0 flex-wrap gap-2"><button type="button" onClick={() => setExpandedQrId((value) => value === trial.id ? null : trial.id)} className="rounded-lg border border-neutral-700 px-3 py-2 text-xs font-semibold text-neutral-100 hover:bg-neutral-900">{expandedQrId === trial.id ? "Hide QR" : "View QR"}</button>{printable && <button type="button" onClick={() => openPrintableSheet([trial.id])} className="rounded-lg border border-amber-400/35 px-3 py-2 text-xs font-semibold text-amber-100 hover:bg-amber-400/10">Print Card</button>}{revoked ? <button type="button" onClick={() => void deleteRevoked(trial)} disabled={deletingId === trial.id} className="rounded-lg border border-red-500/30 px-3 py-2 text-xs font-semibold text-red-200 hover:bg-red-500/10 disabled:opacity-60">{deletingId === trial.id ? "Deleting..." : "Delete"}</button> : <button type="button" onClick={() => void revoke(trial)} disabled={revokingId === trial.id} className="rounded-lg border border-red-500/30 px-3 py-2 text-xs font-semibold text-red-200 hover:bg-red-500/10 disabled:opacity-60">{revokingId === trial.id ? "Revoking..." : "Revoke"}</button>}</div></div>{expandedQrId === trial.id && <div className="mt-4 border-t border-neutral-800 pt-4"><TrialQr trial={trial} /></div>}</article>; })}</div></>}
       </section>
     </main>
   );

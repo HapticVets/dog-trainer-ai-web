@@ -101,3 +101,45 @@ body {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 9999px;
 }
+
+@page {
+  size: letter portrait;
+  margin: 0.35in;
+}
+
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  body > header,
+  body > footer,
+  .print-screen-controls {
+    display: none !important;
+  }
+
+  .promotional-print-sheet {
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .promotional-print-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.18in !important;
+  }
+
+  .promotional-print-card {
+    min-height: 4.85in;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    box-shadow: none !important;
+  }
+
+  .promotional-print-card:nth-child(4n) {
+    break-after: page;
+    page-break-after: always;
+  }
+}
