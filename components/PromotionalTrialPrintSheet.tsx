@@ -54,7 +54,7 @@ function PromotionalTrialPrintCard({ trial }: { trial: PrintableTrial }) {
         <Image src="/images/patriot-k9-favicon.jpg" alt="Patriot K9 Command" width={44} height={44} className="h-11 w-11 rounded-full object-cover" />
         <div>
           <p className="text-xs font-extrabold uppercase tracking-[0.18em]">Patriot K9 Command</p>
-          <h2 className="mt-1 text-xl font-black leading-tight">Free 30-Day AI Dog Trainer Trial</h2>
+          <h2 className="mt-1 text-xl font-black leading-tight">Free {trial.trialDays}-Day AI Dog Trainer Trial</h2>
         </div>
       </div>
 

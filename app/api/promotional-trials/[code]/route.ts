@@ -11,6 +11,7 @@ type TrialStatus = {
   state: "invalid" | "available" | "revoked" | "claimed";
   redeemedBy?: string | null;
   expiresAt?: string | null;
+  trialDays?: number;
 };
 
 const getAccountAccessState = async (userId: string) => {
@@ -33,7 +34,7 @@ const getAccountAccessState = async (userId: string) => {
 const getTrialStatus = async (code: string): Promise<TrialStatus> => {
   const { data, error } = await supabaseAdmin
     .from("promotional_trial_codes")
-    .select("status, redeemed_by_clerk_user_id, expires_at, revoked_at")
+    .select("status, redeemed_by_clerk_user_id, expires_at, revoked_at, trial_days")
     .eq("code", code)
     .maybeSingle();
 
@@ -41,9 +42,9 @@ const getTrialStatus = async (code: string): Promise<TrialStatus> => {
   if (!data) return { state: "invalid" as const };
   if (data.revoked_at || data.status === "revoked") return { state: "revoked" as const };
   if (data.status !== "available" || data.redeemed_by_clerk_user_id) {
-    return { state: "claimed" as const, redeemedBy: data.redeemed_by_clerk_user_id, expiresAt: data.expires_at };
+    return { state: "claimed" as const, redeemedBy: data.redeemed_by_clerk_user_id, expiresAt: data.expires_at, trialDays: data.trial_days };
   }
-  return { state: "available" as const };
+  return { state: "available" as const, trialDays: data.trial_days };
 };
 
 export async function GET(
@@ -58,7 +59,7 @@ export async function GET(
 
     if (!userId) return NextResponse.json({ authenticated: false, ...status });
     if (status.state === "claimed" && status.redeemedBy === userId) {
-      return NextResponse.json({ authenticated: true, state: "active", expiresAt: status.expiresAt });
+      return NextResponse.json({ authenticated: true, state: "active", expiresAt: status.expiresAt, trialDays: status.trialDays });
     }
     if (status.state !== "available") return NextResponse.json({ authenticated: true, state: status.state });
 

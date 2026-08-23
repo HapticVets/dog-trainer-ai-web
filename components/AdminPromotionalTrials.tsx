@@ -48,7 +48,7 @@ function TrialQr({ trial }: { trial: Trial }) {
 
   const share = async () => {
     if (navigator.share) {
-      await navigator.share({ title: "Patriot K9 AI Trainer Trial", text: "Your complimentary 30-day Patriot K9 AI Trainer trial.", url: trial.redemptionUrl });
+      await navigator.share({ title: "Patriot K9 AI Trainer Trial", text: `Your complimentary ${trial.trial_days}-day Patriot K9 AI Trainer trial.`, url: trial.redemptionUrl });
       return;
     }
     await copy();
@@ -137,7 +137,7 @@ export default function AdminPromotionalTrials() {
       setTrials((current) => [...generated, ...current]);
       setExpandedQrId(generated.length === 1 ? generated[0].id : null);
       setSelectedTrialIds(generated.filter(isPrintableTrial).map((trial) => trial.id));
-      setNotice(`${generated.length} unique 30-day trial ${generated.length === 1 ? "code was" : "codes were"} generated.`);
+      setNotice(`${generated.length} unique 15-day trial ${generated.length === 1 ? "code was" : "codes were"} generated.`);
     } catch (generationError) {
       setError(generationError instanceof Error ? generationError.message : "Unable to generate trial QR codes.");
     } finally {
@@ -191,11 +191,11 @@ export default function AdminPromotionalTrials() {
       <div className="max-w-3xl">
         <p className="text-xs font-bold uppercase tracking-[0.22em] text-amber-300">Patriot K9 Admin</p>
         <h1 className="mt-2 text-3xl font-bold text-white sm:text-4xl">Trial QR Codes</h1>
-        <p className="mt-3 text-sm leading-6 text-neutral-300">Generate a unique, one-time 30-day AI Trainer invitation for a referral, shelter, rescue, or community event.</p>
+        <p className="mt-3 text-sm leading-6 text-neutral-300">Generate a unique, one-time 15-day AI Trainer invitation for a referral, shelter, rescue, or community event.</p>
       </div>
 
       <form onSubmit={generate} className="mt-6 rounded-2xl border border-amber-400/25 bg-neutral-950 p-5 shadow-[0_16px_40px_rgba(0,0,0,0.22)] sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-300">Generate Free AI Trainer Trial</p><p className="mt-1 text-sm text-neutral-400">Every QR is unique and grants one authenticated account 30 days of full trainer access.</p></div><span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-100">30 days fixed</span></div>
+        <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-300">Generate Free AI Trainer Trial</p><p className="mt-1 text-sm text-neutral-400">Every QR is unique and grants one authenticated account 15 days of full trainer access.</p></div><span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-100">15 days fixed</span></div>
         <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <label className="text-sm font-semibold text-neutral-200">Quantity<input value={quantity} onChange={(event) => setQuantity(event.target.value)} type="number" min="1" max="50" required className="mt-2 min-h-11 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 text-white outline-none focus:border-amber-300" /></label>
           <label className="text-sm font-semibold text-neutral-200">Campaign / Source<input value={campaignName} onChange={(event) => setCampaignName(event.target.value)} placeholder="Shelter, referral..." className="mt-2 min-h-11 w-full rounded-lg border border-neutral-700 bg-black/40 px-3 text-white placeholder:text-neutral-600 outline-none focus:border-amber-300" /></label>

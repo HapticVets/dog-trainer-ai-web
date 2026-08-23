@@ -51,7 +51,7 @@ export async function POST(request: Request) {
 
     const records = Array.from({ length: quantity }, () => ({
       code: createPromotionalTrialCode(),
-      trial_days: 30,
+      trial_days: 15,
       trial_type: "general",
       status: "available",
       campaign_name: optionalText(body.campaignName, 120),

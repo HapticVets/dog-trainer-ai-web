@@ -23,6 +23,7 @@ const formatDate = (value?: string | null) =>
 export default function PromotionalTrialRedeem({ code }: { code: string }) {
   const [state, setState] = useState<TrialState>("loading");
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
+  const [trialDays, setTrialDays] = useState(15);
   const [message, setMessage] = useState("");
   const [activating, setActivating] = useState(false);
 
@@ -31,13 +32,14 @@ export default function PromotionalTrialRedeem({ code }: { code: string }) {
     const load = async () => {
       try {
         const response = await fetch(`/api/promotional-trials/${encodeURIComponent(code)}`, { cache: "no-store" });
-        const data = await response.json() as { authenticated?: boolean; state?: TrialState; expiresAt?: string; error?: string };
+        const data = await response.json() as { authenticated?: boolean; state?: TrialState; expiresAt?: string; trialDays?: number; error?: string };
         if (!active) return;
         if (!response.ok) {
           setState("error");
           setMessage(data.error || "Unable to check this complimentary trial right now.");
           return;
         }
+        if (Number.isInteger(data.trialDays) && data.trialDays! > 0) setTrialDays(data.trialDays!);
         if (!data.authenticated) {
           setState("available");
           setMessage("signin");
@@ -80,7 +82,7 @@ export default function PromotionalTrialRedeem({ code }: { code: string }) {
 
   const signInTarget = `/sign-in?redirect_url=${encodeURIComponent(`/redeem/${code}`)}`;
   const signUpTarget = `/sign-up?redirect_url=${encodeURIComponent(`/redeem/${code}`)}`;
-  const heading = state === "success" ? "Your 30-Day Trial Is Active" : "30 Days of AI Training Included";
+  const heading = state === "success" || state === "active" ? `Your ${trialDays}-Day Trial Is Active` : `${trialDays} Days of AI Training Included`;
 
   return (
     <main className="min-h-screen bg-[#080a08] px-4 py-10 text-white sm:px-6 sm:py-16">
@@ -96,7 +98,7 @@ export default function PromotionalTrialRedeem({ code }: { code: string }) {
           </>
         ) : message === "signin" ? (
           <>
-            <p className="mt-4 text-lg leading-7 text-neutral-200">You&apos;ve received a complimentary 30-day trial of the Patriot K9 AI Trainer. No credit card required.</p>
+            <p className="mt-4 text-lg leading-7 text-neutral-200">You&apos;ve received a complimentary {trialDays}-day trial of the Patriot K9 AI Trainer. No credit card required.</p>
             <div className="mt-7 grid gap-3 sm:grid-cols-2">
               <Link href={signUpTarget} className="inline-flex min-h-12 items-center justify-center rounded-lg bg-amber-400 px-5 py-3 text-sm font-bold text-black transition hover:bg-amber-300">Create Account</Link>
               <Link href={signInTarget} className="inline-flex min-h-12 items-center justify-center rounded-lg border border-neutral-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-neutral-900">Sign In</Link>
@@ -104,8 +106,8 @@ export default function PromotionalTrialRedeem({ code }: { code: string }) {
           </>
         ) : state === "available" ? (
           <>
-            <p className="mt-4 text-lg leading-7 text-neutral-200">Your Free Month of Patriot K9 AI Training is ready. Your 30-day trial begins when you activate it. No credit card required.</p>
-            <button type="button" onClick={() => void activate()} disabled={activating} className="mt-7 inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-amber-400 px-5 py-3 text-sm font-bold text-black transition hover:bg-amber-300 disabled:cursor-wait disabled:opacity-60 sm:w-auto">{activating ? "Activating..." : "Activate My Free Month"}</button>
+            <p className="mt-4 text-lg leading-7 text-neutral-200">Your complimentary Patriot K9 AI Training trial is ready. Your {trialDays}-day trial begins when you activate it. No credit card required.</p>
+            <button type="button" onClick={() => void activate()} disabled={activating} className="mt-7 inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-amber-400 px-5 py-3 text-sm font-bold text-black transition hover:bg-amber-300 disabled:cursor-wait disabled:opacity-60 sm:w-auto">{activating ? "Activating..." : "Activate My Free Trial"}</button>
           </>
         ) : (
           <>
