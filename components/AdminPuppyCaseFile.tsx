@@ -6,6 +6,7 @@ import { ChangeEvent, FormEvent, useCallback, useEffect, useRef, useState } from
 import { STANDARD_COLLAR_COLORS, collarLabel, collarSwatch } from "@/lib/admin-puppy-collars";
 import PuppyDevelopmentMedia from "@/components/PuppyDevelopmentMedia";
 import AdminPuppyPublicListing from "@/components/AdminPuppyPublicListing";
+import AdminPuppyBuyerTrial from "@/components/AdminPuppyBuyerTrial";
 
 const traitGroups = [
   {
@@ -282,6 +283,8 @@ export default function AdminPuppyCaseFile({
       </header>
 
       <AdminPuppyPublicListing litterId={litterId} puppyId={puppyId} puppy={puppy} onSaved={(updatedPuppy) => setData((current) => current ? { ...current, puppy: { ...current.puppy, ...updatedPuppy } } : current)} />
+
+      <AdminPuppyBuyerTrial litterId={litterId} puppyId={puppyId} />
 
       {notice && <p className="mt-4 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200" role="status">{notice}</p>}
       {error && !formOpen && !deleteTarget && <p className="mt-4 rounded-lg border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-200" role="alert">{error}</p>}

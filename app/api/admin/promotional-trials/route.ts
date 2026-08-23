@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { AdminAuthorizationError, requireAdmin } from "@/lib/admin";
 import {
   createPromotionalTrialCode,
+  getPuppyTrialLabels,
   getPromotionalTrialUrl,
   type PromotionalTrial,
 } from "@/lib/promotionalTrials";
@@ -17,6 +18,17 @@ const unauthorizedResponse = (error: unknown) =>
     ? NextResponse.json({ error: error.message }, { status: error.status })
     : null;
 
+const withAdminTrialContext = async (trials: PromotionalTrial[]) => {
+  const puppyLabels = await getPuppyTrialLabels(
+    trials.filter((trial) => trial.trial_type === "puppy_buyer" && Boolean(trial.puppy_id)).map((trial) => trial.puppy_id!),
+  );
+  return trials.map((trial) => ({
+    ...trial,
+    redemptionUrl: getPromotionalTrialUrl(trial.code),
+    puppyLabel: trial.puppy_id ? puppyLabels.get(trial.puppy_id) ?? null : null,
+  }));
+};
+
 export async function GET() {
   try {
     await requireAdmin();
@@ -26,10 +38,7 @@ export async function GET() {
       .order("created_at", { ascending: false });
 
     if (error) throw error;
-    const trials = ((data ?? []) as PromotionalTrial[]).map((trial) => ({
-      ...trial,
-      redemptionUrl: getPromotionalTrialUrl(trial.code),
-    }));
+    const trials = await withAdminTrialContext((data ?? []) as PromotionalTrial[]);
     return NextResponse.json({ trials });
   } catch (error) {
     const authorization = unauthorizedResponse(error);
@@ -66,10 +75,7 @@ export async function POST(request: Request) {
       .select(trialColumns);
 
     if (error) throw error;
-    const trials = ((data ?? []) as PromotionalTrial[]).map((trial) => ({
-      ...trial,
-      redemptionUrl: getPromotionalTrialUrl(trial.code),
-    }));
+    const trials = await withAdminTrialContext((data ?? []) as PromotionalTrial[]);
     return NextResponse.json({ trials }, { status: 201 });
   } catch (error) {
     const authorization = unauthorizedResponse(error);
