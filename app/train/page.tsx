@@ -9,6 +9,7 @@ import CustomerSessionWorkspace from "@/components/CustomerSessionWorkspace";
 import CustomerProgressView from "@/components/CustomerProgressView";
 import CustomerCoachView from "@/components/CustomerCoachView";
 import PromotionalTrialConversionCard from "@/components/PromotionalTrialConversionCard";
+import PromotionalTrialFeedbackCard from "@/components/PromotionalTrialFeedbackCard";
 import CustomerPlanDetailView from "@/components/CustomerPlanDetailView";
 import DogTrainingTimeline from "@/components/DogTrainingTimeline";
 import TrainingPhaseCard from "@/components/TrainingPhaseCard";
@@ -3323,7 +3324,7 @@ ${latestCoachReview}`;
       </section>
 
       {!isInitializingTrainer && !evaluationMode && trainerAccess && !isPremiumUser && !hasClientAccess && !trainerAccess.admin && (promotionalTrial || expiredPromotionalTrial) && (
-        <section className="mx-auto max-w-7xl px-4 pt-5 sm:px-6">
+        <section className="mx-auto max-w-7xl space-y-4 px-4 pt-5 sm:px-6">
           <PromotionalTrialConversionCard
             trial={promotionalTrial}
             expiredTrial={expiredPromotionalTrial}
@@ -3331,6 +3332,7 @@ ${latestCoachReview}`;
             checkoutError={upgradeCheckoutError}
             onUpgrade={handleUpgrade}
           />
+          {expiredPromotionalTrial || (promotionalTrial?.daysRemaining ?? Infinity) <= 5 ? <PromotionalTrialFeedbackCard /> : null}
         </section>
       )}
 
