@@ -29,6 +29,10 @@ export type ActivePromotionalTrial = {
   daysRemaining: number;
 };
 
+export type ExpiredPromotionalTrial = {
+  expiresAt: string;
+};
+
 const missingRelationCodes = new Set(["42P01", "PGRST205"]);
 
 export const normalizePromotionalTrialCode = (value: string) =>
@@ -72,6 +76,28 @@ export async function getActivePromotionalTrial(
     expiresAt: data.expires_at,
     daysRemaining: Math.max(0, Math.ceil(millisecondsRemaining / 86_400_000)),
   };
+}
+
+export async function getExpiredPromotionalTrial(
+  userId: string,
+): Promise<ExpiredPromotionalTrial | null> {
+  const now = new Date().toISOString();
+  const { data, error } = await supabaseAdmin
+    .from("promotional_trial_codes")
+    .select("expires_at")
+    .eq("status", "redeemed")
+    .eq("redeemed_by_clerk_user_id", userId)
+    .is("revoked_at", null)
+    .lte("expires_at", now)
+    .order("expires_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (isMissingPromotionalTrialsTable(error)) return null;
+  if (error) throw new Error(error.message);
+  if (!data?.expires_at) return null;
+
+  return { expiresAt: data.expires_at };
 }
 
 export async function hasRedeemedPromotionalTrial(userId: string) {

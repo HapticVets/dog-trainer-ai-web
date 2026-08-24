@@ -9,7 +9,11 @@ export async function GET() {
     return NextResponse.json(
       {
         loggedIn: false,
+        admin: false,
         premium: false,
+        clientAccess: false,
+        promotionalTrial: null,
+        expiredPromotionalTrial: null,
         freeMessagesUsed: 0,
         freeMessagesRemaining: 0,
         aiChatMessagesUsed: 0,

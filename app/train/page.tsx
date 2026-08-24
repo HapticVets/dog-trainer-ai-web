@@ -8,6 +8,7 @@ import CustomerTrainingActions from "@/components/CustomerTrainingActions";
 import CustomerSessionWorkspace from "@/components/CustomerSessionWorkspace";
 import CustomerProgressView from "@/components/CustomerProgressView";
 import CustomerCoachView from "@/components/CustomerCoachView";
+import PromotionalTrialConversionCard from "@/components/PromotionalTrialConversionCard";
 import CustomerPlanDetailView from "@/components/CustomerPlanDetailView";
 import DogTrainingTimeline from "@/components/DogTrainingTimeline";
 import TrainingPhaseCard from "@/components/TrainingPhaseCard";
@@ -73,11 +74,15 @@ type PlanSection = {
 };
 
 type TrainerAccessState = {
+  admin: boolean;
   premium: boolean;
   clientAccess: boolean;
   promotionalTrial: {
     expiresAt: string;
     daysRemaining: number;
+  } | null;
+  expiredPromotionalTrial: {
+    expiresAt: string;
   } | null;
   hasFullTrainerAccess: boolean;
   freeMessagesUsed: number;
@@ -467,6 +472,7 @@ export default function TrainPage() {
   const isPremiumUser = trainerAccess?.premium === true;
   const hasClientAccess = trainerAccess?.clientAccess === true;
   const promotionalTrial = trainerAccess?.promotionalTrial ?? null;
+  const expiredPromotionalTrial = trainerAccess?.expiredPromotionalTrial ?? null;
   const hasFullTrainerAccess = trainerAccess?.hasFullTrainerAccess === true;
   const showClientWelcome =
     evaluationMode && hasNoDogProfiles && hasClientAccess && !clientOnboardingStarted;
@@ -3316,6 +3322,18 @@ ${latestCoachReview}`;
         </div>
       </section>
 
+      {!isInitializingTrainer && !evaluationMode && trainerAccess && !isPremiumUser && !hasClientAccess && !trainerAccess.admin && (promotionalTrial || expiredPromotionalTrial) && (
+        <section className="mx-auto max-w-7xl px-4 pt-5 sm:px-6">
+          <PromotionalTrialConversionCard
+            trial={promotionalTrial}
+            expiredTrial={expiredPromotionalTrial}
+            checkoutLoading={upgradeCheckoutLoading}
+            checkoutError={upgradeCheckoutError}
+            onUpgrade={handleUpgrade}
+          />
+        </section>
+      )}
+
       {!isInitializingTrainer && !evaluationMode && customerView === "home" && (
         <CustomerTrainingActions
           dogName={dogProfile.name}
@@ -3339,7 +3357,7 @@ ${latestCoachReview}`;
         />
       )}
 
-      {!isInitializingTrainer && trainerAccess && !evaluationMode && customerView === "workspace" && (
+      {!isInitializingTrainer && trainerAccess && !evaluationMode && customerView === "workspace" && (isPremiumUser || hasClientAccess || (!promotionalTrial && !expiredPromotionalTrial)) && (
         <section className="mx-auto max-w-7xl px-4 pt-6 sm:px-6">
           {isPremiumUser ? (
             <div className="rounded-xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-neutral-950 to-neutral-950 p-5 shadow-[0_16px_44px_rgba(0,0,0,0.2)] sm:p-6">
@@ -3387,16 +3405,7 @@ ${latestCoachReview}`;
               <h2 className="mt-3 text-2xl font-bold text-white">Patriot K9 Client Access</h2>
               <p className="mt-2 text-sm leading-6 text-neutral-300">Included with your in-person Patriot K9 training. Your linked dog can use ongoing coaching, sessions, and homework guidance.</p>
             </div>
-          ) : promotionalTrial ? (
-            <div className="rounded-xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-neutral-950 to-neutral-950 p-5 shadow-[0_16px_44px_rgba(0,0,0,0.2)] sm:p-6">
-              <div className="flex flex-wrap items-center gap-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">Complimentary Access</p>
-                <span className="rounded-full border border-emerald-500/35 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-100">Trial Active</span>
-              </div>
-              <h2 className="mt-3 text-2xl font-bold text-white">Patriot K9 Complimentary Trial</h2>
-              <p className="mt-2 text-sm leading-6 text-neutral-300">Your full Patriot K9 AI Trainer access is active for {promotionalTrial.daysRemaining} more {promotionalTrial.daysRemaining === 1 ? "day" : "days"}.</p>
-            </div>
-          ) : (
+          ) : promotionalTrial || expiredPromotionalTrial ? null : (
             <div className="rounded-xl border border-amber-500/25 bg-gradient-to-br from-amber-400/10 via-neutral-950 to-neutral-950 p-5 shadow-[0_16px_44px_rgba(0,0,0,0.2)] sm:p-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="max-w-2xl">
