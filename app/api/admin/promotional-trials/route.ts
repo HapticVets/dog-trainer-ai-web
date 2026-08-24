@@ -5,6 +5,10 @@ import {
   getPromotionalTrialUrl,
   type PromotionalTrial,
 } from "@/lib/promotionalTrials";
+import {
+  isMissingPromotionalTrialConversionsTable,
+  type PromotionalTrialConversionEvent,
+} from "@/lib/promotionalTrialConversions";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 const trialColumns = "id, code, trial_days, trial_type, status, campaign_name, organization_name, notes, buyer_email, puppy_id, litter_id, created_at, redeemed_by_email, redeemed_at, expires_at, revoked_at";
@@ -30,7 +34,19 @@ export async function GET() {
       ...trial,
       redemptionUrl: getPromotionalTrialUrl(trial.code),
     }));
-    return NextResponse.json({ trials });
+    const { data: conversionEvents, error: conversionEventsError } = await supabaseAdmin
+      .from("promotional_trial_conversion_events")
+      .select("id, promotional_trial_code_id, event_type, created_at")
+      .order("created_at", { ascending: false });
+
+    if (conversionEventsError && !isMissingPromotionalTrialConversionsTable(conversionEventsError)) {
+      throw conversionEventsError;
+    }
+
+    return NextResponse.json({
+      trials,
+      conversionEvents: (conversionEvents ?? []) as PromotionalTrialConversionEvent[],
+    });
   } catch (error) {
     const authorization = unauthorizedResponse(error);
     if (authorization) return authorization;

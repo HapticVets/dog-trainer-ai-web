@@ -2,6 +2,7 @@ import Stripe from "stripe";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { clerkClient } from "@clerk/nextjs/server";
+import { recordPromotionalTrialPremiumConversion } from "@/lib/promotionalTrialConversions";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
@@ -44,6 +45,7 @@ export async function POST(req: Request) {
     }
 
     if (
+      event.type === "customer.subscription.created" ||
       event.type === "customer.subscription.updated" ||
       event.type === "customer.subscription.deleted"
     ) {
@@ -54,13 +56,31 @@ export async function POST(req: Request) {
         const isActive =
           subscription.status === "active" || subscription.status === "trialing";
 
-        const client = await clerkClient();
-        await client.users.updateUserMetadata(clerkUserId, {
-          publicMetadata: {
-            premium: isActive,
-            plan: isActive ? "premium" : "free",
-          },
-        });
+        // Existing entitlement behavior is driven by checkout completion and
+        // subscription updates/deletions. A created event is only added here
+        // to capture a newly active paid subscription for trial attribution.
+        if (event.type !== "customer.subscription.created") {
+          const client = await clerkClient();
+          await client.users.updateUserMetadata(clerkUserId, {
+            publicMetadata: {
+              premium: isActive,
+              plan: isActive ? "premium" : "free",
+            },
+          });
+        }
+
+        if (subscription.status === "active") {
+          try {
+            await recordPromotionalTrialPremiumConversion({
+              userId: clerkUserId,
+              stripeSubscriptionId: subscription.id,
+            });
+          } catch (error) {
+            // Keep Stripe's entitlement webhook reliable even if optional
+            // promotional-trial attribution cannot be recorded.
+            console.error("Promotional trial paid conversion tracking failed", error);
+          }
+        }
       }
     }
 

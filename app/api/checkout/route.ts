@@ -7,6 +7,7 @@ import {
   PREMIUM_SUBSCRIPTION_PRICE_ID,
 } from "@/lib/subscriptionPricing";
 import { absoluteUrl } from "@/lib/site";
+import { recordPromotionalTrialUpgradeCtaClick } from "@/lib/promotionalTrialConversions";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
@@ -16,6 +17,13 @@ export async function POST() {
 
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Attribution must never prevent a user from reaching Stripe Checkout.
+    try {
+      await recordPromotionalTrialUpgradeCtaClick(userId);
+    } catch (error) {
+      console.error("Promotional trial upgrade CTA tracking failed", error);
     }
 
     const session = await stripe.checkout.sessions.create({
