@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
+import { useState } from "react";
 
 const problemPoints = [
   "Every dog is different.",
@@ -129,9 +130,12 @@ const landingPageLinks = [
 
 export default function Home() {
   const { isSignedIn } = useUser();
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const patriotK9ContactUrl = "https://discord.gg/Mmb4KSp9Y8";
 
   const handleCheckout = async () => {
+    if (checkoutLoading) return;
+    setCheckoutLoading(true);
     try {
       const res = await fetch("/api/checkout", { method: "POST" });
       const data = await res.json();
@@ -141,10 +145,12 @@ export default function Home() {
         return;
       }
 
-      alert("Checkout failed.");
+      alert(data?.error || "Unable to start checkout right now.");
     } catch (err) {
       console.error(err);
       alert("Error starting checkout.");
+    } finally {
+      setCheckoutLoading(false);
     }
   };
 
@@ -599,9 +605,10 @@ export default function Home() {
               {isSignedIn && (
                 <button
                   onClick={handleCheckout}
-                  className="mt-6 rounded bg-amber-400 px-5 py-3 font-semibold text-black"
+                  disabled={checkoutLoading}
+                  className="mt-6 rounded bg-amber-400 px-5 py-3 font-semibold text-black disabled:cursor-wait disabled:opacity-60"
                 >
-                  Upgrade Now
+                  {checkoutLoading ? "Starting checkout..." : "Upgrade Now"}
                 </button>
               )}
             </div>
