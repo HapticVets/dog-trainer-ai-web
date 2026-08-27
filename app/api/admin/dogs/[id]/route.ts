@@ -5,6 +5,7 @@ import { hydrateDogCaseFile, serializeDogCaseFile } from "@/lib/dogCaseFile";
 import { normalizeDogSex } from "@/lib/dogSex";
 import { isKennelBreedingManagementGoalType, getAvailableMainGoals, normalizeGoalType } from "@/lib/dogGoals";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { getAdminClientActivitySummaries } from "@/lib/adminClientActivity";
 
 const DOG_PROFILE_IMAGES_BUCKET = "dog-profile-images";
 const internalRecordTypes = ["personal", "client", "breeding"];
@@ -158,8 +159,13 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       return NextResponse.json({ error: "Unable to load internal training sessions." }, { status: 500 });
     }
 
+    const signedProfile = await withSignedImageUrl(profile as AdminDogProfile);
+    const clientActivity = signedProfile.record_type === "client"
+      ? (await getAdminClientActivitySummaries([id])).get(id)
+      : undefined;
+
     return NextResponse.json({
-      profile: await withSignedImageUrl(profile as AdminDogProfile),
+      profile: { ...signedProfile, clientActivity },
       sessions: sessions ?? [],
       sessionHistoryAvailable,
       adminSessions: adminSessions ?? [],

@@ -10,6 +10,7 @@ import AdminClientAccess from "@/components/AdminClientAccess";
 import AdminHomeworkSyncControls, { type HomeworkSyncValue } from "@/components/AdminHomeworkSyncControls";
 import AdminClientEvaluations from "@/components/AdminClientEvaluations";
 import AdminSessionCompletionForm, { hasAdminSessionDraft, type AdminSessionLogDraft } from "@/components/AdminSessionCompletionForm";
+import AdminClientActivity from "@/components/AdminClientActivity";
 
 type AdminNote = {
   id: string;
@@ -308,6 +309,8 @@ export default function AdminDogCaseFile({ dogId }: { dogId: string }) {
       </header>
 
       {profile.record_type === "client" && <div className="mt-6 grid gap-6 lg:grid-cols-2"><AdminClientAccess dog={profile} /><AdminHomeworkSyncControls value={homeworkSync} onChange={setHomeworkSync} /></div>}
+
+      {profile.record_type === "client" && <div className="mt-6"><AdminClientActivity summary={profile.clientActivity} /></div>}
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(280px,0.8fr)]">
         <div className="space-y-6">

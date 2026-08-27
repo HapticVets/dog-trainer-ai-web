@@ -11,6 +11,7 @@ import {
   type CreateAdminDogInput,
 } from "@/lib/adminDogs";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { getAdminClientActivitySummaries } from "@/lib/adminClientActivity";
 
 const DOG_PROFILE_IMAGES_BUCKET = "dog-profile-images";
 const adminDogColumns =
@@ -88,8 +89,15 @@ export async function GET() {
     const profiles = await Promise.all(
       ((data ?? []) as AdminDogProfile[]).map(withSignedImageUrl),
     );
+    const clientActivity = await getAdminClientActivitySummaries(
+      profiles.filter((profile) => profile.record_type === "client").map((profile) => profile.id),
+    );
 
-    return NextResponse.json({ profiles });
+    return NextResponse.json({
+      profiles: profiles.map((profile) => profile.record_type === "client"
+        ? { ...profile, clientActivity: clientActivity.get(profile.id) }
+        : profile),
+    });
   } catch (error) {
     const authorizationResponse = unauthorizedResponse(error);
     if (authorizationResponse) return authorizationResponse;

@@ -12,6 +12,7 @@ import {
 } from "@/lib/adminDogs";
 import { hydrateDogCaseFile } from "@/lib/dogCaseFile";
 import { isKennelBreedingManagementGoalType } from "@/lib/dogGoals";
+import AdminClientActivity from "@/components/AdminClientActivity";
 
 type NewDogForm = {
   name: string;
@@ -135,6 +136,8 @@ function DogRecordCard({
           <p>{dog.client_owner_phone || "Phone not provided"}</p>
         </div>
       )}
+
+      {dog.record_type === "client" && <AdminClientActivity summary={dog.clientActivity} compact />}
 
       <div className="mt-4 flex flex-wrap gap-2">
         <Link

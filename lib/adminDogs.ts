@@ -9,6 +9,7 @@ import {
   normalizeGoalType,
   goalTypeOptions,
 } from "@/lib/dogGoals";
+import type { AdminClientActivitySummary } from "@/lib/adminClientActivity";
 
 export const dogRecordTypes = ["personal", "client", "breeding"] as const;
 
@@ -30,6 +31,7 @@ export type AdminDogProfile = {
   client_owner_phone: string | null;
   created_at: string;
   updated_at: string;
+  clientActivity?: AdminClientActivitySummary;
 };
 
 export type CreateAdminDogInput = {
