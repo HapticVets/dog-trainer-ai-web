@@ -6,7 +6,6 @@ import Image from "next/image";
 import DogTrainingTimeline from "@/components/DogTrainingTimeline";
 import TrainingConsistencyCard from "@/components/TrainingConsistencyCard";
 import {
-  buildDogCaseFileContext,
   hydrateDogCaseFile,
   type DogCaseFile,
 } from "@/lib/dogCaseFile";
@@ -468,62 +467,23 @@ export default function DashboardPage() {
 
     setReportLoading(true);
 
-    const selectedDog = dogProfiles.find((dog) => dog.id === selectedDogId);
-
-    const sessionSummary = sessionLogs
-      .map(
-        (log, index) =>
-          `Session ${index + 1}
-Date: ${log.date}
-Duration: ${log.duration || "not provided"}
-Focus: ${log.focus}
-Wins: ${log.wins}
-Issues: ${log.issues}`
-      )
-      .join("\n\n");
-
-    const reportPrompt = `Generate a structured dog training progress report using the sessions below.
-
-Use this exact format:
-
-CURRENT STATE
-PROGRESS MADE
-RECURRING PROBLEMS
-TRAINING PRIORITIES
-NEXT SESSION PLAN
-
-Be direct, structured, and trainer-level.
-
-${selectedDog ? buildDogCaseFileContext(selectedDog) : "No case file loaded."}
-
-SESSION LOGS:
-${sessionSummary}`;
-
     try {
-      const res = await fetch("/api/chat", {
+      const res = await fetch("/api/progress", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: "user",
-              content: reportPrompt,
-            },
-          ],
-          dogProfile: selectedDog,
-          sessionLogs: sessionLogs.slice(0, 10),
-        }),
+        body: JSON.stringify({ dogProfileId: selectedDogId }),
       });
 
       const data = await res.json();
 
-      const outputText = !res.ok
-        ? data.reply ||
-          data.error ||
-          "Unable to generate progress report right now."
-        : data.reply || "No progress report generated.";
+      if (!res.ok) {
+        setProgressReport(data.error || "Unable to generate progress report right now.");
+        return;
+      }
+
+      const outputText = data.reply || "No progress report generated.";
 
       setProgressReport(outputText);
 
