@@ -5,6 +5,7 @@ import { useUser } from "@clerk/nextjs";
 import Image from "next/image";
 import DogProfilePhotoPicker from "@/components/DogProfilePhotoPicker";
 import CustomerTrainingActions from "@/components/CustomerTrainingActions";
+import CustomerManualSessionLog from "@/components/CustomerManualSessionLog";
 import CustomerSessionWorkspace from "@/components/CustomerSessionWorkspace";
 import CustomerProgressView from "@/components/CustomerProgressView";
 import CustomerCoachView from "@/components/CustomerCoachView";
@@ -413,6 +414,7 @@ export default function TrainPage() {
   const [profileImageError, setProfileImageError] = useState("");
 
   const [sessionLogs, setSessionLogs] = useState<SessionLog[]>([]);
+  const [sessionLogSaving, setSessionLogSaving] = useState(false);
   const [sessionForm, setSessionForm] = useState({
     date: "",
     duration: "15",
@@ -449,7 +451,7 @@ export default function TrainPage() {
   const [sessionFocus, setSessionFocus] = useState("continue");
   const [customSessionFocus, setCustomSessionFocus] = useState("");
   const [activeSessionFocus, setActiveSessionFocus] = useState<string | null>(null);
-  const [customerView, setCustomerView] = useState<"home" | "ready" | "session" | "progress" | "coach" | "plan" | "workspace">("home");
+  const [customerView, setCustomerView] = useState<"home" | "ready" | "session" | "log" | "progress" | "coach" | "plan" | "workspace">("home");
   const [outputsLoading, setOutputsLoading] = useState(false);
   const toastTimeoutRef = useRef<number | null>(null);
 
@@ -789,6 +791,18 @@ export default function TrainPage() {
     } else if (hasSessions) {
       void handleGenerateNextSessionPlan();
     }
+  };
+
+  const openManualSessionLog = () => {
+    if (!hasActiveDog) {
+      handleAddDog();
+      return;
+    }
+    const now = new Date();
+    const localDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    setSessionForm((current) => ({ ...current, date: current.date || localDate }));
+    setCustomerView("log");
+    window.scrollTo({ top: 0, behavior: "auto" });
   };
 
   const handleCustomerSaveSession = async (result: {
@@ -1762,6 +1776,7 @@ export default function TrainPage() {
       return;
     }
 
+    setSessionLogSaving(true);
     try {
       const res = await fetch("/api/session-logs", {
         method: "POST",
@@ -1826,9 +1841,13 @@ export default function TrainPage() {
       setUpgradeModal(null);
       setUpgradeCheckoutError("");
       await refreshTrainerAccess();
+      showToast("Session logged successfully.", "success");
+      if (customerView === "log") setCustomerView("progress");
     } catch (error) {
       console.error("Failed to save session log:", error);
       showToast("Unable to save the session log.", "error");
+    } finally {
+      setSessionLogSaving(false);
     }
   };
 
@@ -3350,6 +3369,7 @@ ${latestCoachReview}`;
           onCustomSessionFocusChange={setCustomSessionFocus}
           onManageDog={() => setCustomerView("workspace")}
           onGenerateSession={handleGenerateTodaySession}
+          onLogSession={openManualSessionLog}
           onRepeatSession={hasCurrentPlan ? () => {
             setActiveSessionFocus(latestSession?.focus || null);
             setCustomerView("session");
@@ -3653,7 +3673,20 @@ ${latestCoachReview}`;
             </div>
           </div>
         </section>
-      ) : customerView === "home" ? null : customerView === "progress" ? (
+      ) : customerView === "home" ? null : customerView === "log" ? (
+        <CustomerManualSessionLog
+          dogName={dogProfile.name}
+          draft={sessionForm}
+          durationOptions={sessionDurationOptions}
+          focusOptions={sessionFocusOptions}
+          resultOptions={sessionResultOptions}
+          issueOptions={sessionIssueOptions}
+          saving={sessionLogSaving}
+          onChange={setSessionForm}
+          onSave={() => void handleSaveSession()}
+          onBack={returnToCustomerHome}
+        />
+      ) : customerView === "progress" ? (
         <CustomerProgressView
           dogId={selectedDogId}
           dogName={dogProfile.name}

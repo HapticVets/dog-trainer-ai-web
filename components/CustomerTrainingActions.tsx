@@ -15,6 +15,7 @@ type CustomerTrainingActionsProps = {
   onCustomSessionFocusChange: (value: string) => void;
   onManageDog: () => void;
   onGenerateSession: () => void;
+  onLogSession: () => void;
   onRepeatSession?: () => void;
   onViewProgress: () => void;
   onTalkToCoach: () => void;
@@ -33,6 +34,7 @@ export default function CustomerTrainingActions({
   onCustomSessionFocusChange,
   onManageDog,
   onGenerateSession,
+  onLogSession,
   onRepeatSession,
   onViewProgress,
   onTalkToCoach,
@@ -71,6 +73,9 @@ export default function CustomerTrainingActions({
         </div>
         <button type="button" onClick={onGenerateSession} className="mt-7 min-h-14 w-full rounded-xl bg-amber-400 px-5 py-4 text-sm font-bold uppercase tracking-[0.08em] text-black transition hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-200 focus:ring-offset-2 focus:ring-offset-neutral-950">
           Generate New Session
+        </button>
+        <button type="button" onClick={onLogSession} className="mt-3 min-h-12 w-full rounded-xl border border-neutral-600 bg-black/30 px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-white transition hover:border-amber-500/50 hover:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-amber-300">
+          Log Your Own Session
         </button>
         {onRepeatSession && <button type="button" onClick={onRepeatSession} className="mt-3 min-h-12 w-full rounded-xl border border-amber-500/40 bg-amber-400/10 px-4 py-3 text-sm font-bold uppercase tracking-[0.08em] text-amber-100 hover:bg-amber-400/15 focus:outline-none focus:ring-2 focus:ring-amber-300">Repeat Last Session{lastSessionLabel ? `: ${lastSessionLabel}` : ""}</button>}
         <div className="mt-3 grid grid-cols-2 gap-3">
