@@ -138,7 +138,7 @@ export default function TrainingOptionsPage() {
             </p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
               <Link
-                href="/train"
+                href="/sign-up"
                 className="inline-flex min-h-12 items-center justify-center rounded bg-amber-400 px-6 py-3 text-center font-semibold text-black transition-colors hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-200 focus:ring-offset-2 focus:ring-offset-neutral-950"
               >
                 Start with the AI Trainer
@@ -189,7 +189,7 @@ export default function TrainingOptionsPage() {
                 <li>Live outside the local service area</li>
               </ul>
               <Link
-                href="/train"
+                href="/sign-up"
                 className="mt-7 inline-flex min-h-11 w-full items-center justify-center rounded bg-amber-400 px-5 py-3 font-semibold text-black transition-colors hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-200 focus:ring-offset-2 focus:ring-offset-neutral-950 sm:w-auto"
               >
                 Start AI Training
@@ -319,8 +319,8 @@ export default function TrainingOptionsPage() {
               Professional training can establish skills and improve handling. The Patriot K9 AI Trainer can then help owners continue practicing, track sessions, review progress, and stay consistent between lessons or after a program ends.
             </p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-              <Link href="/train" className="inline-flex min-h-11 items-center justify-center rounded bg-amber-400 px-5 py-3 font-semibold text-black hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-200 focus:ring-offset-2 focus:ring-offset-neutral-950">
-                Continue with AI Trainer
+              <Link href="/sign-up" className="inline-flex min-h-11 items-center justify-center rounded bg-amber-400 px-5 py-3 font-semibold text-black hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-200 focus:ring-offset-2 focus:ring-offset-neutral-950">
+                Create Free Account
               </Link>
               <a href={`${kennelBaseUrl}/training/evaluation`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center justify-center rounded border border-neutral-600 px-5 py-3 font-semibold text-white hover:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:ring-offset-2 focus:ring-offset-neutral-950">
                 Contact Patriot K9 Command
@@ -367,8 +367,8 @@ export default function TrainingOptionsPage() {
             Start with guided training from home or connect directly with Patriot K9 Command for hands-on professional support.
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-            <Link href="/train" className="inline-flex min-h-12 items-center justify-center rounded bg-amber-400 px-6 py-3 font-semibold text-black hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-200 focus:ring-offset-2 focus:ring-offset-neutral-950">
-              Start AI Training
+            <Link href="/sign-up" className="inline-flex min-h-12 items-center justify-center rounded bg-amber-400 px-6 py-3 font-semibold text-black hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-200 focus:ring-offset-2 focus:ring-offset-neutral-950">
+              Create Free Account
             </Link>
             <a href={`${kennelBaseUrl}/training/evaluation`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 items-center justify-center rounded border border-neutral-600 px-6 py-3 font-semibold text-white hover:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:ring-offset-2 focus:ring-offset-neutral-950">
               Request In-Person Training

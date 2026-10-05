@@ -191,7 +191,7 @@ export default function AboutPage() {
 
           <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row sm:flex-wrap">
             <Link
-              href="/train"
+              href="/sign-up"
               className="w-full rounded bg-amber-400 px-6 py-3 text-center font-semibold text-black sm:w-auto"
             >
               Start Free Trial

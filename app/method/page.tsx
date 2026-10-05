@@ -285,7 +285,7 @@ export default function MethodPage() {
 
           <div className="mt-10 flex flex-wrap justify-center gap-4">
             <Link
-              href="/train"
+              href="/sign-up"
               className="rounded bg-amber-400 px-8 py-4 font-semibold text-black"
             >
               Start Training

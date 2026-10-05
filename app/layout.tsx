@@ -60,6 +60,20 @@ export default function RootLayout({
     <ClerkProvider
       signInUrl={authRoutes.signInUrl}
       signUpUrl={authRoutes.signUpUrl}
+      localization={{
+        signIn: {
+          start: {
+            title: "Sign in to Patriot K9 Command",
+            subtitle: "Welcome back. Continue your dog’s training progress.",
+          },
+        },
+        signUp: {
+          start: {
+            title: "Create your Patriot K9 account",
+            subtitle: "Add your dog and receive your first personalized training session free.",
+          },
+        },
+      }}
     >
       <html lang="en">
         <body className="bg-[#0b0f17] text-white antialiased">

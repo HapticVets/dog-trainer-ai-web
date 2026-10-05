@@ -3,7 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
-import { useState } from "react";
+import ProductExperiencePreview from "@/components/ProductExperiencePreview";
+import LandingPricingSection from "@/components/LandingPricingSection";
 
 const problemPoints = [
   "Every dog is different.",
@@ -130,29 +131,8 @@ const landingPageLinks = [
 
 export default function Home() {
   const { isSignedIn } = useUser();
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const patriotK9ContactUrl = "https://discord.gg/Mmb4KSp9Y8";
-
-  const handleCheckout = async () => {
-    if (checkoutLoading) return;
-    setCheckoutLoading(true);
-    try {
-      const res = await fetch("/api/checkout", { method: "POST" });
-      const data = await res.json();
-
-      if (data?.url) {
-        window.location.href = data.url;
-        return;
-      }
-
-      alert(data?.error || "Unable to start checkout right now.");
-    } catch (err) {
-      console.error(err);
-      alert("Error starting checkout.");
-    } finally {
-      setCheckoutLoading(false);
-    }
-  };
+  const startHref = isSignedIn ? "/train" : "/sign-up";
+  const patriotK9ContactUrl = "https://www.patriotk9kennel.com/inquire?service=Training%20evaluation";
 
   return (
     <main className="min-h-screen bg-neutral-950 text-white">
@@ -174,10 +154,10 @@ export default function Home() {
 
             <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <Link
-                href="/train"
+                href={startHref}
                 className="w-full rounded bg-amber-400 px-6 py-3 text-center font-semibold text-black sm:w-auto"
               >
-                Start Free
+                {isSignedIn ? "Continue Training" : "Create Free Account"}
               </Link>
 
               <Link
@@ -207,6 +187,10 @@ export default function Home() {
           </figure>
         </div>
       </section>
+
+      <ProductExperiencePreview />
+
+      <LandingPricingSection />
 
       <section className="border-b border-neutral-800 bg-black px-6 py-20">
         <div className="mx-auto max-w-7xl overflow-hidden rounded-3xl border border-amber-400/25 bg-neutral-950 shadow-[0_20px_50px_rgba(0,0,0,0.4)]">
@@ -557,65 +541,6 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="pricing" className="scroll-mt-24 border-b border-neutral-800 px-6 py-24">
-        <div className="mx-auto max-w-6xl text-center">
-          <p className="text-sm uppercase tracking-[0.25em] text-amber-400">
-            Premium Value
-          </p>
-          <h2 className="mt-4 text-3xl font-bold md:text-4xl">
-            Daily Guidance for Less Than the Cost of One Private Lesson
-          </h2>
-          <p className="mx-auto mt-6 max-w-3xl text-neutral-300">
-            Free users can try the core training flow. Premium unlocks unlimited
-            dogs, sessions, progression, and AI chat for $20 per month.
-          </p>
-
-          <div className="mx-auto mt-10 grid max-w-4xl gap-6 md:grid-cols-2">
-            <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-6 text-left">
-              <h3 className="text-lg font-semibold">Basic Access</h3>
-              <p className="mt-2 text-3xl font-bold">$0</p>
-
-              <ul className="mt-4 space-y-2 text-sm text-neutral-300">
-                <li>&bull; Try the core training flow</li>
-                <li>&bull; Build a dog profile</li>
-                <li>&bull; Log basic progress</li>
-              </ul>
-            </div>
-
-            <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-6 text-left">
-              <h3 className="text-lg font-semibold">Full Command Access</h3>
-              <p className="mt-2 text-3xl font-bold">$20/month</p>
-
-              <ul className="mt-4 space-y-2 text-sm text-neutral-200">
-                <li>&bull; Unlimited AI coaching</li>
-                <li>&bull; Unlimited session progression</li>
-                <li>&bull; Saved training history</li>
-                <li>&bull; Multi-dog support</li>
-              </ul>
-
-              {!isSignedIn && (
-                <Link
-                  href="/sign-up"
-                  className="mt-6 inline-block rounded bg-amber-400 px-5 py-3 font-semibold text-black"
-                >
-                  Start Free
-                </Link>
-              )}
-
-              {isSignedIn && (
-                <button
-                  onClick={handleCheckout}
-                  disabled={checkoutLoading}
-                  className="mt-6 rounded bg-amber-400 px-5 py-3 font-semibold text-black disabled:cursor-wait disabled:opacity-60"
-                >
-                  {checkoutLoading ? "Starting checkout..." : "Upgrade Now"}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
-
       <section className="border-b border-neutral-800 px-6 py-24 text-center">
         <div className="mx-auto max-w-4xl">
           <h2 className="text-3xl font-bold md:text-4xl">
@@ -628,10 +553,10 @@ export default function Home() {
 
           <div className="mt-10">
             <Link
-              href="/train"
+              href={startHref}
               className="inline-block rounded bg-amber-400 px-6 py-3 font-semibold text-black"
             >
-              Start Free
+              {isSignedIn ? "Continue Training" : "Create Free Account"}
             </Link>
             <p className="mt-4 text-sm text-neutral-400">
               No credit card required.
@@ -661,10 +586,10 @@ export default function Home() {
               <div className="max-w-2xl">
                 <h2 className="text-3xl font-bold md:text-4xl">Ready to Start Training?</h2>
                 <Link
-                  href="/train"
+                  href={startHref}
                   className="mt-7 inline-block rounded bg-amber-400 px-6 py-3 font-semibold text-black"
                 >
-                  Start Training
+                  {isSignedIn ? "Continue Training" : "Create Free Account"}
                 </Link>
               </div>
             </div>

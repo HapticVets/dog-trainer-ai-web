@@ -8,7 +8,7 @@ import {
   type ExpiredPromotionalTrial,
 } from "@/lib/promotionalTrials";
 
-export const FREE_AI_CHAT_LIMIT = 3;
+export const FREE_AI_CHAT_LIMIT = 8;
 export const FREE_FIRST_SESSION_LIMIT = 1;
 export const FREE_SESSION_LOG_LIMIT = 1;
 export const FREE_DOG_PROFILE_LIMIT = 1;
