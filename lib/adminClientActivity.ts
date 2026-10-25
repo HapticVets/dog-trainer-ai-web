@@ -100,6 +100,7 @@ export async function getAdminClientActivitySummaries(adminDogIds: string[]) {
   const outputs = (outputResult.data ?? []) as ClientActivityRow[];
   const homeworkRows = homeworkResult.data ?? [];
   const sevenDaysAgo = Date.now() - 7 * 86_400_000;
+  const thirtyDaysAgo = Date.now() - 30 * 86_400_000;
 
   linkedDogs.forEach((link) => {
     const dogSessions = sessions.filter((session) => isForLinkedCustomerDog(session, link));
@@ -123,7 +124,7 @@ export async function getAdminClientActivitySummaries(adminDogIds: string[]) {
         result: compactText(lastSession.wins) ?? compactText(lastSession.issues),
       } : null,
       sessionsLast7Days: dogSessions.filter((session) => new Date(session.created_at).getTime() >= sevenDaysAgo).length,
-      sessionsLast30Days: dogSessions.length,
+      sessionsLast30Days: dogSessions.filter((session) => new Date(session.created_at).getTime() >= thirtyDaysAgo).length,
       currentHomework: homework ? { focus: homework.homework_focus, assignedAt: homework.created_at } : null,
       lastTrainerActivityAt,
       daysSinceLastClientSession: lastSessionAt ? daysSince(lastSessionAt) : null,
