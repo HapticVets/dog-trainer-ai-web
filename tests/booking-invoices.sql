@@ -1,0 +1,43 @@
+-- Run after the invoice migration inside a transaction, followed by ROLLBACK.
+do $$
+declare s record; other record; a jsonb; b jsonb; c jsonb; result jsonb; future_paid timestamptz; n integer;
+begin
+  select * into s from booking_available() where starts_at>now()+interval '2 days' limit 1;
+  a:=booking_request(s.id,gen_random_uuid(),'{"service":"Private training","email":"invoice-test@example.invalid"}');
+  b:=booking_request(s.id,gen_random_uuid(),'{"service":"Private training","email":"invoice-test2@example.invalid"}');
+  begin perform booking_decide((a->>'id')::uuid,'approved');raise exception 'TEST FAILED: approved without payment';
+  exception when raise_exception then if sqlerrm like 'TEST FAILED:%' then raise; end if; end;
+  perform booking_invoice_prepare((a->>'id')::uuid,now()+interval '24 hours');
+  if exists(select 1 from booking_available() where id=s.id) then raise exception 'TEST FAILED: unpaid hold was offered'; end if;
+  begin perform booking_invoice_prepare((b->>'id')::uuid,now()+interval '24 hours');raise exception 'TEST FAILED: second hold accepted';
+  exception when raise_exception then if sqlerrm like 'TEST FAILED:%' then raise; end if; end;
+  perform booking_invoice_attach((a->>'id')::uuid,'in_booking_test','cus_booking_test','https://invoice.stripe.com/test','TEST-001');
+  begin perform booking_decide((a->>'id')::uuid,'cancelled');raise exception 'TEST FAILED: payable invoice hold released';
+  exception when raise_exception then if sqlerrm like 'TEST FAILED:%' then raise; end if; end;
+  begin perform booking_invoice_paid((a->>'id')::uuid,'in_wrong',12000,12000,'usd','evt_wrong',now());raise exception 'TEST FAILED: wrong invoice accepted';
+  exception when raise_exception then if sqlerrm like 'TEST FAILED:%' then raise; end if; end;
+  result:=booking_invoice_paid((a->>'id')::uuid,'in_booking_test',12000,12000,'usd','evt_booking_test',now());
+  if result->>'status'<>'approved' then raise exception 'TEST FAILED: full payment not confirmed'; end if;
+  perform booking_invoice_paid((a->>'id')::uuid,'in_booking_test',12000,12000,'usd','evt_booking_test',now());
+  select count(*) into n from booking_payment_events where event_id='evt_booking_test';
+  if n<>1 then raise exception 'TEST FAILED: duplicate event recorded'; end if;
+  select count(*) into n from booking_mail where request_id=(a->>'id')::uuid and kind='approved';
+  if n<>1 then raise exception 'TEST FAILED: duplicate confirmation'; end if;
+  perform booking_decide((a->>'id')::uuid,'cancelled');
+  if not exists(select 1 from booking_available() where id=s.id) then raise exception 'TEST FAILED: paid cancellation did not reopen'; end if;
+  perform booking_invoice_prepare((b->>'id')::uuid,now()+interval '24 hours');
+  perform booking_invoice_attach((b->>'id')::uuid,'in_booking_test2','cus_booking_test');
+  update booking_requests set payment_due_at=now()-interval '1 minute' where id=(b->>'id')::uuid;
+  if exists(select 1 from booking_available() where id=s.id) then raise exception 'TEST FAILED: overdue but payable invoice released'; end if;
+  perform booking_invoice_voided((b->>'id')::uuid,'in_booking_test2');
+  if not exists(select 1 from booking_available() where id=s.id) then raise exception 'TEST FAILED: void did not release hold'; end if;
+  result:=booking_invoice_paid((b->>'id')::uuid,'in_booking_test2',12000,12000,'usd','evt_late_booking_test',now());
+  if result->>'status'<>'payment_review' then raise exception 'TEST FAILED: late payment auto-confirmed'; end if;
+  select * into other from booking_available() where id<>s.id and starts_at>now()+interval '2 days' limit 1;
+  c:=booking_request(other.id,gen_random_uuid(),'{"service":"Private training","email":"invoice-test3@example.invalid"}');
+  perform booking_invoice_prepare((c->>'id')::uuid,now()+interval '24 hours');
+  perform booking_invoice_attach((c->>'id')::uuid,'in_booking_test3','cus_booking_test');
+  result:=booking_invoice_paid((c->>'id')::uuid,'in_booking_test3',1000,1000,'usd','evt_underpaid_booking_test',now());
+  if result->>'status'<>'payment_review' then raise exception 'TEST FAILED: wrong total auto-confirmed'; end if;
+  if has_function_privilege('anon','public.booking_invoice_paid(uuid,text,integer,integer,text,text,timestamptz)','execute') then raise exception 'TEST FAILED: public payment confirmation'; end if;
+end $$;

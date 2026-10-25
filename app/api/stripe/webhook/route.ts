@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { clerkClient } from "@clerk/nextjs/server";
 import { recordPromotionalTrialPremiumConversion } from "@/lib/promotionalTrialConversions";
+import {handleBookingInvoice,closeBookingInvoice} from '@/lib/bookingInvoices';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
@@ -22,8 +23,17 @@ export async function POST(req: Request) {
       process.env.STRIPE_WEBHOOK_SECRET as string
     );
 
+    if (['invoice.paid','invoice.voided','invoice.payment_failed','invoice.overdue'].includes(event.type)) {
+      const invoice=event.data.object as Stripe.Invoice;
+      if(invoice.metadata?.purpose==='patriot_k9_booking'){
+        const result=await handleBookingInvoice(stripe,invoice,event.id);
+        if(event.type==='invoice.overdue'&&!result&&invoice.due_date&&invoice.due_date*1000<Date.now())await closeBookingInvoice(stripe,invoice.metadata.booking_request_id,'expired');
+        return NextResponse.json({received:true});
+      }
+    }
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
+      if(session.mode!=='subscription'||session.metadata?.plan!=='premium')return NextResponse.json({received:true});
       const clerkUserId = session.metadata?.clerkUserId;
       const stripeCustomerId =
         typeof session.customer === "string" ? session.customer : null;
