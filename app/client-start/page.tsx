@@ -13,6 +13,12 @@ export default function ClientStart(){
       <li className="rounded-xl border border-neutral-700 p-5"><h2 className="text-xl font-bold">3. Practice and log what happened</h2><p className="mt-2 leading-7 text-neutral-300">After your lesson, open your linked dog in the AI Trainer and follow the assigned homework. Keep practice short and consistent, using the duration and exercises John assigns. Log your session, what went well, and what was difficult. Those logs help John plan your next lesson.</p><Link href="/train" className="mt-4 inline-block rounded-lg bg-amber-400 px-4 py-3 font-bold text-black">Open the AI Trainer</Link></li>
     </ol>
     <p className="leading-7 text-neutral-300">Consistent home practice helps you get more from your paid lessons. Progress and the number of lessons needed depend on your dog, goals, and follow-through. Ask John before changing your assigned exercises or increasing difficulty.</p>
+    <section className="rounded-xl border border-neutral-700 bg-neutral-900 p-6" aria-labelledby="discord-heading">
+      <h2 id="discord-heading" className="text-2xl font-bold">Join our dog community on Discord</h2>
+      <p className="mt-3 leading-7 text-neutral-300">Meet other Patriot K9 dog owners, introduce your dog, and share your training progress. Discord is optional; keep your assigned homework and practice logs in the AI Trainer so John can review them.</p>
+      <a href="https://discord.gg/Mmb4KSp9Y8" target="_blank" rel="noopener noreferrer" className="mt-4 inline-block rounded-lg bg-amber-400 px-4 py-3 font-bold text-black">Join Patriot K9 Kennel on Discord</a>
+      <p className="mt-3 text-sm leading-6 text-neutral-400">Joining Discord does not activate included AI access or a paid subscription. Share only information you are comfortable sharing with other members.</p>
+    </section>
     <p>Need help? <a className="text-amber-200 underline" href="sms:8132996905">Text John at (813) 299-6905</a>.</p>
   </main>;
 }
