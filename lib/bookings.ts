@@ -20,8 +20,8 @@ export async function bookingDb<T>(path: string, method = 'GET', body?: unknown)
   return text ? JSON.parse(text) as T : undefined as T;
 }
 export async function availableSlots(): Promise<Slot[]> {
-  const rows = await bookingDb<(Slot & { booking_requests: { status: string }[] })[]>(`booking_slots?select=id,starts_at,ends_at,booking_requests(status)&state=eq.open&starts_at=gt.${encodeURIComponent(new Date().toISOString())}&order=starts_at.asc&limit=500`);
-  return rows.filter(s => !s.booking_requests.some(r => r.status === 'approved')).map(({id,starts_at,ends_at}) => ({id,starts_at,ends_at}));
+  const rows = await bookingDb<Slot[]>('rpc/booking_available','POST',{});
+  return rows.map(({id,starts_at,ends_at}) => ({id,starts_at,ends_at}));
 }
 export function requestBooking(slot: string, submission: string, details: unknown) {
   return bookingDb<Booking>('rpc/booking_request','POST',{p_slot:slot,p_submission:submission,p_details:details});
@@ -41,7 +41,7 @@ export async function sendBookingMail(requestId: string): Promise<boolean> {
       const owner = job.kind === 'owner';
       const subject = owner ? `Training appointment request: ${details.name}` : `Patriot K9 appointment ${job.kind}`;
       const text = owner
-        ? `A customer requested ${formatTime(slot)}. This is pending your approval.\n\n${Object.entries(details).map(([k,v])=>`${k}: ${v}`).join('\n')}\n\nReview and approve or decline: https://app.patriotk9kennel.com/admin/bookings`
+        ? `A customer requested ${formatTime(slot)}. This is pending your approval.\nRequest number: ${booking.id}\n\n${Object.entries(details).filter(([k])=>!['bookingSlot','submissionId'].includes(k)).map(([k,v])=>`${k}: ${v}`).join('\n')}\n\nTo approve or decline, tell your assistant the request number and your decision. The time stays unreserved until your assistant processes the approval. You do not need to use the website admin area.`
         : `Hi ${details.name},\n\n${job.kind === 'approved' ? 'Your 60-minute private training appointment is confirmed.' : job.kind === 'cancelled' ? 'Your training appointment has been cancelled.' : 'We cannot confirm the time you requested. Please contact us to arrange another time.'}\n\n${formatTime(slot)}\nDog: ${details.dogName}\n\nPlease call or text (813) 299-6905 for questions, location details, or changes. No payment was taken through this request.\n\nJohn Reese\nPatriot K9 Command`;
       const response = await fetch('https://api.resend.com/emails',{method:'POST',signal:AbortSignal.timeout(15_000),headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json','Idempotency-Key':`booking-${job.id}`},body:JSON.stringify({from,to:[owner ? process.env.TRAINING_INQUIRY_TO_EMAIL || 'jreese@hapticvets.com' : details.email],reply_to:owner ? details.email : 'jreese@hapticvets.com',subject,text})});
       if (!response.ok) throw new Error('Email delivery failed');
