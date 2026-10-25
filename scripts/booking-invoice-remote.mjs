@@ -1,0 +1,11 @@
+import nextEnv from '@next/env';
+import {createHmac} from 'node:crypto';
+nextEnv.loadEnvConfig(process.cwd());
+const action=process.argv[2]||'health';
+const id=process.argv[3];
+if(action!=='health'&&process.argv[4]!=='--authorized-by-john')throw new Error('Explicit authorization for the selected booking is required.');
+const raw=JSON.stringify({action,...(id?{id}:{})});const stamp=String(Date.now());
+if(!process.env.BOOKING_AUTOMATION_SECRET)throw new Error('The private booking connection is not configured.');
+const signature=createHmac('sha256',process.env.BOOKING_AUTOMATION_SECRET).update(`${stamp}.${raw}`).digest('hex');
+const r=await fetch('https://app.patriotk9kennel.com/api/booking-invoice-operations',{method:'POST',headers:{'Content-Type':'application/json','x-booking-time':stamp,'x-booking-signature':signature},body:raw,signal:AbortSignal.timeout(60000)});
+console.log(JSON.stringify(await r.json(),null,2));if(!r.ok)process.exitCode=1;
